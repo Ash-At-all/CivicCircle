@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VibeChat | City boards and live chat</title>
+<meta name="description" content="VibeChat gives each Indian city a board for posts and a live chat room. Pick your city and join the conversation.">
+<meta name="theme-color" content="#151714">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23d9a441'/%3E%3Cpath d='M7 9h18v11H15l-5 4v-4H7z' fill='%23151714'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#151714;--surface:#1c1f1b;--line:#2e332c;--text:#e7e5de;--muted:#a0a699;--accent:#d9a441;--ink:#1d1606;--danger:#e08a7a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:400 1rem/1.6 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque","Hanken Grotesk",system-ui,sans-serif;line-height:1.2;margin:0 0 .4em;letter-spacing:-.01em}
+h1{font-size:1.5rem;font-weight:700}h2{font-size:1.125rem;font-weight:600}h3{font-size:1rem;font-weight:600}
+p{margin:0 0 1em;max-width:64ch}
+a{color:var(--text);text-underline-offset:3px}a:hover{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--accent);color:var(--ink);padding:8px 12px;border-radius:6px;z-index:5}.skip:focus{left:8px}
+.app{display:grid;grid-template-columns:264px 1fr;height:100%}
+.side{display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface);min-height:0}
+.brand{display:flex;align-items:center;gap:10px;padding:16px 18px;font:700 1.25rem "Bricolage Grotesque",sans-serif;text-decoration:none;border-bottom:1px solid var(--line)}
+.brand svg,.brand img{width:28px;height:28px;border-radius:6px;object-fit:cover}
+.side h2{font-size:.875rem;font-weight:500;color:var(--muted);padding:16px 18px 6px;margin:0}
+.cities{list-style:none;margin:0;padding:0 8px;overflow:auto;flex:1}
+.city-search{display:flex;gap:6px;padding:8px 12px}.city-search input{min-width:0;width:100%;padding:8px}
+.search-status{font-size:.8125rem;color:var(--muted);margin:0;padding:0 18px 6px}
+.city-results{list-style:none;margin:0;padding:0 8px;max-height:30vh;overflow:auto}
+.city-results li,.cities li{display:flex;align-items:center;gap:6px;padding:3px 4px}
+.city-results li span{flex:1;min-width:0;overflow-wrap:anywhere}
+.cities li a{flex:1;min-width:0}
+.cities a{display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-radius:6px;text-decoration:none;color:var(--muted)}
+.cities a small{font-size:.8125rem;opacity:.8}
+.cities a:hover{background:var(--bg);color:var(--text)}
+.cities a[aria-current="page"]{background:var(--bg);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}
+.leave-btn{font-size:.8125rem;padding:4px 8px;min-height:34px}
+.sfoot{padding:12px 18px;border-top:1px solid var(--line);font-size:.875rem;color:var(--muted);display:flex;gap:16px}
+.sfoot a{color:var(--muted)}.sfoot a:hover{color:var(--text)}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+[data-view]{flex:1;display:flex;flex-direction:column;min-height:0}
+[data-view][hidden]{display:none}
+.head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.head p{margin:0;color:var(--muted);font-size:.875rem}
+.pane{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.pane+.pane{border-top:1px solid var(--line)}
+.ptitle{padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ptitle h2{margin:0}
+.channels{display:flex;gap:8px;overflow:auto;padding:0 20px 10px}
+.channels[hidden]{display:none}
+.channels button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
+.scroll{flex:1;overflow:auto;padding:4px 20px 16px}
+form.row{display:flex;gap:8px;padding:0 20px 12px;flex-wrap:wrap}
+input,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 12px;min-height:44px}
+input{flex:1;min-width:160px}
+input::placeholder{color:#7d8377}
+.btn{display:inline-block;font:500 .9375rem "Hanken Grotesk",sans-serif;padding:9px 16px;min-height:44px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--text);text-decoration:none;cursor:pointer}
+.btn:hover{background:var(--surface)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}.btn-primary:hover{background:#e6b556}
+.post{padding:12px 0;border-bottom:1px solid var(--line)}
+.post .tag{display:inline-block;font-size:.8125rem;border:1px solid var(--line);border-radius:4px;padding:0 7px;color:var(--muted);margin-right:8px}
+.post time,.msg time{color:var(--muted);font-size:.8125rem}
+.msg{padding:6px 0}.msg b{font-weight:600;margin-right:8px}.msg span{overflow-wrap:anywhere}
+.state{border:1px dashed var(--line);border-radius:8px;padding:20px;color:var(--muted);margin-top:8px}
+.state h3{color:var(--text);margin-bottom:4px}.state p{margin:0}
+.state.err h3{color:var(--danger)}
+.sk i{display:block;height:12px;border-radius:3px;background:var(--line);margin:14px 0}.sk i:nth-child(odd){width:80%}.sk i:nth-child(even){width:55%}
+@media (prefers-reduced-motion:no-preference){.sk i{animation:p 1.4s ease-in-out infinite}@keyframes p{50%{opacity:.45}}}
+.doc{overflow:auto;padding:24px 20px 48px}.doc>div{max-width:68ch}
+.doc h2{margin-top:1.8em}.doc ul{padding-left:1.2em}
+.callout{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:10px 14px;color:var(--muted)}
+.welcome{padding:40px 20px;overflow:auto}.welcome>div{max-width:60ch}
+.welcome h1{font-size:2rem;margin-bottom:.5em}
+.welcome .lead{color:var(--muted);font-size:1.0625rem}
+@media (max-width:760px){
+ .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+ .side{border-right:0;border-bottom:1px solid var(--line);max-height:42vh;overflow:auto}
+ .brand{padding:10px 16px}.side h2{display:none}
+ .city-search{padding:8px 12px}.city-results{max-height:15vh}
+ .cities{display:flex;overflow-x:auto;flex:none;padding:6px 8px}
+ .cities li{flex:none}
+ .cities a{white-space:nowrap}.cities a small{display:none}
+ .cities a[aria-current="page"]{box-shadow:inset 0 -3px 0 var(--accent)}
+ .sfoot{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+ <aside class="side" aria-label="Cities">
+  <a class="brand" href="#home"><img src="logo.svg" alt="VibeChat logo" width="28" height="28">VibeChat</a>
+  <h2 id="cl">Your cities</h2>
+  <form class="city-search" id="citysearch" role="search">
+   <label class="skip" for="cityquery">Search cities</label><input id="cityquery" type="search" placeholder="Find a city" autocomplete="off">
+   <button class="btn" type="submit">Search</button>
+  </form>
+  <p class="search-status" id="searchstatus" aria-live="polite">Search for a city to find a community.</p>
+  <ul class="city-results" id="searchresults" aria-label="City search results" hidden></ul>
+  <ul class="cities" id="citylist" aria-labelledby="cl"></ul>
+  <div class="sfoot"><a href="#privacy">Privacy</a><a href="#terms">Terms</a></div>
+ </aside>
+
+ <main class="main" id="main" tabindex="-1">
+  <section data-view="home" class="welcome">
+   <div>
+    <h1>Pick a city to start</h1>
+    <p class="lead">General Chat is ready by default. Search for cities you care about and join only the communities you want.</p>
+    <p class="callout">Your joined city preferences are saved in this browser. Posts and messages stay in this browser tab only because the backend is not connected yet. Accounts and voice rooms come later.</p>
+   </div>
+  </section>
+
+  <section data-view="preview" class="welcome" hidden>
+   <div>
+    <h1 id="previewtitle">Join this city</h1>
+    <p class="lead" id="previewcopy"></p>
+    <button class="btn btn-primary" id="previewjoin" type="button">Join city</button>
+   </div>
+  </section>
+
+  <section data-view="city" hidden>
+   <div class="head"><h1 id="ct" tabindex="-1">City</h1><p id="cm"></p></div>
+   <div class="pane" aria-labelledby="ph">
+    <div class="ptitle"><h2 id="ph">Posts</h2></div>
+    <form class="row" id="pf">
+     <label class="skip" for="pt">Post title</label><input id="pt" placeholder="Share a question or a tip" maxlength="140" required autocomplete="off">
+     <label class="skip" for="ptag">Tag</label><select id="ptag"><option>Food</option><option>Jobs</option><option>Rent</option><option>Events</option><option>General</option></select>
+     <button class="btn btn-primary" type="submit">Post</button>
+    </form>
+    <div class="scroll" id="posts" aria-live="polite"></div>
+   </div>
+   <div class="pane" aria-labelledby="ch">
+    <div class="ptitle"><h2 id="ch">Live chat</h2></div>
+    <nav class="channels" id="generalchannels" role="tablist" aria-label="General chat channels" hidden>
+     <button class="btn" type="button" role="tab" data-channel="chitchat" aria-selected="true">Chit-chat</button>
+     <button class="btn" type="button" role="tab" data-channel="meetings" aria-selected="false">Meetings</button>
+     <button class="btn" type="button" role="tab" data-channel="problems" aria-selected="false">Problem-solving</button>
+     <button class="btn" type="button" role="tab" data-channel="help" aria-selected="false">Help</button>
+    </nav>
+    <div class="scroll" id="msgs" role="log" aria-live="polite"></div>
+    <form class="row" id="mf" style="padding-top:12px;border-top:1px solid var(--line)">
+     <label class="skip" for="mt">Message</label><input id="mt" placeholder="Message this city" maxlength="500" required autocomplete="off">
+     <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+   </div>
+  </section>
+
+  <section data-view="privacy" class="doc" hidden><div>
+   <h1 tabindex="-1">Privacy Policy</h1>
+   <p class="callout">Working draft. Have a legal professional review it and replace the contact details before launch. Last updated October 21, 2026.</p>
+   <h2>What we collect</h2>
+   <ul><li>Name, email and profile picture from Google sign-in.</li><li>Your home city and the city hubs you join.</li><li>Posts, comments, votes and chat messages you create.</li><li>Basic technical data such as IP address and browser type, used for security and abuse prevention.</li></ul>
+   <h2>How we use it</h2>
+   <p>To run the service, show your content to other users of the city, keep the community safe and fix problems. We do not sell personal data.</p>
+   <h2>Who we share it with</h2>
+   <p>Service providers for hosting, storage, email and voice, and authorities when the law requires it. Posts and chat messages are visible to other users in the same city.</p>
+   <h2>Cookies</h2>
+   <p>Only the cookies needed to keep you signed in and secure. No advertising cookies.</p>
+   <h2>Retention and your choices</h2>
+   <p>We keep data while your account is active. You can ask to access, correct or delete your data at any time.</p>
+   <h2>Children</h2>
+   <p>VibeChat is not meant for anyone under 18.</p>
+   <h2>Contact</h2>
+   <p><a href="mailto:hello@yourdomain.example">hello@yourdomain.example</a> (placeholder address)</p>
+  </div></section>
+
+  <section data-view="terms" class="doc" hidden><div>
+   <h1 tabindex="-1">Terms and Conditions</h1>
+   <p class="callout">Working draft. Have a legal professional review it before launch. Last updated October 21, 2026.</p>
+   <h2>Using VibeChat</h2>
+   <p>You must be at least 18. You are responsible for activity on your account.</p>
+   <h2>Your content</h2>
+   <p>You own what you post. You allow us to store and display it so the service works. Only post what you have the right to share.</p>
+   <h2>Acceptable use</h2>
+   <ul><li>No harassment, hate speech or threats.</li><li>No sharing of other people’s private information.</li><li>No spam, scams or impersonation.</li><li>No illegal content or activity.</li></ul>
+   <h2>Moderation</h2>
+   <p>We and city moderators may remove content, mute users or suspend accounts that break these terms.</p>
+   <h2>Availability and liability</h2>
+   <p>The service is provided as is and may change or pause. To the extent the law allows, we are not liable for indirect losses or for what other users post.</p>
+   <h2>Governing law and contact</h2>
+   <p>Laws of India apply. Courts at [city to be confirmed] have jurisdiction. Contact: <a href="mailto:hello@yourdomain.example">hello@yourdomain.example</a> (placeholder address).</p>
+  </div></section>
+
+  <section data-view="notfound" class="welcome" hidden>
+   <div class="state err" role="alert"><h1 style="font-size:1.25rem" tabindex="-1">We could not find that page</h1><p style="margin-bottom:12px">The address may be mistyped, or that city is not on the list yet.</p><a class="btn btn-primary" href="#home">Back to cities</a></div>
+  </section>
+ </main>
+</div>
+
+<script>
+var cities=[["pune","Pune","MH"],["mumbai","Mumbai","MH"],["nagpur","Nagpur","MH"],["nashik","Nashik","MH"],["sambhajinagar","Chhatrapati Sambhajinagar/Aurangabad","MH"],["hyderabad","Hyderabad","TS"],["bengaluru","Bengaluru","KA"],["delhi","Delhi","DL"],["general","General chat","Everyone"]];
+var data={},cur=null,timer=null,$=function(i){return document.getElementById(i)};
+var list=$("citylist"),joined=["general"],activeChannel="chitchat";
+try{
+ var saved=JSON.parse(localStorage.getItem("vibechat-joined-cities")||"[]");
+ if(Array.isArray(saved))joined=["general"].concat(saved.filter(function(slug){return slug!=="general"&&cities.some(function(c){return c[0]===slug})}));
+}catch(error){$("searchstatus").textContent="Could not load saved city preferences. You can still search and join cities."}
+function renderJoined(){
+ list.textContent="";
+ joined.forEach(function(slug){
+  var c=cities.filter(function(city){return city[0]===slug})[0],li=document.createElement("li"),a=document.createElement("a"),s=document.createElement("small");
+  a.href="#"+c[0];a.dataset.slug=c[0];a.textContent=c[1];s.textContent=c[2];a.appendChild(s);
+  li.appendChild(a);
+  if(slug==="general"){var badge=document.createElement("small");badge.textContent="Always joined";li.appendChild(badge)}
+  else{var leave=document.createElement("button");leave.type="button";leave.className="btn leave-btn";leave.textContent="Leave";leave.setAttribute("aria-label","Leave "+c[1]);leave.addEventListener("click",function(){leaveCity(c[0])});li.appendChild(leave)}
+  list.appendChild(li)
+ })
+}
+function renderSearch(matches){
+ var results=$("searchresults");results.textContent="";
+ matches.forEach(function(c){
+  var li=document.createElement("li"),name=document.createElement("span"),button=document.createElement("button"),isJoined=joined.indexOf(c[0])!==-1;
+  name.textContent=c[1]+" ("+c[2]+")";button.type="button";button.className="btn"+(isJoined?"":" btn-primary");button.textContent=isJoined?"Joined":"Join";button.disabled=isJoined;
+  button.addEventListener("click",function(){joinCity(c[0])});
+  li.appendChild(name);li.appendChild(button);results.appendChild(li)
+ });
+ results.hidden=!matches.length
+}
+function searchCities(){
+ var query=$("cityquery").value.trim().toLocaleLowerCase();
+ if(!query){$("searchstatus").textContent="Type a city name to search.";renderSearch([]);return}
+ var matches=cities.filter(function(c){return c[1].toLocaleLowerCase().indexOf(query)!==-1||c[2].toLocaleLowerCase().indexOf(query)!==-1});
+ $("searchstatus").textContent=matches.length?matches.length+" cities found. Join only the ones you want.":"No cities found. Try another search.";
+ renderSearch(matches)
+}
+function saveJoined(){
+ try{localStorage.setItem("vibechat-joined-cities",JSON.stringify(joined))}
+ catch(error){$("searchstatus").textContent="Could not save your city preferences in this browser."}
+}
+function joinCity(slug){
+ if(joined.indexOf(slug)===-1){joined.push(slug);saveJoined();renderJoined()}
+ searchCities();if(location.hash==="#"+slug)route();else location.hash=slug
+}
+function leaveCity(slug){
+ if(slug==="general")return;
+ joined=joined.filter(function(item){return item!==slug});saveJoined();renderJoined();searchCities();
+ if(location.hash==="#"+slug)location.hash="home"
+}
+renderJoined();
+$("citysearch").addEventListener("submit",function(e){e.preventDefault();searchCities()});
+$("cityquery").addEventListener("input",function(){if($("cityquery").value.trim())searchCities()});
+function stamp(){return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}
+function state(h,p){var d=document.createElement("div");d.className="state";var a=document.createElement("h3");a.textContent=h;var b=document.createElement("p");b.textContent=p;d.appendChild(a);d.appendChild(b);return d}
+function currentMessages(){var d=data[cur];return cur==="general"?d.channels[activeChannel]:d.msgs}
+function renderPosts(){var box=$("posts"),d=data[cur];box.textContent="";
+ if(!d.posts.length){box.appendChild(state("No posts in this city yet","Ask a question or share something useful, like a rental tip or an event."));return}
+ d.posts.slice().reverse().forEach(function(p){var e=document.createElement("div");e.className="post";var t=document.createElement("span");t.className="tag";t.textContent=p.tag;var x=document.createElement("span");x.textContent=p.title;var tm=document.createElement("time");tm.textContent=" "+p.time;e.appendChild(t);e.appendChild(x);e.appendChild(tm);box.appendChild(e)})}
+function renderMsgs(){var box=$("msgs"),d=data[cur];box.textContent="";
+ var messages=currentMessages();
+ if(!messages.length){box.appendChild(state("No messages yet",cur==="general"?"Start the conversation in #"+activeChannel+".":"Say hello to start the conversation in this city."));return}
+ messages.forEach(function(m){var e=document.createElement("div");e.className="msg";var n=document.createElement("b");n.textContent="You";var s=document.createElement("span");s.textContent=m.text;var tm=document.createElement("time");tm.textContent=" "+m.time;e.appendChild(n);e.appendChild(s);e.appendChild(tm);box.appendChild(e)});
+ box.scrollTop=box.scrollHeight}
+$("pf").addEventListener("submit",function(e){e.preventDefault();var t=$("pt").value.trim();if(!t)return;data[cur].posts.push({title:t,tag:$("ptag").value,time:stamp()});$("pt").value="";renderPosts()});
+$("mf").addEventListener("submit",function(e){e.preventDefault();var t=$("mt").value.trim();if(!t)return;currentMessages().push({text:t,time:stamp()});$("mt").value="";renderMsgs();$("mt").focus()});
+$("generalchannels").addEventListener("click",function(e){
+ var button=e.target.closest("[data-channel]");if(!button)return;
+ activeChannel=button.dataset.channel;
+ $("generalchannels").querySelectorAll("[data-channel]").forEach(function(tab){tab.setAttribute("aria-selected",tab===button?"true":"false")});
+ $("ch").textContent=button.textContent;$("mt").placeholder="Message in #"+activeChannel;renderMsgs()
+});
+function route(){
+ var h=location.hash.slice(1)||"home",v,city=null,title="VibeChat | City boards and live chat";
+ if(h==="home"||h==="privacy"||h==="terms")v=h;
+ else{city=cities.filter(function(c){return c[0]===h})[0];v=city?(joined.indexOf(h)!==-1?"city":"preview"):"notfound"}
+ document.querySelectorAll("[data-view]").forEach(function(s){s.hidden=s.dataset.view!==v});
+ list.querySelectorAll("a").forEach(function(a){if(city&&a.dataset.slug===h)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+ clearTimeout(timer);
+ if(v==="privacy")title="Privacy Policy | VibeChat";
+ if(v==="terms")title="Terms and Conditions | VibeChat";
+ if(v==="notfound")title="Page not found | VibeChat";
+ if(v==="preview"&&city){
+  title="Join "+city[1]+" | VibeChat";
+  $("previewtitle").textContent="Join "+city[1];
+  $("previewcopy").textContent="Join this city to see its board for posts about food, jobs, rent and events, and its live chat room.";
+  $("previewjoin").onclick=function(){joinCity(city[0])}
+ }
+ if(city){
+  if(v==="city"){
+   cur=h;
+   if(!data[h])data[h]=h==="general"?{posts:[],msgs:[],channels:{chitchat:[],meetings:[],problems:[],help:[]}}:{posts:[],msgs:[]};
+   if(h==="general"&&!data[h].channels)data[h].channels={chitchat:[],meetings:[],problems:[],help:[]};
+   title=city[1]+" | VibeChat";
+   $("ct").textContent=city[1];$("cm").textContent=h==="general"?"Open to everyone · Demo mode: content stays in this tab":"Demo mode: content stays in this tab";
+   $("generalchannels").hidden=h!=="general";
+   $("ch").textContent=h==="general"?$("generalchannels").querySelector('[data-channel="'+activeChannel+'"]').textContent:"Live chat";
+   $("mt").placeholder=h==="general"?"Message in #"+activeChannel:"Message this city";
+   $("generalchannels").querySelectorAll("[data-channel]").forEach(function(tab){tab.setAttribute("aria-selected",tab.dataset.channel===activeChannel?"true":"false")});
+   var box=$("posts");box.textContent="";box.setAttribute("aria-busy","true");
+   var sk=document.createElement("div");sk.className="sk";sk.innerHTML="<i></i><i></i><i></i>";box.appendChild(sk);
+   renderMsgs();
+   timer=setTimeout(function(){box.removeAttribute("aria-busy");renderPosts()},500)
+  }
+ }
+ document.title=title;
+ var f=document.querySelector('[data-view="'+v+'"] h1');if(f)f.focus({preventScroll:true});
+}
+addEventListener("hashchange",route);route();
+</script>
+</body>
+</html>
