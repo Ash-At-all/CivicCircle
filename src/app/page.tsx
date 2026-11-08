@@ -65,12 +65,11 @@ type PendingShare = {
 };
 
 const GENERAL_CHANNELS: Channel[] = [
-  { id: "chitchat", label: "Chit-chat" },
-  { id: "meetings", label: "Meetings" },
-  { id: "problems", label: "Problem-solving" },
+  { id: "chitchat", label: "General" },
   { id: "help", label: "Help" },
+  { id: "off-topic", label: "Off-topic" },
 ];
-const CITY_CHANNELS: Channel[] = [{ id: "city-chat", label: "City chat" }];
+const TOPIC_CHANNELS: Channel[] = [{ id: "city-chat", label: "Discussion" }];
 const messageResponseSchema = z.object({
   messages: z.array(z.object({
     id: z.string(),
@@ -131,7 +130,7 @@ function addReply(
   );
 }
 
-function initials(name: string) {
+function getInitials(name: string) {
   return name
     .split(/\s+/)
     .slice(0, 2)
@@ -159,7 +158,7 @@ function toPost(row: PersistedPost, userId?: string, profile: Profile | null = n
     city: row.city_slug,
     author,
     author_username: mine ? profile?.username ?? row.author_username : row.author_username,
-    initials: mine ? mineInitials : initials(author),
+    initials: mine ? mineInitials : getInitials(author),
     avatar_url: mine ? profile?.avatar_url ?? row.avatar_url ?? null : row.avatar_url ?? null,
     time: Number.isNaN(createdAt.getTime()) ? "Recently" : createdAt.toLocaleString(),
     tag: row.tag,
@@ -168,7 +167,7 @@ function toPost(row: PersistedPost, userId?: string, profile: Profile | null = n
     images: row.image_paths.map((path) => {
       return {
         url: storage?.getPublicUrl(path).data.publicUrl ?? "",
-        name: "Community post image",
+        name: "Post image",
         size: 0,
         width: 1600,
         height: 1200,
@@ -180,14 +179,24 @@ function toPost(row: PersistedPost, userId?: string, profile: Profile | null = n
   };
 }
 
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "Recently";
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
 export default function Home() {
-  const [joined, setJoined] = useState<string[]>(["general"]);
-  const [favourites, setFavourites] = useState<string[]>([]);
-  const [citySlug, setCitySlug] = useState("general");
+  const [topicSlug, setTopicSlug] = useState("general");
   const [channelId, setChannelId] = useState("chitchat");
   const [mobileView, setMobileView] = useState<"board" | "chat">("board");
-  const [mobileCitiesOpen, setMobileCitiesOpen] = useState(false);
-  const [citySearch, setCitySearch] = useState("");
   const [postSearch, setPostSearch] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const [postImages, setPostImages] = useState<LocalImage[]>([]);
@@ -229,11 +238,11 @@ export default function Home() {
   const [chatLoadError, setChatLoadError] = useState<string | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
   const [chatRefresh, setChatRefresh] = useState(0);
+  const [sortBy, setSortBy] = useState<"new" | "top">("new");
   const mainRef = useRef<HTMLElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const postSearchRef = useRef<HTMLInputElement>(null);
-  const mobileCitySearchRef = useRef<HTMLInputElement>(null);
   const imageUrls = useRef(new Set<string>());
   const previousFocus = useRef<HTMLElement | null>(null);
   const router = useRouter();
@@ -274,33 +283,11 @@ export default function Home() {
   useEffect(() => {
     const log = chatLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
-  }, [messages, citySlug, channelId]);
+  }, [messages, topicSlug, channelId]);
 
   useEffect(() => () => {
     for (const url of imageUrls.current) URL.revokeObjectURL(url);
     imageUrls.current.clear();
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      try {
-        const storedJoined: unknown = JSON.parse(localStorage.getItem("vibechat-joined-cities") ?? "[]");
-        const storedFavourites: unknown = JSON.parse(localStorage.getItem("vibechat-favourites") ?? "[]");
-        if (Array.isArray(storedJoined)) {
-          setJoined(["general", ...storedJoined.filter((slug): slug is string =>
-            typeof slug === "string" && slug !== "general" && CITIES.some((item) => item.slug === slug),
-          )]);
-        }
-        if (Array.isArray(storedFavourites)) {
-          setFavourites(storedFavourites.filter((slug): slug is string =>
-            typeof slug === "string" && CITIES.some((item) => item.slug === slug),
-          ));
-        }
-      } catch {
-        setNotice({ kind: "error", text: "Could not load saved city preferences. Check this browser's storage settings." });
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -389,18 +376,18 @@ export default function Home() {
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     let active = true;
-    void postsRepo.listPosts(citySlug === "general" ? undefined : citySlug)
+    void postsRepo.listPosts(topicSlug === "general" ? undefined : topicSlug)
       .then((rows) => {
         if (active) {
           setPosts(rows.map((row) => toPost(row, currentUserId ?? undefined, profile)));
           setVotes(Object.fromEntries(rows.map((row) => [row.id, row.user_vote ?? 0])));
-          setPostLoadResult({ city: citySlug, error: null });
+          setPostLoadResult({ city: topicSlug, error: null });
         }
       })
       .catch((error: unknown) => {
         if (active) {
           setPostLoadResult({
-            city: citySlug,
+            city: topicSlug,
             error: error instanceof Error ? error.message : "Could not load posts. Please try again.",
           });
         }
@@ -408,11 +395,11 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [citySlug, currentUserId, postsRefresh, profile]);
+  }, [topicSlug, currentUserId, postsRefresh, profile]);
 
   useEffect(() => {
     let active = true;
-    const key = `${citySlug}:${channelId}`;
+    const key = `${topicSlug}:${channelId}`;
     async function loadMessages(showLoading = false) {
       if (!isSupabaseConfigured()) {
         setChatLoadError("Set up Supabase to load and send shared messages.");
@@ -422,7 +409,7 @@ export default function Home() {
       if (showLoading) setChatLoading(true);
       try {
         const response = await fetch(
-          `/api/messages?city=${encodeURIComponent(citySlug)}&channel=${encodeURIComponent(channelId)}`,
+          `/api/messages?city=${encodeURIComponent(topicSlug)}&channel=${encodeURIComponent(channelId)}`,
           { cache: "no-store" },
         );
         const data: unknown = await response.json();
@@ -482,44 +469,46 @@ export default function Home() {
       active = false;
       window.clearInterval(refresh);
     };
-  }, [citySlug, channelId, chatRefresh]);
+  }, [topicSlug, channelId, chatRefresh]);
 
   const blockedAuthors = useMemo(
     () => blockedState?.userId === currentUserId ? blockedState.accounts : [],
     [blockedState, currentUserId],
   );
-  const loading = isSupabaseConfigured() && postLoadResult?.city !== citySlug;
+  const loading = isSupabaseConfigured() && postLoadResult?.city !== topicSlug;
   const postsError = !isSupabaseConfigured()
-    ? "Configure Supabase to load shared community posts."
-    : postLoadResult?.city === citySlug ? postLoadResult.error : null;
-  const city = CITIES.find((item) => item.slug === citySlug) ?? CITIES[0];
-  const channels = city.slug === "general" ? GENERAL_CHANNELS : CITY_CHANNELS;
+    ? "Configure Supabase to load community posts."
+    : postLoadResult?.city === topicSlug ? postLoadResult.error : null;
+  const topic = CITIES.find((item) => item.slug === topicSlug) ?? CITIES[0];
+  const channels = topic.slug === "general" ? GENERAL_CHANNELS : TOPIC_CHANNELS;
   const visiblePosts = useMemo(
-    () =>
-      posts.filter((post) => {
-        const matchesCity = citySlug === "general" || post.city === citySlug;
+    () => {
+      const filtered = posts.filter((post) => {
+        const matchesTopic = topicSlug === "general" || post.city === topicSlug;
         const query = postSearch.trim().toLocaleLowerCase();
         const matchesSearch =
           !query ||
           `${post.title} ${post.body} ${post.tag} ${post.author}`
             .toLocaleLowerCase()
             .includes(query);
-        return matchesCity && matchesSearch
+        return matchesTopic && matchesSearch
           && !blockedAuthors.some((blocked) => blocked.username === post.author_username);
-      }),
-    [blockedAuthors, citySlug, postSearch, posts],
+      });
+      if (sortBy === "top") {
+        return [...filtered].sort((a, b) => b.votes - a.votes);
+      }
+      return filtered;
+    },
+    [blockedAuthors, topicSlug, postSearch, posts, sortBy],
   );
-  const cityMatches = CITIES.filter((item) =>
-    `${item.name} ${item.region}`.toLocaleLowerCase().includes(citySearch.trim().toLocaleLowerCase()),
-  ).sort((a, b) => a.name.localeCompare(b.name));
   const blockedUsernames = useMemo(
     () => new Set(blockedAuthors.map((account) => account.username)),
     [blockedAuthors],
   );
   const currentMessages = useMemo(
-    () => (messages[`${citySlug}:${channelId}`] ?? [])
+    () => (messages[`${topicSlug}:${channelId}`] ?? [])
       .filter((message) => !message.author_username || !blockedUsernames.has(message.author_username)),
-    [blockedUsernames, channelId, citySlug, messages],
+    [blockedUsernames, channelId, topicSlug, messages],
   );
 
   async function updateBlock(username: string, blocked: boolean) {
@@ -631,7 +620,7 @@ export default function Home() {
       }, ...current]);
       setReportTarget(null);
       setSafetyCenterOpen(true);
-      setNotice({ kind: "success", text: "Your report was submitted to the community safety team." });
+      setNotice({ kind: "success", text: "Your report was submitted." });
     } catch (error) {
       setNotice({ kind: "error", text: error instanceof Error ? error.message : "Could not submit your report." });
     }
@@ -667,7 +656,7 @@ export default function Home() {
           id: report.targetId,
           author: "Community member",
           authorUsername: null,
-          label: `${report.type} · ${String(report.targetId).slice(0, 8)}`,
+          label: `${report.type} ${String(report.targetId).slice(0, 8)}`,
           targetContent: report.targetContent,
           reportId: report.id,
           reason: report.reason,
@@ -696,7 +685,6 @@ export default function Home() {
 
   useEffect(() => {
     const anyModalOpen =
-      mobileCitiesOpen ||
       authOpen ||
       reportTarget !== null ||
       safetyCenterOpen ||
@@ -709,43 +697,12 @@ export default function Home() {
       previousFocus.current.focus({ preventScroll: true });
       previousFocus.current = null;
     }
-  }, [mobileCitiesOpen, authOpen, reportTarget, safetyCenterOpen, pendingShare]);
-
-  useEffect(() => {
-    if (!mobileCitiesOpen) return;
-    const focusTimer = window.setTimeout(() => mobileCitySearchRef.current?.focus(), 0);
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMobileCitiesOpen(false);
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const dialog = document.querySelector(".mobile-cities-drawer");
-      const focusable = dialog?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-      );
-      if (!focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.clearTimeout(focusTimer);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [mobileCitiesOpen]);
+  }, [authOpen, reportTarget, safetyCenterOpen, pendingShare]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const raw = localStorage.getItem(`vibechat-draft-post-${citySlug}`);
+        const raw = localStorage.getItem(`vibechat-draft-post-${topicSlug}`);
         if (raw) {
           const draft = JSON.parse(raw);
           if (draft && typeof draft === "object") {
@@ -757,21 +714,21 @@ export default function Home() {
       } catch {}
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [citySlug]);
+  }, [topicSlug]);
 
   useEffect(() => {
     try {
       localStorage.setItem(
-        `vibechat-draft-post-${citySlug}`,
+        `vibechat-draft-post-${topicSlug}`,
         JSON.stringify({ title: postTitle, body: postBody, tag: postTag }),
       );
     } catch {}
-  }, [citySlug, postTitle, postBody, postTag]);
+  }, [topicSlug, postTitle, postBody, postTag]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const raw = localStorage.getItem(`vibechat-draft-chat-${citySlug}:${channelId}`);
+        const raw = localStorage.getItem(`vibechat-draft-chat-${topicSlug}:${channelId}`);
         if (raw) {
           const draft = JSON.parse(raw);
           if (draft && typeof draft === "object" && typeof draft.body === "string") {
@@ -781,21 +738,20 @@ export default function Home() {
       } catch {}
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [citySlug, channelId]);
+  }, [topicSlug, channelId]);
 
   useEffect(() => {
     try {
       localStorage.setItem(
-        `vibechat-draft-chat-${citySlug}:${channelId}`,
+        `vibechat-draft-chat-${topicSlug}:${channelId}`,
         JSON.stringify({ body: chatDraft }),
       );
     } catch {}
-  }, [citySlug, channelId, chatDraft]);
+  }, [topicSlug, channelId, chatDraft]);
 
-  function selectCity(slug: string) {
-    setCitySlug(slug);
+  function selectTopic(slug: string) {
+    setTopicSlug(slug);
     setMobileView("board");
-    setMobileCitiesOpen(false);
     setPostSearch("");
     setChannelId(slug === "general" ? "chitchat" : "city-chat");
   }
@@ -803,42 +759,6 @@ export default function Home() {
   function showMobileView(view: "board" | "chat") {
     setMobileView(view);
     mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function joinCity(slug: string) {
-    const nextJoined = joined.includes(slug) ? joined : [...joined, slug];
-    setJoined(nextJoined);
-    savePreferences(nextJoined, favourites);
-    selectCity(slug);
-    setCitySearch("");
-    setNotice({ kind: "success", text: `${CITIES.find((item) => item.slug === slug)?.name} added to your cities.` });
-  }
-
-  function leaveCity(slug: string) {
-    if (slug === "general") return;
-    const nextJoined = joined.filter((item) => item !== slug);
-    const nextFavourites = favourites.filter((item) => item !== slug);
-    setJoined(nextJoined);
-    setFavourites(nextFavourites);
-    savePreferences(nextJoined, nextFavourites);
-    if (citySlug === slug) selectCity("general");
-  }
-
-  function savePreferences(nextJoined: string[], nextFavourites: string[]) {
-    try {
-      localStorage.setItem("vibechat-joined-cities", JSON.stringify(nextJoined));
-      localStorage.setItem("vibechat-favourites", JSON.stringify(nextFavourites));
-    } catch {
-      setNotice({ kind: "error", text: "Could not save city preferences in this browser." });
-    }
-  }
-
-  function toggleFavourite(slug: string) {
-    const nextFavourites = favourites.includes(slug)
-      ? favourites.filter((item) => item !== slug)
-      : [...favourites, slug];
-    setFavourites(nextFavourites);
-    savePreferences(joined, nextFavourites);
   }
 
   async function validateOnServer(path: string, payload: unknown, contentType: string) {
@@ -878,13 +798,13 @@ export default function Home() {
     }
 
     if (!isSupabaseConfigured()) {
-      setNotice({ kind: "error", text: "Configure Supabase before publishing community posts." });
+      setNotice({ kind: "error", text: "Configure Supabase before publishing posts." });
       return;
     }
     if (!currentUser) {
       setAuthError(null);
       setAuthOpen(true);
-      setNotice({ kind: "error", text: "Sign in with Google before publishing a shared post." });
+      setNotice({ kind: "error", text: "Sign in before publishing a post." });
       return;
     }
     let uploadedPaths: string[] = [];
@@ -907,7 +827,7 @@ export default function Home() {
       }
       setPostImages([]);
       setNewPostOpen(false);
-      setNotice({ kind: "success", text: "Post published to the community." });
+      setNotice({ kind: "success", text: "Post published." });
     } catch (error) {
       let message = error instanceof Error ? error.message : "Could not publish your post.";
       if (uploadedPaths.length > 0) {
@@ -925,7 +845,7 @@ export default function Home() {
   function submitPost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = postDraftSchema.safeParse({
-      city: citySlug,
+      city: topicSlug,
       title: postTitle,
       body: postBody,
       tag: postTag,
@@ -950,7 +870,7 @@ export default function Home() {
     }
 
     if (!isSupabaseConfigured()) {
-      setNotice({ kind: "error", text: "Configure Supabase before editing community posts." });
+      setNotice({ kind: "error", text: "Configure Supabase before editing posts." });
       return;
     }
     try {
@@ -967,7 +887,7 @@ export default function Home() {
 
   async function deletePost(post: Post) {
     if (!isSupabaseConfigured()) {
-      setNotice({ kind: "error", text: "Configure Supabase before deleting community posts." });
+      setNotice({ kind: "error", text: "Configure Supabase before deleting posts." });
       return;
     }
     let cleanupWarning: string | null;
@@ -1023,7 +943,7 @@ export default function Home() {
 
   async function sendMessage(text: string, retryId?: string) {
     if (!isSupabaseConfigured()) {
-      setChatError("Messages can’t be sent right now. Please try again later.");
+      setChatError("Messages can't be sent right now. Please try again later.");
       return;
     }
     if (!currentUser) {
@@ -1044,16 +964,16 @@ export default function Home() {
       return;
     }
 
-    const key = `${citySlug}:${channelId}`;
+    const key = `${topicSlug}:${channelId}`;
     const messageId = retryId ?? `pending-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: messageId,
       body: parsed.data.body,
-      time: "Sending…",
+      time: "Sending...",
       fromYou: true,
       author: profile?.display_name || profile?.username || "You",
       author_username: profile?.username ?? null,
-      initials: profile ? initials(profile.display_name || profile.username) : "YO",
+      initials: profile ? getInitials(profile.display_name || profile.username) : "YO",
       delivery: "sending",
     };
     setMessages((current) => ({
@@ -1069,7 +989,7 @@ export default function Home() {
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: citySlug, channel: channelId, body: parsed.data.body }),
+        body: JSON.stringify({ city: topicSlug, channel: channelId, body: parsed.data.body }),
       });
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
@@ -1100,7 +1020,7 @@ export default function Home() {
           ? { ...message, time: "Not sent", delivery: "failed" }
           : message),
       }));
-      setChatError("Message wasn’t sent. Check your connection and retry.");
+      setChatError("Message wasn't sent. Check your connection and retry.");
     } finally {
       setChatSending(false);
     }
@@ -1161,7 +1081,7 @@ export default function Home() {
 
   async function addComment(postId: string, text: string, parentId?: string) {
     if (!isSupabaseConfigured()) {
-      setNotice({ kind: "error", text: "Configure Supabase to publish shared comments." });
+      setNotice({ kind: "error", text: "Configure Supabase to publish comments." });
       return;
     }
     if (!currentUser) {
@@ -1220,7 +1140,7 @@ export default function Home() {
     const nextVote = votes[postId] === selectedVote ? 0 : selectedVote;
     if (!isSupabaseConfigured() || !currentUser) {
       if (!currentUser) setAuthOpen(true);
-      setNotice({ kind: "error", text: "Configure Supabase and sign in to vote on posts." });
+      setNotice({ kind: "error", text: "Sign in to vote on posts." });
       return;
     }
     try {
@@ -1267,7 +1187,7 @@ export default function Home() {
     if (share.kind === "comment" && share.postId) addComment(share.postId, share.text, share.parentId);
     if (share.kind === "post") {
       const [title, ...body] = share.text.split("\n");
-      publishPost({ city: citySlug, title, body: body.join("\n"), tag: postTag });
+      publishPost({ city: topicSlug, title, body: body.join("\n"), tag: postTag });
     }
   }
 
@@ -1275,7 +1195,7 @@ export default function Home() {
     return comments.filter((comment) => !comment.author_username || !blockedUsernames.has(comment.author_username)).map((comment) => (
       <div className="comment" key={comment.id} style={{ marginLeft: Math.min(depth, 3) * 16 }}>
         <div className="comment-line">
-          <span className="avatar avatar-small">{initials(comment.author)}</span>
+          <span className="avatar avatar-small">{getInitials(comment.author)}</span>
           <strong>{comment.author}</strong>
           <span>{comment.body}</span>
         </div>
@@ -1324,73 +1244,17 @@ export default function Home() {
       <aside className="sidebar" aria-label="VibeChat navigation">
         <SiteBrand />
         <div className="sidebar-label-row">
-          <h2>Your cities</h2>
-          <span className="subtle">Saved on this device</span>
+          <h2>Topics</h2>
         </div>
-        <div className="search-wrap">
-          <label className="sr-only" htmlFor="city-search">Search cities</label>
-          <input
-            id="city-search"
-            className="search-input"
-            value={citySearch}
-            onChange={(event) => setCitySearch(event.target.value)}
-            placeholder="Find a city"
-            type="search"
-          />
-          {citySearch.trim() && (
-            <button
-              className="button button-small search-clear"
-              type="button"
-              onClick={() => setCitySearch("")}
-              aria-label="Clear city search"
-            >
-              ×
-            </button>
-          )}
-        </div>
-        {citySearch.trim() && (
-          <div className="city-results" role="list" aria-label="City search results">
-            {cityMatches.length ? cityMatches.map((item) => (
-              <div className="city-result" key={item.slug}>
-                <span>{item.name}</span>
-                {joined.includes(item.slug) ? (
-                  <button className="text-button" type="button" onClick={() => selectCity(item.slug)}>Open</button>
-                ) : (
-                  <button className="button button-small button-primary" type="button" onClick={() => joinCity(item.slug)}>Join</button>
-                )}
-              </div>
-            )) : <p className="subtle empty-search">No cities match that search.</p>}
-          </div>
-        )}
-        <nav className="city-nav" aria-label="Joined cities">
-          {joined
-            .slice()
-            .sort((a, b) => (a === "general" ? -1 : b === "general" ? 1 : 0))
-            .map((slug) => {
-              const item = CITIES.find((candidate) => candidate.slug === slug);
-              if (!item) return null;
-              return (
-                <div className={`city-row ${citySlug === slug ? "city-row-active" : ""}`} key={slug}>
-                  <button className="city-link" type="button" onClick={() => selectCity(slug)} aria-current={citySlug === slug ? "page" : undefined}>
-                    <span className="city-dot" aria-hidden="true" />
-                    <span className="city-name">{item.name}</span>
-                    {slug === "general" && <span className="always-joined">Default</span>}
-                  </button>
-                  {slug !== "general" && (
-                    <div className="city-tools">
-                      <button
-                        className={`icon-button favourite-button ${favourites.includes(slug) ? "is-favourite" : ""}`}
-                        type="button"
-                        aria-label={`${favourites.includes(slug) ? "Unfavourite" : "Favourite"} ${item.name}`}
-                        title={`${favourites.includes(slug) ? "Unfavourite" : "Favourite"} ${item.name}`}
-                        onClick={() => toggleFavourite(slug)}
-                      >{favourites.includes(slug) ? "★" : "☆"}</button>
-                      <button className="icon-button" type="button" aria-label={`Leave ${item.name}`} title={`Leave ${item.name}`} onClick={() => leaveCity(slug)}>×</button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        <nav className="city-nav" aria-label="Topics">
+          {CITIES.map((item) => (
+            <div className={`city-row ${topicSlug === item.slug ? "city-row-active" : ""}`} key={item.slug}>
+              <button className="city-link" type="button" onClick={() => selectTopic(item.slug)} aria-current={topicSlug === item.slug ? "page" : undefined}>
+                <span className="city-dot" aria-hidden="true" />
+                <span className="city-name">{item.name}</span>
+              </button>
+            </div>
+          ))}
         </nav>
         <div className="sidebar-bottom">
           {currentUser && profile ? (
@@ -1408,8 +1272,12 @@ export default function Home() {
               </div>
             </>
           ) : (
-            <p>{currentUser ? `Signed in as ${currentUser.email ?? "Google account"}.` : "Sign in with Google to publish posts shared with the community."}</p>
+            <p>{currentUser ? `Signed in as ${currentUser.email ?? "Google account"}.` : "Sign in to publish posts and join conversations."}</p>
           )}
+          <Link className="sidebar-profile-link" href="/profile">
+            <span aria-hidden="true">&#9673;</span>
+            <span>Profile</span>
+          </Link>
           {currentUser ? (
             <button className="button sign-in-button" type="button" onClick={() => void signOut()}>Sign out</button>
           ) : (
@@ -1421,35 +1289,35 @@ export default function Home() {
 
       <main ref={mainRef} className={`main-content ${mobileView === "chat" ? "mobile-chat-active" : ""}`}>
         <header className="topbar">
-          <div className="breadcrumbs"><span>Community</span><span aria-hidden="true">/</span><strong>{city.name}</strong></div>
+          <div className="breadcrumbs"><span>VibeChat</span><span aria-hidden="true">/</span><strong>{topic.name}</strong></div>
           <div className="topbar-actions">
             <div className="search-wrap post-search-wrap">
-              <label className="sr-only" htmlFor="post-search">Search posts in {city.name}</label>
+              <label className="sr-only" htmlFor="post-search">Search posts</label>
               <input
                 ref={postSearchRef}
                 id="post-search"
                 className="search-input post-search"
                 value={postSearch}
                 onChange={(event) => setPostSearch(event.target.value)}
-                placeholder="Search this board"
+                placeholder="Search posts"
                 type="search"
               />
-              <span className="search-icon" aria-hidden="true">⌕</span>
-              <kbd className="search-shortcut" aria-hidden="true">⌘K</kbd>
+              <span className="search-icon" aria-hidden="true">&#8981;</span>
+              <kbd className="search-shortcut" aria-hidden="true">&#8984;K</kbd>
               {postSearch.trim() && (
                 <button
                   className="button button-small search-clear"
                   type="button"
                   onClick={() => setPostSearch("")}
-                  aria-label="Clear post search"
+                  aria-label="Clear search"
                 >
-                  ×
+                  &times;
                 </button>
               )}
             </div>
             <button className="button safety-center-button" type="button" onClick={() => setSafetyCenterOpen(true)}>
               Safety{ safetyReports.filter((report) => report.status === "open").length > 0
-                ? ` · ${safetyReports.filter((report) => report.status === "open").length}`
+                ? ` (${safetyReports.filter((report) => report.status === "open").length})`
                 : ""}
             </button>
             <button className="button sign-in-mobile" type="button" onClick={() => setAuthOpen(true)}>
@@ -1458,13 +1326,13 @@ export default function Home() {
           </div>
         </header>
 
-        <nav className="mobile-view-switch" aria-label="Community sections">
+        <nav className="mobile-view-switch" aria-label="Sections">
           <button
             className={mobileView === "board" ? "mobile-view-active" : ""}
             type="button"
             aria-pressed={mobileView === "board"}
             onClick={() => showMobileView("board")}
-          >Board</button>
+          >Feed</button>
           <button
             className={mobileView === "chat" ? "mobile-view-active" : ""}
             type="button"
@@ -1477,38 +1345,37 @@ export default function Home() {
           <section className="feed-column" aria-labelledby="board-title">
             <div className="board-heading">
               <div>
-                <p className="eyebrow">{city.slug === "general" ? "Open community" : `${city.region} community`}</p>
-                <h1 id="board-title">{city.name}</h1>
-                <p className="board-description">
-                  {city.slug === "general"
-                    ? "Meet people, plan a meetup, solve a problem, or ask the community for help."
-                    : `Local posts and conversation for people in ${city.name}.`}
-                </p>
+                <p className="eyebrow">{topic.region}</p>
+                <h1 id="board-title">{topic.name}</h1>
               </div>
               <button className="button button-primary" type="button" onClick={() => setNewPostOpen((open) => !open)}>
-                {newPostOpen ? "Close" : "Write a post"}
+                {newPostOpen ? "Close" : "New post"}
               </button>
             </div>
 
             {notice && (
               <div className={`notice notice-${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
                 <span>{notice.text}</span>
-                <button className="text-button" type="button" onClick={() => setNotice(null)} aria-label="Dismiss message">Dismiss</button>
+                <button className="text-button" type="button" onClick={() => setNotice(null)} aria-label="Dismiss">Dismiss</button>
               </div>
             )}
 
             {newPostOpen && (
               <form className="composer card" onSubmit={submitPost}>
                 <div className="composer-heading">
-                  <span className="avatar">YO</span>
-                  <div><strong>Start a conversation</strong><span className="subtle">Posting to {city.name}</span></div>
+                  {profile?.avatar_url ? (
+                    <Image className="avatar" src={profile.avatar_url} alt="Your avatar" width={34} height={34} unoptimized />
+                  ) : (
+                    <span className="avatar">{profile ? getInitials(profile.display_name || profile.username) : "?"}</span>
+                  )}
+                  <div><strong>Create a post</strong><span className="subtle">Posting to {topic.name}</span></div>
                 </div>
                 <label className="sr-only" htmlFor="post-title">Post title</label>
-                <input id="post-title" value={postTitle} onChange={(event) => setPostTitle(event.target.value)} placeholder="A clear, specific title" maxLength={140} required />
+                <input id="post-title" value={postTitle} onChange={(event) => setPostTitle(event.target.value)} placeholder="Title" maxLength={140} required />
                 <label className="sr-only" htmlFor="post-body">Post details</label>
-                <textarea id="post-body" value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder="Add useful context. Avoid sharing private contact details." maxLength={4000} rows={4} required />
+                <textarea id="post-body" value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder="What's on your mind? Avoid sharing private contact details." maxLength={4000} rows={4} required />
                 <div className="image-attachments">
-                  <label className="button button-small" htmlFor="post-images">Add images ({postImages.length}/4)</label>
+                  <label className="button button-small" htmlFor="post-images">Images ({postImages.length}/4)</label>
                   <input
                     className="image-file-input"
                     id="post-images"
@@ -1520,42 +1387,45 @@ export default function Home() {
                       event.currentTarget.value = "";
                     }}
                   />
-                  <span className="subtle">JPEG, PNG or WebP · up to 5 MB each · compressed to WebP, max 1600 px / 1.5 MB</span>
+                  <span className="subtle">JPEG, PNG or WebP, up to 5 MB each</span>
                 </div>
                 {postImages.length > 0 && (
-                  <div className="image-attachments-preview" aria-label="Selected post images">
+                  <div className="image-attachments-preview" aria-label="Selected images">
                     {postImages.map((image) => (
                       <figure key={image.url}>
                         <Image src={image.url} alt={image.name} width={image.width} height={image.height} unoptimized />
-                        <figcaption>{image.width}×{image.height} · {(image.size / (1024 * 1024)).toFixed(2)} MB</figcaption>
+                        <figcaption>{image.width}&times;{image.height}</figcaption>
                         <button className="text-button" type="button" onClick={() => removeLocalImage(image)}>Remove</button>
                       </figure>
                     ))}
                   </div>
                 )}
                 <div className="composer-footer">
-                  <label className="sr-only" htmlFor="post-tag">Post topic</label>
+                  <label className="sr-only" htmlFor="post-tag">Topic</label>
                   <select id="post-tag" value={postTag} onChange={(event) => {
                     const parsedTag = postTagSchema.safeParse(event.target.value);
                     if (parsedTag.success) setPostTag(parsedTag.data);
                   }}>
                     {POST_TAGS.map((tag) => <option key={tag}>{tag}</option>)}
                   </select>
-                  <button className="button button-primary" type="submit">Publish post</button>
+                  <button className="button button-primary" type="submit">Publish</button>
                 </div>
               </form>
             )}
 
             <div className="feed-toolbar">
-              <h2>Latest posts</h2>
-              <span className="subtle">{isSupabaseConfigured() ? "Community posts" : "Connect Supabase to load community posts"}</span>
+              <h2>Posts</h2>
+              <div className="feed-sort">
+                <button className={`text-button ${sortBy === "new" ? "sort-active" : ""}`} type="button" onClick={() => setSortBy("new")}>New</button>
+                <button className={`text-button ${sortBy === "top" ? "sort-active" : ""}`} type="button" onClick={() => setSortBy("top")}>Top</button>
+              </div>
             </div>
 
             {postsError ? (
               <div className="empty-state card compact-error-state" role="alert">
                 <span className="empty-mark" aria-hidden="true">!</span>
                 <h2>Something went wrong</h2>
-                <p>We couldn’t load posts. Please try again.</p>
+                <p>Could not load posts. Please try again.</p>
                 <button className="button" type="button" onClick={() => setPostsRefresh((value) => value + 1)}>Try again</button>
               </div>
             ) : loading ? (
@@ -1566,8 +1436,8 @@ export default function Home() {
             ) : visiblePosts.length === 0 ? (
               <div className="empty-state card">
                 <span className="empty-mark" aria-hidden="true">+</span>
-                <h2>{postSearch ? "No matching posts" : "No posts here yet"}</h2>
-                <p>{postSearch ? "Try a different word or clear your search." : "Start the board with a question or a useful local tip."}</p>
+                <h2>{postSearch ? "No matching posts" : "No posts yet"}</h2>
+                <p>{postSearch ? "Try a different search term." : "Be the first to start a conversation."}</p>
                 {!postSearch && <button className="button button-primary" type="button" onClick={() => setNewPostOpen(true)}>Write the first post</button>}
               </div>
             ) : (
@@ -1575,6 +1445,7 @@ export default function Home() {
                 {visiblePosts.map((post) => {
                   const expanded = expandedPosts.includes(post.id);
                   const score = post.votes + (isSupabaseConfigured() ? 0 : votes[post.id] ?? 0);
+                  const topicLabel = CITIES.find((item) => item.slug === post.city)?.name ?? post.city;
                   return (
                     <article className="card post-card" key={post.id}>
                       <div className="post-meta">
@@ -1585,11 +1456,11 @@ export default function Home() {
                         )}
                         <div className="author-line">
                           <strong>{post.author}</strong>
-                          <span>{CITIES.find((item) => item.slug === post.city)?.name ?? post.city} · {post.time}</span>
+                          <span>{topicSlug === "general" && topicLabel !== "General" ? `${topicLabel} · ` : ""}{timeAgo(post.time)}</span>
                         </div>
                         <span className="tag">{post.tag}</span>
                         <details className="post-menu">
-                          <summary aria-label={`More actions for ${post.title}`}>•••</summary>
+                          <summary aria-label={`Actions for ${post.title}`}>&#8943;</summary>
                           <div className="menu-panel">
                             <button type="button" onClick={() => openReport({
                               type: "post",
@@ -1598,23 +1469,23 @@ export default function Home() {
                               authorUsername: post.author_username,
                               label: `post by ${post.author}`,
                               targetContent: `${post.title}\n${post.body}`,
-                            })}>Report post</button>
+                            })}>Report</button>
                               {!post.mine && post.author_username && <button type="button" onClick={() => void updateBlock(
                                 post.author_username!,
                                 !blockedUsernames.has(post.author_username!),
                               )}>
-                                {blockedUsernames.has(post.author_username) ? "Unblock author" : "Block author"}
+                                {blockedUsernames.has(post.author_username) ? "Unblock" : "Block"}
                               </button>}
-                            {post.mine && <button type="button" onClick={() => void deletePost(post)}>Delete post</button>}
+                            {post.mine && <button type="button" onClick={() => void deletePost(post)}>Delete</button>}
                           </div>
                         </details>
                       </div>
                       {editingPost === post.id ? (
                         <form className="edit-form" onSubmit={(event) => savePostEdit(event, post.id)}>
-                          <label className="sr-only" htmlFor={`edit-title-${post.id}`}>Edit post title</label>
+                          <label className="sr-only" htmlFor={`edit-title-${post.id}`}>Edit title</label>
                           <input id={`edit-title-${post.id}`} value={editTitleDraft} onChange={(event) => setEditTitleDraft(event.target.value)} maxLength={140} required />
                           <textarea value={editDraft} onChange={(event) => setEditDraft(event.target.value)} rows={3} required />
-                          <button className="button button-small button-primary" type="submit">Save edit</button>
+                          <button className="button button-small button-primary" type="submit">Save</button>
                           <button className="text-button" type="button" onClick={() => setEditingPost(null)}>Cancel</button>
                         </form>
                       ) : (
@@ -1631,22 +1502,22 @@ export default function Home() {
                         </div>
                       )}
                       <div className="post-actions">
-                        <div className="vote-control" aria-label={`Vote score ${score}`}>
-                          <button className="icon-button" type="button" aria-label="Upvote post" aria-pressed={votes[post.id] === 1} onClick={() => void votePost(post.id, 1)}>↑</button>
+                        <div className="vote-control" aria-label={`Score ${score}`}>
+                          <button className="icon-button" type="button" aria-label="Upvote" aria-pressed={votes[post.id] === 1} onClick={() => void votePost(post.id, 1)}>&uarr;</button>
                           <span>{score}</span>
-                          <button className="icon-button" type="button" aria-label="Downvote post" aria-pressed={votes[post.id] === -1} onClick={() => void votePost(post.id, -1)}>↓</button>
+                          <button className="icon-button" type="button" aria-label="Downvote" aria-pressed={votes[post.id] === -1} onClick={() => void votePost(post.id, -1)}>&darr;</button>
                         </div>
                         <button className="text-button" type="button" onClick={() => setExpandedPosts((current) => current.includes(post.id) ? current.filter((id) => id !== post.id) : [...current, post.id])}>
-                          {expanded ? "Hide replies" : `${post.comments.length} comments`}
+                          {expanded ? "Hide" : `${post.comments.length} ${post.comments.length === 1 ? "comment" : "comments"}`}
                         </button>
                         {post.mine && <button className="text-button" type="button" onClick={() => { setEditingPost(post.id); setEditTitleDraft(post.title); setEditDraft(post.body); }}>Edit</button>}
                       </div>
                       {expanded && (
                         <div className="comments">
-                          {post.comments.length ? renderComments(post.comments, post.id) : <p className="subtle">No replies yet. Add a helpful response.</p>}
+                          {post.comments.length ? renderComments(post.comments, post.id) : <p className="subtle">No comments yet.</p>}
                           <form className="reply-form" onSubmit={(event) => submitComment(event, post.id, commentDrafts[post.id] ?? "")}>
                             <label className="sr-only" htmlFor={`comment-${post.id}`}>Write a comment</label>
-                            <input id={`comment-${post.id}`} value={commentDrafts[post.id] ?? ""} onChange={(event) => setCommentDrafts((current) => ({ ...current, [post.id]: event.target.value }))} placeholder="Write a reply" maxLength={1000} />
+                            <input id={`comment-${post.id}`} value={commentDrafts[post.id] ?? ""} onChange={(event) => setCommentDrafts((current) => ({ ...current, [post.id]: event.target.value }))} placeholder="Add a comment" maxLength={1000} />
                             <button className="button button-small button-primary" type="submit">Reply</button>
                           </form>
                         </div>
@@ -1656,23 +1527,23 @@ export default function Home() {
                 })}
               </div>
             )}
-            <footer className="page-footer"><span>VibeChat · Community posts and chat</span><span><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></span></footer>
+            <footer className="page-footer"><span>VibeChat</span><span><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></span></footer>
           </section>
 
-          <section className="chat-panel" aria-label={`${city.name} chat`}>
+          <section className="chat-panel" aria-label={`${topic.name} chat`}>
             <header className="mobile-chat-heading">
-              <button className="chat-back-button" type="button" onClick={() => setMobileView("board")} aria-label="Back to posts">‹</button>
+              <button className="chat-back-button" type="button" onClick={() => setMobileView("board")} aria-label="Back to posts">&lsaquo;</button>
               <div>
-                <h1>{city.slug === "general" ? "General Chat" : `${city.name} Chat`}</h1>
+                <h1>{topic.name} Chat</h1>
                 <span>{channels.find((channel) => channel.id === channelId)?.label}</span>
               </div>
             </header>
 
             <div className="chat-heading desktop-chat-heading">
-              <div><p className="eyebrow">Community chat</p><h2>{city.name}</h2></div>
-              <span className="demo-status"><span />Shared chat</span>
+              <div><p className="eyebrow">Live chat</p><h2>{topic.name}</h2></div>
+              <span className="demo-status"><span />Active</span>
             </div>
-            <div className="channel-list" role="tablist" aria-label="Chat channels">
+            <div className="channel-list" role="tablist" aria-label="Channels">
               {channels.map((channel) => (
                 <button
                   className={`channel-button ${channelId === channel.id ? "channel-active" : ""}`}
@@ -1686,23 +1557,23 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            {!isOnline && <div className="offline-banner" role="status">You’re offline. Messages may not send yet.</div>}
+            {!isOnline && <div className="offline-banner" role="status">You are offline. Messages may not send.</div>}
             <div className="chat-log" ref={chatLogRef} role="log" aria-live="polite" aria-relevant="additions text" aria-label="Conversation">
               {chatLoading && currentMessages.length === 0 ? (
-                <div className="chat-loading" role="status" aria-label="Loading conversation">
+                <div className="chat-loading" role="status" aria-label="Loading">
                   {[1, 2, 3].map((item) => <div className="message-skeleton" key={item}><span className="skeleton skeleton-avatar" /><span className="skeleton skeleton-message" /></div>)}
                 </div>
               ) : chatLoadError && currentMessages.length === 0 ? (
                 <div className="chat-empty chat-error-state" role="alert">
                   <span className="empty-mark" aria-hidden="true">!</span>
                   <h3>Something went wrong</h3>
-                  <p>We couldn’t load the conversation. Try again in a moment.</p>
+                  <p>Could not load messages. Try again shortly.</p>
                   <button className="button button-small" type="button" onClick={() => setChatRefresh((value) => value + 1)}>Try again</button>
                 </div>
               ) : currentMessages.length === 0 ? (
                 <div className="chat-empty">
                   <h3>No messages yet</h3>
-                  <p>No one’s said anything here yet. Be the first to send a message.</p>
+                  <p>Be the first to say something.</p>
                 </div>
               ) : currentMessages.map((message, index) => {
                 const previous = currentMessages[index - 1];
@@ -1713,16 +1584,17 @@ export default function Home() {
                   <div className="message-content">
                     {!grouped && <div className="message-meta"><strong>{message.fromYou ? "You" : message.author}</strong><time>{message.time}</time></div>}
                     {message.body && <p>{message.body}</p>}
-                    {message.delivery === "sending" && <span className="message-delivery">Sending…</span>}
+                    {message.delivery === "sending" && <span className="message-delivery">Sending...</span>}
                     {message.delivery === "failed" && (
-                      <button className="message-retry" type="button" disabled={chatSending} onClick={() => void sendMessage(message.body, message.id)}>Not sent · Retry</button>
+                      <button className="message-retry" type="button" disabled={chatSending} onClick={() => void sendMessage(message.body, message.id)}>Not sent. Retry</button>
                     )}
                   </div>
                 </article>
-              );})}
+              );
+              })}
             </div>
             <form className="chat-form" onSubmit={submitMessage}>
-              <label className="sr-only" htmlFor="chat-message">Message Chat-Chaat</label>
+              <label className="sr-only" htmlFor="chat-message">Message</label>
               <textarea
                 id="chat-message"
                 ref={chatInputRef}
@@ -1733,78 +1605,47 @@ export default function Home() {
                   event.currentTarget.style.height = "auto";
                   event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 120)}px`;
                 }}
-                placeholder="Message Chat-Chaat…"
+                placeholder="Write a message..."
                 maxLength={2000}
                 rows={1}
                 enterKeyHint="send"
               />
               {chatError && <p className="chat-error" role="alert">{chatError}</p>}
               <div className="chat-form-footer">
-                <span className="subtle">Enter to send · Shift+Enter for a new line</span>
-                <button className="button button-primary button-small" type="submit" disabled={chatCooldown || chatSending || !chatDraft.trim()}>{chatCooldown ? "Wait 3s…" : chatSending ? "Sending…" : "Send"}</button>
+                <span className="subtle">Enter to send, Shift+Enter for new line</span>
+                <button className="button button-primary button-small" type="submit" disabled={chatCooldown || chatSending || !chatDraft.trim()}>{chatCooldown ? "Wait..." : chatSending ? "Sending..." : "Send"}</button>
               </div>
             </form>
           </section>
         </div>
       </main>
 
-      <nav className="mobile-tab-bar" aria-label="Main navigation">
-        <button type="button" onClick={() => { setMobileCitiesOpen(true); setMobileView("board"); }} aria-expanded={mobileCitiesOpen} aria-label="Cities">
-          <span aria-hidden="true">⌖</span><span>Cities</span>
+      <nav className="mobile-tab-bar" aria-label="Navigation">
+        <button type="button" className={mobileView === "board" ? "mobile-tab-active" : ""} onClick={() => { setMobileView("board"); }} aria-current={mobileView === "board" ? "page" : undefined}>
+          <span aria-hidden="true">&#9638;</span><span>Feed</span>
         </button>
-        <button type="button" className={mobileView === "board" && !mobileCitiesOpen ? "mobile-tab-active" : ""} onClick={() => { setMobileView("board"); setMobileCitiesOpen(false); }} aria-current={mobileView === "board" && !mobileCitiesOpen ? "page" : undefined}>
-          <span aria-hidden="true">▤</span><span>Posts</span>
+        <button type="button" className={mobileView === "chat" ? "mobile-tab-active" : ""} onClick={() => { setMobileView("chat"); }} aria-current={mobileView === "chat" ? "page" : undefined}>
+          <span aria-hidden="true">&#9634;</span><span>Chat</span>
         </button>
-        <button type="button" className={mobileView === "chat" ? "mobile-tab-active" : ""} onClick={() => { setMobileView("chat"); setMobileCitiesOpen(false); }} aria-current={mobileView === "chat" ? "page" : undefined}>
-          <span aria-hidden="true">▢</span><span>Chat</span>
-        </button>
-        <Link href="/profile" className="mobile-profile-tab"><span aria-hidden="true">◉</span><span>Profile</span></Link>
+        <Link href="/profile" className="mobile-profile-tab"><span aria-hidden="true">&#9673;</span><span>Profile</span></Link>
       </nav>
-
-      {mobileCitiesOpen && (
-        <div className="mobile-cities-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMobileCitiesOpen(false); }}>
-          <section className="mobile-cities-drawer" role="dialog" aria-modal="true" aria-labelledby="mobile-cities-title">
-            <span className="sheet-handle" aria-hidden="true" />
-            <div className="mobile-drawer-heading">
-              <h2 id="mobile-cities-title">Your cities</h2>
-              <button className="icon-button" type="button" onClick={() => setMobileCitiesOpen(false)} aria-label="Close city list">×</button>
-            </div>
-            <div className="search-wrap">
-              <label className="sr-only" htmlFor="mobile-city-search">Find a city</label>
-              <input id="mobile-city-search" ref={mobileCitySearchRef} className="search-input" value={citySearch} onChange={(event) => setCitySearch(event.target.value)} placeholder="Find a city" type="search" />
-            </div>
-            <nav className="mobile-cities-list" aria-label="Cities">
-              {(citySearch.trim() ? cityMatches : joined.map((slug) => CITIES.find((item) => item.slug === slug)).filter((item): item is (typeof CITIES)[number] => Boolean(item))).map((item) => (
-                <button className={`mobile-city-row ${citySlug === item.slug ? "mobile-city-active" : ""}`} type="button" key={item.slug} aria-current={citySlug === item.slug ? "page" : undefined} onClick={() => { selectCity(item.slug); setMobileCitiesOpen(false); }}>
-                  <span>{item.name}</span>{item.slug === "general" && <span className="always-joined">Default</span>}
-                </button>
-              ))}
-              {citySearch.trim() && cityMatches.length === 0 && <p className="subtle empty-search">No cities match that search.</p>}
-            </nav>
-            {citySearch.trim() && cityMatches.filter((item) => !joined.includes(item.slug)).map((item) => (
-              <button className="button button-primary mobile-join-city" type="button" key={`join-${item.slug}`} onClick={() => { joinCity(item.slug); setMobileCitiesOpen(false); }}>Join {item.name}</button>
-            ))}
-          </section>
-        </div>
-      )}
 
       {authOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAuthOpen(false); }}>
           <section className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-            <button className="modal-close" type="button" onClick={() => setAuthOpen(false)} aria-label="Close sign-in dialog">×</button>
+            <button className="modal-close" type="button" onClick={() => setAuthOpen(false)} aria-label="Close">&times;</button>
             <p className="eyebrow">Account</p>
             <h2 id="auth-title">{currentUser ? "Your account" : "Sign in with Google"}</h2>
             <p>{currentUser
               ? `You are signed in as ${currentUser.email ?? "your Google account"}.`
-              : "Google sign-in is used to publish and manage your community posts. VibeChat does not receive your Google password."}</p>
+              : "Sign in with Google to publish posts, comment, and chat. VibeChat does not receive your Google password."}</p>
             {!currentUser && (
               <button className="button button-primary" type="button" onClick={() => void signInWithGoogle()} disabled={authLoading}>
-                {authLoading ? "Redirecting to Google…" : "Continue with Google"}
+                {authLoading ? "Redirecting..." : "Continue with Google"}
               </button>
             )}
             {authError && <p className="chat-error" role="alert">{authError}</p>}
-            {currentUser && <Link className="button" href="/profile">Edit your profile and avatar</Link>}
-            <p>Access requires confirming that you are 18 or older at the entry gate.</p>
+            {currentUser && <Link className="button" href="/profile">Edit profile</Link>}
             <div className="modal-actions">
               {currentUser && <button className="button" type="button" onClick={() => void signOut()}>Sign out</button>}
               <button className="button" type="button" onClick={() => setAuthOpen(false)}>Close</button>
@@ -1816,9 +1657,9 @@ export default function Home() {
       {reportTarget && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReportTarget(null); }}>
           <form className="modal" role="dialog" aria-modal="true" aria-labelledby="report-title" onSubmit={submitReport}>
-            <button className="modal-close" type="button" onClick={() => setReportTarget(null)} aria-label="Close report dialog">×</button>
+            <button className="modal-close" type="button" onClick={() => setReportTarget(null)} aria-label="Close">&times;</button>
             <p className="eyebrow">Community safety</p><h2 id="report-title">Report {reportTarget.label}</h2>
-            <p>Reports are shared with authorized community safety moderators.</p>
+            <p>Reports are reviewed by community moderators.</p>
             <label htmlFor="report-reason">Reason</label>
             <select id="report-reason" value={reportReason} onChange={(event) => setReportReason(event.target.value)} required>
               <option value="">Choose a reason</option>
@@ -1829,8 +1670,8 @@ export default function Home() {
               <option value="violence">Threats or violence</option>
               <option value="other">Something else</option>
             </select>
-            <label htmlFor="report-details">Additional details (optional)</label>
-            <textarea id="report-details" value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={500} placeholder="Share only what helps explain the concern." rows={3} />
+            <label htmlFor="report-details">Details (optional)</label>
+            <textarea id="report-details" value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={500} placeholder="Any additional context." rows={3} />
             <div className="modal-actions">
               {reportTarget.authorUsername && (
                 <button
@@ -1841,7 +1682,7 @@ export default function Home() {
                     setReportTarget(null);
                   }}
                 >
-                  {blockedUsernames.has(reportTarget.authorUsername) ? "Unblock author" : "Block author"}
+                  {blockedUsernames.has(reportTarget.authorUsername) ? "Unblock" : "Block"}
                 </button>
               )}
               <button className="button button-primary" type="submit" disabled={!reportReason}>Submit report</button>
@@ -1853,23 +1694,23 @@ export default function Home() {
       {safetyCenterOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSafetyCenterOpen(false); }}>
           <section className="modal safety-modal" role="dialog" aria-modal="true" aria-labelledby="safety-title">
-            <button className="modal-close" type="button" onClick={() => setSafetyCenterOpen(false)} aria-label="Close safety center">×</button>
+            <button className="modal-close" type="button" onClick={() => setSafetyCenterOpen(false)} aria-label="Close">&times;</button>
             <p className="eyebrow">Community safety</p>
             <h2 id="safety-title">Safety center</h2>
             <p>{moderatorView
-              ? "Moderator queue. Only accounts with the trusted moderator role can review and update reports."
-              : "Your reports are saved privately to your account for review by community safety moderators."}</p>
+              ? "Moderator queue. Only authorized moderators can review reports."
+              : "Your reports are saved privately for review by moderators."}</p>
             <section className="safety-section" aria-labelledby="reports-heading">
               <h3 id="reports-heading">{moderatorView ? "Moderation queue" : "Your reports"} ({safetyReports.length})</h3>
               {safetyReports.length === 0 ? (
-                <p className="subtle">You have not submitted a report.</p>
+                <p className="subtle">No reports submitted.</p>
               ) : (
                 <div className="safety-list">
                   {safetyReports.map((report) => (
                     <article className="safety-item" key={report.reportId}>
                       <div>
                         <strong>{report.label}</strong>
-                        <span>{report.reason.replaceAll("-", " ")} · {report.status}</span>
+                        <span>{report.reason.replaceAll("-", " ")} / {report.status}</span>
                         {report.targetContent && <p>{report.targetContent}</p>}
                         {report.details && <p>{report.details}</p>}
                       </div>
@@ -1893,7 +1734,7 @@ export default function Home() {
             {!moderatorView && (
               <section className="safety-section" aria-labelledby="blocked-heading">
                 <h3 id="blocked-heading">Blocked accounts ({blockedAuthors.length})</h3>
-                {blockedAuthors.length === 0 ? <p className="subtle">You have not blocked anyone.</p> : (
+                {blockedAuthors.length === 0 ? <p className="subtle">No blocked accounts.</p> : (
                   <div className="safety-list">
                     {blockedAuthors.map((account) => (
                       <div className="safety-item" key={account.username}>
@@ -1916,9 +1757,9 @@ export default function Home() {
         <div className="modal-backdrop" role="presentation">
           <section className="modal" role="alertdialog" aria-modal="true" aria-labelledby="privacy-warning-title">
             <p className="eyebrow">Privacy check</p><h2 id="privacy-warning-title">This may include personal information</h2>
-            <p>Your message looks like it may contain a phone number or address. Public posts and chat can be visible to other people. Review it before sharing.</p>
+            <p>Your message may contain a phone number or address. Public posts and chat are visible to others. Review before sharing.</p>
             <div className="modal-actions">
-              <button className="button" type="button" onClick={() => setPendingShare(null)}>Review message</button>
+              <button className="button" type="button" onClick={() => setPendingShare(null)}>Review</button>
               <button className="button button-primary" type="button" onClick={confirmShare}>Share anyway</button>
             </div>
           </section>
