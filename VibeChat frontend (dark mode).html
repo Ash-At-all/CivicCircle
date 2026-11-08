@@ -124,7 +124,7 @@ input::placeholder{color:#7d8377}
     <div class="ptitle"><h2 id="ph">Posts</h2></div>
     <form class="row" id="pf">
      <label class="skip" for="pt">Post title</label><input id="pt" placeholder="Share a question or a tip" maxlength="140" required autocomplete="off">
-     <label class="skip" for="ptag">Tag</label><select id="ptag"><option>Food</option><option>Jobs</option><option>Rent</option><option>Events</option><option>General</option></select>
+     <label class="skip" for="ptag">Tag</label><select id="ptag"><option>General</option><option>Jobs</option><option>Rent</option><option>Events</option><option>Food</option></select>
      <button class="btn btn-primary" type="submit">Post</button>
     </form>
     <div class="scroll" id="posts" aria-live="polite"></div>
@@ -188,7 +188,31 @@ input::placeholder{color:#7d8377}
 </div>
 
 <script>
-var cities=[["pune","Pune","MH"],["mumbai","Mumbai","MH"],["nagpur","Nagpur","MH"],["nashik","Nashik","MH"],["sambhajinagar","Chhatrapati Sambhajinagar/Aurangabad","MH"],["hyderabad","Hyderabad","TS"],["bengaluru","Bengaluru","KA"],["delhi","Delhi","DL"],["general","General chat","Everyone"]];
+var cities=[
+ ["agartala","Agartala","TR"],["agra","Agra","UP"],["aizawl","Aizawl","MZ"],["ahmedabad","Ahmedabad","GJ"],
+ ["amritsar","Amritsar","PB"],["amravati","Amravati","MH"],["bengaluru","Bengaluru","KA"],["belagavi","Belagavi","KA"],
+ ["bikaner","Bikaner","RJ"],["bhopal","Bhopal","MP"],["bhubaneswar","Bhubaneswar","OD"],["chandigarh","Chandigarh","CH"],
+ ["chennai","Chennai","TN"],["coimbatore","Coimbatore","TN"],["cuttack","Cuttack","OD"],["dehradun","Dehradun","UK"],
+ ["delhi","Delhi","DL"],["dhanbad","Dhanbad","JH"],["erode","Erode","TN"],["faridabad","Faridabad","HR"],
+ ["gandhinagar","Gandhinagar","GJ"],["gangtok","Gangtok","SK"],["goa","Panaji","GA"],["guntur","Guntur","AP"],
+ ["gurugram","Gurugram","HR"],["guwahati","Guwahati","AS"],["gwalior","Gwalior","MP"],["hubballi","Hubballi","KA"],
+ ["hyderabad","Hyderabad","TS"],["imphal","Imphal","MN"],["indore","Indore","MP"],["itanagar","Itanagar","AR"],
+ ["jabalpur","Jabalpur","MP"],["jaipur","Jaipur","RJ"],["jammu","Jammu","JK"],["jalandhar","Jalandhar","PB"],
+ ["jamshedpur","Jamshedpur","JH"],["jodhpur","Jodhpur","RJ"],["kanpur","Kanpur","UP"],["kochi","Kochi","KL"],
+ ["kohima","Kohima","NL"],["kolhapur","Kolhapur","MH"],["kolkata","Kolkata","WB"],["kota","Kota","RJ"],
+ ["kozhikode","Kozhikode","KL"],["lucknow","Lucknow","UP"],["ludhiana","Ludhiana","PB"],["madurai","Madurai","TN"],
+ ["mangaluru","Mangaluru","KA"],["meerut","Meerut","UP"],["mumbai","Mumbai","MH"],["mysuru","Mysuru","KA"],
+ ["nagpur","Nagpur","MH"],["nashik","Nashik","MH"],["nanded","Nanded","MH"],["navi-mumbai","Navi Mumbai","MH"],
+ ["nellore","Nellore","AP"],["noida","Noida","UP"],["patna","Patna","BR"],["port-blair","Port Blair","AN"],
+ ["prayagraj","Prayagraj","UP"],["puducherry","Puducherry","PY"],["pune","Pune","MH"],["raipur","Raipur","CG"],
+ ["rajkot","Rajkot","GJ"],["ranchi","Ranchi","JH"],["sambhajinagar","Chhatrapati Sambhajinagar","MH"],
+ ["shillong","Shillong","ML"],["shimla","Shimla","HP"],["siliguri","Siliguri","WB"],["srinagar","Srinagar","JK"],
+ ["surat","Surat","GJ"],["thane","Thane","MH"],["thiruvananthapuram","Thiruvananthapuram","KL"],
+ ["thrissur","Thrissur","KL"],["tirupati","Tirupati","AP"],["tiruchirappalli","Tiruchirappalli","TN"],
+ ["tirunelveli","Tirunelveli","TN"],["udaipur","Udaipur","RJ"],["vadodara","Vadodara","GJ"],["varanasi","Varanasi","UP"],
+ ["vijayawada","Vijayawada","AP"],["vellore","Vellore","TN"],["visakhapatnam","Visakhapatnam","AP"],["leh","Leh","LA"],
+ ["general","General chat","Everyone"]
+];
 var data={},cur=null,timer=null,$=function(i){return document.getElementById(i)};
 var list=$("citylist"),joined=["general"],activeChannel="chitchat";
 try{
@@ -219,7 +243,7 @@ function renderSearch(matches){
 function searchCities(){
  var query=$("cityquery").value.trim().toLocaleLowerCase();
  if(!query){$("searchstatus").textContent="Type a city name to search.";renderSearch([]);return}
- var matches=cities.filter(function(c){return c[1].toLocaleLowerCase().indexOf(query)!==-1||c[2].toLocaleLowerCase().indexOf(query)!==-1});
+ var matches=cities.filter(function(c){return c[1].toLocaleLowerCase().indexOf(query)!==-1||c[2].toLocaleLowerCase().indexOf(query)!==-1}).sort(function(a,b){return a[1].localeCompare(b[1])});
  $("searchstatus").textContent=matches.length?matches.length+" cities found. Join only the ones you want.":"No cities found. Try another search.";
  renderSearch(matches)
 }
