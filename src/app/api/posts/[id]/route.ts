@@ -5,17 +5,20 @@ import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-const POST_COLUMNS = "id, city_slug, tag, title, body, image_paths, created_at, updated_at, author_id";
 const MAX_REQUEST_BYTES = 16 * 1024;
-const postIdSchema = z.string().uuid();
-type RouteContext = { params: Promise<{ id: string }> };
+const POST_COLUMNS = "id, city_slug, title, body, tag, image_paths, votes, created_at, author_username, profiles(display_name)";
+const uuidSchema = z.string().uuid();
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
 
 async function getPostId(context: RouteContext) {
   const { id } = await context.params;
-  return postIdSchema.safeParse(id);
+  return uuidSchema.safeParse(id);
 }
 
-export async function PATCH(request: Request, context: RouteContext) {
+export async function PUT(request: Request, context: RouteContext) {
   const rateLimitResponse = enforceRateLimit(request, "posts");
   if (rateLimitResponse) return rateLimitResponse;
 
@@ -35,11 +38,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in with Google before editing a post." }, { status: 401 });
-    }
-
     const { data, error } = await supabase
       .from("posts")
       .update({ title: parsed.data.title, body: parsed.data.body })
@@ -51,7 +49,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       console.error("Supabase post update failed:", error.message);
       return NextResponse.json({ error: "Could not update your post. Please try again." }, { status: 502 });
     }
-    if (!data) return NextResponse.json({ error: "Post not found or you do not own it." }, { status: 404 });
+    if (!data) return NextResponse.json({ error: "Post not found." }, { status: 404 });
     return NextResponse.json({ post: { ...data, mine: true } });
   } catch (error) {
     console.error("Supabase post update is unavailable:", error);
@@ -68,11 +66,6 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in with Google before deleting a post." }, { status: 401 });
-    }
-
     const { data: post, error: readError } = await supabase
       .from("posts")
       .select("id, image_paths")
@@ -83,27 +76,26 @@ export async function DELETE(request: Request, context: RouteContext) {
       console.error("Supabase post lookup for deletion failed:", readError.message);
       return NextResponse.json({ error: "Could not delete your post. Please try again." }, { status: 502 });
     }
-    if (!post) return NextResponse.json({ error: "Post not found or you do not own it." }, { status: 404 });
+    if (!post) return NextResponse.json({ error: "Post not found." }, { status: 404 });
 
-    const { error } = await supabase
+    const { error: deleteError } = await supabase
       .from("posts")
       .delete()
       .eq("id", id.data);
 
-    if (error) {
-      console.error("Supabase post delete failed:", error.message);
+    if (deleteError) {
+      console.error("Supabase post delete failed:", deleteError.message);
       return NextResponse.json({ error: "Could not delete your post. Please try again." }, { status: 502 });
     }
 
-    let cleanupWarning: string | null = null;
-    if (post.image_paths.length > 0) {
-      const { error: storageError } = await supabase.storage.from("post-images").remove(post.image_paths);
-      if (storageError) {
-        console.error("Supabase post image cleanup failed:", storageError.message);
-        cleanupWarning = "The post was deleted, but some image files could not be removed from storage.";
-      }
+    if (post.image_paths && Array.isArray(post.image_paths) && post.image_paths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("post-images")
+        .remove(post.image_paths);
+      if (storageError) console.error("Supabase post images cleanup failed:", storageError.message);
     }
-    return NextResponse.json({ deleted: true, cleanupWarning });
+
+    return NextResponse.json({ id: id.data });
   } catch (error) {
     console.error("Supabase post delete is unavailable:", error);
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });

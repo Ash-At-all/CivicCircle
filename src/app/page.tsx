@@ -447,11 +447,7 @@ export default function Home() {
   );
 
   async function updateBlock(username: string, blocked: boolean) {
-    if (!currentUser) {
-      setAuthOpen(true);
-      setNotice({ kind: "error", text: "Sign in to block or unblock accounts." });
-      return;
-    }
+    // Anonymous blocking enabled
     const userId = currentUser.id;
     try {
       const response = await fetch("/api/blocks", {
@@ -843,11 +839,7 @@ export default function Home() {
       setChatError("Messages can't be sent right now. Please try again later.");
       return;
     }
-    if (!currentUser) {
-      setAuthOpen(true);
-      setChatError("Sign in to send a message.");
-      return;
-    }
+    // Anonymous messaging enabled
     const body = text;
     const parsed = messageDraftSchema.safeParse({ body });
     if (!parsed.success) {
@@ -981,11 +973,7 @@ export default function Home() {
       setNotice({ kind: "error", text: "Configure Supabase to publish comments." });
       return;
     }
-    if (!currentUser) {
-      setAuthOpen(true);
-      setNotice({ kind: "error", text: "Sign in to comment." });
-      return;
-    }
+    // Anonymous commenting enabled
     const parsed = commentDraftSchema.safeParse({ body: text });
     if (!parsed.success) {
       setNotice({ kind: "error", text: parsed.error.issues.map((issue) => issue.message).join(" ") });
@@ -1035,11 +1023,7 @@ export default function Home() {
 
   async function votePost(postId: string, selectedVote: -1 | 1) {
     const nextVote = votes[postId] === selectedVote ? 0 : selectedVote;
-    if (!isSupabaseConfigured() || !currentUser) {
-      if (!currentUser) setAuthOpen(true);
-      setNotice({ kind: "error", text: "Sign in to vote on posts." });
-      return;
-    }
+    if (!isSupabaseConfigured()) return;
     try {
       const response = await fetch(`/api/posts/${encodeURIComponent(postId)}/votes`, {
         method: "PUT",

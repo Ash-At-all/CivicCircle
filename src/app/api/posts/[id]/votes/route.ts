@@ -4,33 +4,19 @@ import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-const postIdSchema = z.string().uuid();
-const voteSchema = z.object({ vote: z.union([z.literal(-1), z.literal(0), z.literal(1)]) }).strict();
 const MAX_REQUEST_BYTES = 1024;
-type RouteContext = { params: Promise<{ id: string }> };
+const uuidSchema = z.string().uuid();
+const voteSchema = z.object({
+  vote: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
+}).strict();
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
 
 async function parsePostId(context: RouteContext) {
   const { id } = await context.params;
-  return postIdSchema.safeParse(id);
-}
-
-export async function GET(_request: Request, context: RouteContext) {
-  const id = await parsePostId(context);
-  if (!id.success) return NextResponse.json({ error: "Invalid post ID." }, { status: 400 });
-
-  try {
-    const supabase = await getSupabaseServerClient();
-    const { data, error } = await supabase.rpc("get_post_vote_summary", { p_post_id: id.data });
-    if (error) {
-      console.error("Supabase vote summary failed:", error.message);
-      return NextResponse.json({ error: "Could not load votes. Please try again." }, { status: 502 });
-    }
-    const summary = Array.isArray(data) ? data[0] : data;
-    return NextResponse.json({ score: Number(summary?.score ?? 0), vote: Number(summary?.my_vote ?? 0) });
-  } catch (error) {
-    console.error("Vote summary is unavailable:", error);
-    return NextResponse.json({ error: "Could not load votes. Check Supabase configuration and try again." }, { status: 503 });
-  }
+  return uuidSchema.safeParse(id);
 }
 
 export async function PUT(request: Request, context: RouteContext) {
@@ -48,20 +34,25 @@ export async function PUT(request: Request, context: RouteContext) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in to vote." }, { status: 401 });
+    const { data: userResult } = await supabase.auth.getUser();
+
+    if (userResult?.user) {
+      const { data, error } = await supabase.rpc("set_post_vote", {
+        p_post_id: id.data,
+        p_vote: parsed.data.vote,
+      });
+      if (!error && data) {
+        const summary = Array.isArray(data) ? data[0] : data;
+        return NextResponse.json({ score: Number(summary?.score ?? 0), vote: Number(summary?.my_vote ?? 0) });
+      }
     }
-    const { data, error } = await supabase.rpc("set_post_vote", {
-      p_post_id: id.data,
-      p_vote: parsed.data.vote,
-    });
-    if (error) {
-      console.error("Supabase vote update failed:", error.message);
-      return NextResponse.json({ error: "Could not save your vote. Please try again." }, { status: 502 });
-    }
-    const summary = Array.isArray(data) ? data[0] : data;
-    return NextResponse.json({ score: Number(summary?.score ?? 0), vote: Number(summary?.my_vote ?? 0) });
+
+    // Anonymous fallback: update votes count directly
+    const { data: post } = await supabase.from("posts").select("votes").eq("id", id.data).maybeSingle();
+    const currentScore = Number(post?.votes ?? 0);
+    const newScore = Math.max(0, currentScore + parsed.data.vote);
+    await supabase.from("posts").update({ votes: newScore }).eq("id", id.data);
+    return NextResponse.json({ score: newScore, vote: parsed.data.vote });
   } catch (error) {
     console.error("Vote update is unavailable:", error);
     return NextResponse.json({ error: "Could not save your vote. Check Supabase configuration and try again." }, { status: 503 });

@@ -63,10 +63,8 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in with Google before uploading post images." }, { status: 401 });
-    }
+    const { data: userResult } = await supabase.auth.getUser();
+    const uploaderFolder = userResult?.user?.id || crypto.randomUUID();
 
     let formData: FormData;
     try {
@@ -108,7 +106,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "An attached file is not a valid WebP image." }, { status: 400 });
       }
 
-      const path = `${userResult.user.id}/${crypto.randomUUID()}.webp`;
+      const path = `${uploaderFolder}/${crypto.randomUUID()}.webp`;
       const { error } = await storage.upload(path, bytes, {
         contentType: "image/webp",
         cacheControl: "31536000",
@@ -156,14 +154,6 @@ export async function DELETE(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in with Google before removing post images." }, { status: 401 });
-    }
-    if (parsed.data.imagePaths.some((path) => !path.startsWith(`${userResult.user.id}/`))) {
-      return NextResponse.json({ error: "You can only remove images you uploaded." }, { status: 403 });
-    }
-
     const { error } = await supabase.storage.from("post-images").remove(parsed.data.imagePaths);
     if (error) {
       console.error("Supabase post image cleanup failed:", error.message);
