@@ -11,6 +11,7 @@ import { CITIES } from "@/lib/cities";
 import { postsRepo, type PersistedPost } from "@/lib/posts-repo";
 import { profilesRepo } from "@/lib/profiles-repo";
 import { type Profile } from "@/lib/profile-schema";
+import { getAnonId, getDisplayName, setDisplayName } from "@/lib/anon-identity";
 import { getSupabaseBrowserClient, getSupabaseConfigError, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   commentDraftSchema,
@@ -139,27 +140,18 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function toPost(row: PersistedPost, userId?: string, profile: Profile | null = null): Post {
-  const mine = row.mine === true || (userId !== undefined && row.author_id === userId);
-  const author = mine ? (profile?.display_name || profile?.username || "You") : row.author || "Community member";
+function toPost(row: PersistedPost, userId?: string): Post {
+  const mine = row.mine === true || (userId !== undefined && row.anon_id === userId);
+  const author = mine ? "You" : row.author || "Community member";
   const createdAt = new Date(row.created_at);
   const storage = getSupabaseBrowserClient()?.storage.from("post-images");
-  const mineInitials = mine && profile
-    ? (profile.display_name || profile.username)
-      .split(/[_\s]+/)
-      .map((part: string) => part[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "YO"
-    : "YO";
   return {
     id: row.id,
     city: row.city_slug,
     author,
-    author_username: mine ? profile?.username ?? row.author_username : row.author_username,
-    initials: mine ? mineInitials : getInitials(author),
-    avatar_url: mine ? profile?.avatar_url ?? row.avatar_url ?? null : row.avatar_url ?? null,
+    author_username: row.author_username,
+    initials: mine ? "YO" : getInitials(author),
+    avatar_url: row.avatar_url ?? null,
     time: Number.isNaN(createdAt.getTime()) ? "Recently" : createdAt.toLocaleString(),
     tag: row.tag,
     title: row.title,
@@ -203,9 +195,9 @@ export default function Home() {
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [postLoadResult, setPostLoadResult] = useState<{ city: string; error: string | null } | null>(null);
   const [postsRefresh, setPostsRefresh] = useState(0);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const currentUserId = currentUser?.id ?? null;
-  const [profileState, setProfileState] = useState<{ userId: string; profile: Profile | null } | null>(null);
+  const [anonId, setAnonId] = useState("");
+  const currentUser = anonId ? { id: anonId, email: null } as unknown as User : null;
+  const currentUserId = anonId;
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [newPostOpen, setNewPostOpen] = useState(false);
@@ -247,7 +239,6 @@ export default function Home() {
   const previousFocus = useRef<HTMLElement | null>(null);
   const router = useRouter();
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const profile = profileState?.userId === currentUserId ? profileState.profile : null;
 
   useEffect(() => {
     const onlineCheck = window.setTimeout(() => setIsOnline(navigator.onLine), 0);
@@ -301,11 +292,8 @@ export default function Home() {
     void supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return;
       if (error) setAuthError("Could not restore your sign-in. Please try signing in again.");
-      setCurrentUser(data.session?.user ?? null);
     });
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
-      if (!session) setProfileState(null);
       setAuthError(null);
     });
 
@@ -332,24 +320,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    let active = true;
-    if (!isSupabaseConfigured() || !currentUserId) return () => { active = false; };
-    void profilesRepo.getProfile()
-      .then((p) => {
-        if (!active) return;
-        setProfileState({ userId: currentUserId, profile: p });
-        if (!p) router.push("/profile");
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setNotice({
-            kind: "error",
-            text: error instanceof Error ? error.message : "Could not load your profile.",
-          });
-        }
-      });
-    return () => { active = false; };
-  }, [currentUserId, router]);
+    // Anonymous mode: no profile loading needed
+  }, []);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -379,7 +351,7 @@ export default function Home() {
     void postsRepo.listPosts(topicSlug === "general" ? undefined : topicSlug)
       .then((rows) => {
         if (active) {
-          setPosts(rows.map((row) => toPost(row, currentUserId ?? undefined, profile)));
+          setPosts(rows.map((row) => toPost(row, currentUserId ?? undefined)));
           setVotes(Object.fromEntries(rows.map((row) => [row.id, row.user_vote ?? 0])));
           setPostLoadResult({ city: topicSlug, error: null });
         }
@@ -395,7 +367,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [topicSlug, currentUserId, postsRefresh, profile]);
+  }, [topicSlug, currentUserId, postsRefresh]);
 
   useEffect(() => {
     let active = true;
@@ -817,8 +789,8 @@ export default function Home() {
         uploadedPaths = await postsRepo.uploadPostImages(blobs);
       }
 
-      const row = await postsRepo.createPost(parsed.data, uploadedPaths);
-      setPosts((current) => [toPost(row, currentUser.id, profile), ...current]);
+      const row = await postsRepo.createPost(parsed.data, uploadedPaths, anonId);
+      setPosts((current) => [toPost(row, anonId), ...current]);
       setPostTitle("");
       setPostBody("");
       for (const image of postImages) {
@@ -971,9 +943,9 @@ export default function Home() {
       body: parsed.data.body,
       time: "Sending...",
       fromYou: true,
-      author: profile?.display_name || profile?.username || "You",
-      author_username: profile?.username ?? null,
-      initials: profile ? getInitials(profile.display_name || profile.username) : "YO",
+      author: "You",
+      author_username: null,
+      initials: "YO",
       delivery: "sending",
     };
     setMessages((current) => ({
@@ -989,7 +961,7 @@ export default function Home() {
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: topicSlug, channel: channelId, body: parsed.data.body }),
+        body: JSON.stringify({ city: topicSlug, channel: channelId, body: parsed.data.body, anonId }),
       });
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
@@ -1257,32 +1229,8 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          {currentUser && profile ? (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                {profile.avatar_url ? (
-                  <Image className="sidebar-profile-avatar" src={profile.avatar_url} alt={`${profile.display_name || profile.username} avatar`} width={28} height={28} unoptimized />
-                ) : (
-                  <span className="sidebar-profile-placeholder" aria-hidden="true">{(profile.display_name || profile.username).split(/[_\s]+/).map((p: string) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?"}</span>
-                )}
-                <div style={{ minWidth: 0 }}>
-                  <strong className="sidebar-profile-name">{profile.display_name || profile.username}</strong>
-                  {profile.tag && <span className="sidebar-profile-tag">{profile.tag}</span>}
-                </div>
-              </div>
-            </>
-          ) : (
-            <p>{currentUser ? `Signed in as ${currentUser.email ?? "Google account"}.` : "Sign in to publish posts and join conversations."}</p>
-          )}
-          <Link className="sidebar-profile-link" href="/profile">
-            <span aria-hidden="true">&#9673;</span>
-            <span>Profile</span>
-          </Link>
-          {currentUser ? (
-            <button className="button sign-in-button" type="button" onClick={() => void signOut()}>Sign out</button>
-          ) : (
-            <button className="button sign-in-button" type="button" onClick={() => setAuthOpen(true)}>Sign in</button>
-          )}
+          <p className="sidebar-anon-id">ID: {anonId.slice(0, 8)}…</p>
+          <button className="button sign-in-button" type="button" onClick={() => setAuthOpen(true)}>Edit nickname</button>
           <div className="legal-links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
         </div>
       </aside>
@@ -1363,11 +1311,7 @@ export default function Home() {
             {newPostOpen && (
               <form className="composer card" onSubmit={submitPost}>
                 <div className="composer-heading">
-                  {profile?.avatar_url ? (
-                    <Image className="avatar" src={profile.avatar_url} alt="Your avatar" width={34} height={34} unoptimized />
-                  ) : (
-                    <span className="avatar">{profile ? getInitials(profile.display_name || profile.username) : "?"}</span>
-                  )}
+                  <span className="avatar">YO</span>
                   <div><strong>Create a post</strong><span className="subtle">Posting to {topic.name}</span></div>
                 </div>
                 <label className="sr-only" htmlFor="post-title">Post title</label>
@@ -1634,22 +1578,18 @@ export default function Home() {
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAuthOpen(false); }}>
           <section className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
             <button className="modal-close" type="button" onClick={() => setAuthOpen(false)} aria-label="Close">&times;</button>
-            <p className="eyebrow">Account</p>
-            <h2 id="auth-title">{currentUser ? "Your account" : "Sign in with Google"}</h2>
-            <p>{currentUser
-              ? `You are signed in as ${currentUser.email ?? "your Google account"}.`
-              : "Sign in with Google to publish posts, comment, and chat. VibeChat does not receive your Google password."}</p>
-            {!currentUser && (
-              <button className="button button-primary" type="button" onClick={() => void signInWithGoogle()} disabled={authLoading}>
-                {authLoading ? "Redirecting..." : "Continue with Google"}
-              </button>
-            )}
-            {authError && <p className="chat-error" role="alert">{authError}</p>}
-            {currentUser && <Link className="button" href="/profile">Edit profile</Link>}
-            <div className="modal-actions">
-              {currentUser && <button className="button" type="button" onClick={() => void signOut()}>Sign out</button>}
-              <button className="button" type="button" onClick={() => setAuthOpen(false)}>Close</button>
-            </div>
+            <p className="eyebrow">Profile</p>
+            <h2 id="auth-title">Your display name</h2>
+            <p>Choose a nickname. It is stored only in this browser.</p>
+            <input
+              type="text"
+              value={getDisplayName()}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your nickname"
+              maxLength={30}
+              style={{ minHeight: 40, padding: "8px 10px", border: "1px solid #343830", borderRadius: 6, background: "#151714", color: "#e7e5de", font: "inherit", width: "100%" }}
+            />
+            <button className="button button-primary" type="button" onClick={() => setAuthOpen(false)}>Save & close</button>
           </section>
         </div>
       )}
