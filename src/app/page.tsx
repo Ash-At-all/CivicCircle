@@ -2,17 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { FormEvent, KeyboardEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { z } from "zod";
 import { SiteBrand } from "@/components/site-brand";
 import { CITIES } from "@/lib/cities";
 import { postsRepo, type PersistedPost } from "@/lib/posts-repo";
-import { profilesRepo } from "@/lib/profiles-repo";
-import { type Profile } from "@/lib/profile-schema";
 import { getAnonId, getDisplayName, setDisplayName } from "@/lib/anon-identity";
-import { getSupabaseBrowserClient, getSupabaseConfigError, isSupabaseConfigured } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   commentDraftSchema,
   messageDraftSchema,
@@ -76,10 +73,11 @@ const messageResponseSchema = z.object({
     id: z.string(),
     body: z.string(),
     time: z.string(),
-    fromYou: z.boolean(),
-    author: z.string(),
-    author_username: z.string().nullable(),
-    initials: z.string(),
+    fromYou: z.boolean().default(false),
+    author: z.string().optional().default("Community member"),
+    author_username: z.string().nullable().optional().default(null),
+    initials: z.string().optional().default("CM"),
+    anon_id: z.string().nullable().optional(),
   })),
 });
 const reportsResponseSchema = z.object({
@@ -141,8 +139,8 @@ function getInitials(name: string) {
 }
 
 function toPost(row: PersistedPost, userId?: string): Post {
-  const mine = row.mine === true || (userId !== undefined && row.anon_id === userId);
-  const author = mine ? "You" : row.author || "Community member";
+  const mine = row.mine === true || (Boolean(userId) && row.anon_id === userId);
+  const author = mine ? (getDisplayName() || "You") : row.author || "Community member";
   const createdAt = new Date(row.created_at);
   const storage = getSupabaseBrowserClient()?.storage.from("post-images");
   return {
@@ -150,13 +148,13 @@ function toPost(row: PersistedPost, userId?: string): Post {
     city: row.city_slug,
     author,
     author_username: row.author_username,
-    initials: mine ? "YO" : getInitials(author),
+    initials: mine ? getInitials(author) : getInitials(row.author || "CM"),
     avatar_url: row.avatar_url ?? null,
     time: Number.isNaN(createdAt.getTime()) ? "Recently" : createdAt.toLocaleString(),
     tag: row.tag,
     title: row.title,
     body: row.body,
-    images: row.image_paths.map((path) => {
+    images: (row.image_paths ?? []).map((path) => {
       return {
         url: storage?.getPublicUrl(path).data.publicUrl ?? "",
         name: "Post image",
@@ -196,10 +194,9 @@ export default function Home() {
   const [postLoadResult, setPostLoadResult] = useState<{ city: string; error: string | null } | null>(null);
   const [postsRefresh, setPostsRefresh] = useState(0);
   const [anonId, setAnonId] = useState("");
-  const currentUser = anonId ? { id: anonId, email: null } as unknown as User : null;
+  const [nickname, setNickname] = useState("Anonymous");
+  const currentUser = { id: anonId || "anon", email: null } as unknown as User;
   const currentUserId = anonId;
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [newPostOpen, setNewPostOpen] = useState(false);
   const [postTitle, setPostTitle] = useState("");
   const [postBody, setPostBody] = useState("");
@@ -237,8 +234,15 @@ export default function Home() {
   const postSearchRef = useRef<HTMLInputElement>(null);
   const imageUrls = useRef(new Set<string>());
   const previousFocus = useRef<HTMLElement | null>(null);
-  const router = useRouter();
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setAnonId(getAnonId());
+      setNickname(getDisplayName());
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const onlineCheck = window.setTimeout(() => setIsOnline(navigator.onLine), 0);
@@ -279,48 +283,6 @@ export default function Home() {
   useEffect(() => () => {
     for (const url of imageUrls.current) URL.revokeObjectURL(url);
     imageUrls.current.clear();
-  }, []);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-
-    let active = true;
-    let authErrorTimer: number | undefined;
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      if (error) setAuthError("Could not restore your sign-in. Please try signing in again.");
-    });
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthError(null);
-    });
-
-    const query = new URLSearchParams(window.location.search);
-    const callbackError = query.get("auth_error");
-    if (callbackError) {
-      const message = callbackError === "missing_code"
-        ? "Google sign-in did not return an authorization code. Please try again."
-        : "Google sign-in could not be completed. Check your Supabase Google provider settings and try again.";
-      authErrorTimer = window.setTimeout(() => {
-        if (active) {
-          setAuthError(message);
-          setAuthOpen(true);
-        }
-      }, 0);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-
-    return () => {
-      active = false;
-      if (authErrorTimer !== undefined) window.clearTimeout(authErrorTimer);
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    // Anonymous mode: no profile loading needed
   }, []);
 
   useEffect(() => {
@@ -380,8 +342,9 @@ export default function Home() {
       }
       if (showLoading) setChatLoading(true);
       try {
+        const anonQuery = anonId ? `&anon=${encodeURIComponent(anonId)}` : "";
         const response = await fetch(
-          `/api/messages?city=${encodeURIComponent(topicSlug)}&channel=${encodeURIComponent(channelId)}`,
+          `/api/messages?city=${encodeURIComponent(topicSlug)}&channel=${encodeURIComponent(channelId)}${anonQuery}`,
           { cache: "no-store" },
         );
         const data: unknown = await response.json();
@@ -441,7 +404,7 @@ export default function Home() {
       active = false;
       window.clearInterval(refresh);
     };
-  }, [topicSlug, channelId, chatRefresh]);
+  }, [topicSlug, channelId, chatRefresh, anonId]);
 
   const blockedAuthors = useMemo(
     () => blockedState?.userId === currentUserId ? blockedState.accounts : [],
@@ -773,12 +736,8 @@ export default function Home() {
       setNotice({ kind: "error", text: "Configure Supabase before publishing posts." });
       return;
     }
-    if (!currentUser) {
-      setAuthError(null);
-      setAuthOpen(true);
-      setNotice({ kind: "error", text: "Sign in before publishing a post." });
-      return;
-    }
+    const currentAnon = anonId || getAnonId();
+    if (!anonId) setAnonId(currentAnon);
     let uploadedPaths: string[] = [];
     try {
       if (postImages.length > 0) {
@@ -877,40 +836,6 @@ export default function Home() {
     setNotice(cleanupWarning
       ? { kind: "error", text: cleanupWarning }
       : { kind: "success", text: "Post deleted." });
-  }
-
-  async function signInWithGoogle() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setAuthError(getSupabaseConfigError() ?? "Supabase client could not be initialized.");
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-    const redirectTo = `${window.location.origin}/auth/callback?next=/`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-    if (error) {
-      setAuthError(error.message);
-      setAuthLoading(false);
-    }
-  }
-
-  async function signOut() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setNotice({ kind: "error", text: "Supabase is not configured." });
-      return;
-    }
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setNotice({ kind: "error", text: `Could not sign out: ${error.message}` });
-      return;
-    }
-    setNotice({ kind: "success", text: "You have signed out." });
   }
 
   async function sendMessage(text: string, retryId?: string) {
@@ -1229,7 +1154,8 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <p className="sidebar-anon-id">ID: {anonId.slice(0, 8)}…</p>
+          <p className="sidebar-anon-id" style={{ marginBottom: "2px" }}>User: <strong>{nickname || "Anonymous"}</strong></p>
+          <p className="subtle" style={{ fontSize: "11px", marginBottom: "8px" }}>ID: {anonId ? `${anonId.slice(0, 8)}…` : "connecting…"}</p>
           <button className="button sign-in-button" type="button" onClick={() => setAuthOpen(true)}>Edit nickname</button>
           <div className="legal-links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
         </div>
@@ -1583,11 +1509,14 @@ export default function Home() {
             <p>Choose a nickname. It is stored only in this browser.</p>
             <input
               type="text"
-              value={getDisplayName()}
-              onChange={(e) => setDisplayName(e.target.value)}
+              value={nickname}
+              onChange={(e) => {
+                setNickname(e.target.value);
+                setDisplayName(e.target.value);
+              }}
               placeholder="Your nickname"
               maxLength={30}
-              style={{ minHeight: 40, padding: "8px 10px", border: "1px solid #343830", borderRadius: 6, background: "#151714", color: "#e7e5de", font: "inherit", width: "100%" }}
+              style={{ minHeight: 40, padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--surface-2)", color: "var(--text)", font: "inherit", width: "100%" }}
             />
             <button className="button button-primary" type="button" onClick={() => setAuthOpen(false)}>Save & close</button>
           </section>

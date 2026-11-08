@@ -5,51 +5,86 @@ import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-const MESSAGE_COLUMNS = "id, city_slug, channel_id, anon_id, body, created_at";
 const MAX_REQUEST_BYTES = 16 * 1024;
 
 const listQuerySchema = z.object({
   city: z.string().min(1),
   channel: z.string().min(1),
+  anon: z.string().optional(),
 });
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const city = url.searchParams.get("city");
   const channel = url.searchParams.get("channel");
+  const anon = url.searchParams.get("anon");
 
-  const parsed = listQuerySchema.safeParse({ city, channel });
+  const parsed = listQuerySchema.safeParse({ city, channel, anon: anon ?? undefined });
   if (!parsed.success) {
-    return NextResponse.json({ error: "City and channel are required." }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.issues.map((issue) => issue.message).join(" ") },
+      { status: 400 },
+    );
   }
 
   try {
     const supabase = await getSupabaseServerClient();
 
-    const { data, error } = await supabase
+    // 1. Try querying messages with anon_id
+    const query = supabase
       .from("messages")
-      .select(MESSAGE_COLUMNS)
+      .select("id, city_slug, channel_id, anon_id, body, created_at")
       .eq("city_slug", parsed.data.city)
       .eq("channel_id", parsed.data.channel)
       .order("created_at", { ascending: true })
-      .limit(100);
+      .limit(50);
 
-    if (error) {
-      console.error("Supabase message list failed:", error.message);
+    const { data, error } = await query;
+
+    if (!error && data) {
+      const messages = data.map((row) => ({
+        id: row.id,
+        body: row.body,
+        time: new Date(row.created_at).toLocaleString(),
+        fromYou: Boolean(parsed.data.anon && row.anon_id === parsed.data.anon),
+        author: row.anon_id && row.anon_id === parsed.data.anon ? "You" : "Community member",
+        author_username: null,
+        initials: row.anon_id && row.anon_id === parsed.data.anon ? "YO" : "CM",
+        anon_id: row.anon_id,
+      }));
+      return NextResponse.json({ messages });
+    }
+
+    // 2. If anon_id does not exist, fall back to basic columns
+    console.warn("Direct anon_id message query failed, falling back to basic columns:", error?.message);
+    const fallbackQuery = supabase
+      .from("messages")
+      .select("id, city_slug, channel_id, body, created_at")
+      .eq("city_slug", parsed.data.city)
+      .eq("channel_id", parsed.data.channel)
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+    if (fallbackError) {
+      console.error("Supabase fallback message list failed:", fallbackError.message);
       return NextResponse.json({ error: "Could not load messages. Please try again." }, { status: 502 });
     }
 
-    const messages = (data ?? []).map((row) => ({
+    const messages = (fallbackData ?? []).map((row) => ({
       id: row.id,
       body: row.body,
       time: new Date(row.created_at).toLocaleString(),
       fromYou: false,
-      anon_id: row.anon_id,
+      author: "Community member",
+      author_username: null,
+      initials: "CM",
+      anon_id: null,
     }));
 
     return NextResponse.json({ messages });
   } catch (error) {
-    console.error("Message list is unavailable:", error);
+    console.error("Supabase message list is unavailable:", error);
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
   }
 }
@@ -79,20 +114,35 @@ export async function POST(request: Request) {
   try {
     const supabase = await getSupabaseServerClient();
 
-    const { data, error } = await supabase
+    // Try inserting with anon_id first
+    const insertPayload: Record<string, unknown> = {
+      city_slug: parsed.data.city,
+      channel_id: parsed.data.channel,
+      body: parsed.data.body,
+      anon_id: parsed.data.anonId,
+    };
+
+    let { data, error } = await supabase
       .from("messages")
-      .insert({
-        city_slug: parsed.data.city,
-        channel_id: parsed.data.channel,
-        body: parsed.data.body,
-        anon_id: parsed.data.anonId,
-      })
-      .select(MESSAGE_COLUMNS)
+      .insert(insertPayload)
+      .select("id, city_slug, channel_id, anon_id, body, created_at")
       .single();
 
-    if (error) {
-      console.error("Supabase message create failed:", error.message);
-      return NextResponse.json({ error: "Could not send your message. Please try again." }, { status: 502 });
+    // If anon_id column does not exist, retry without it
+    if (error && error.message.includes("anon_id")) {
+      delete insertPayload.anon_id;
+      const retryResult = await supabase
+        .from("messages")
+        .insert(insertPayload)
+        .select("id, city_slug, channel_id, body, created_at")
+        .single();
+      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId } : null;
+      error = retryResult.error;
+    }
+
+    if (error || !data) {
+      console.error("Supabase message create failed:", error?.message);
+      return NextResponse.json({ error: error?.message || "Could not send your message. Please check Supabase permissions." }, { status: 502 });
     }
 
     return NextResponse.json({
@@ -101,6 +151,9 @@ export async function POST(request: Request) {
         body: data.body,
         time: new Date(data.created_at).toLocaleString(),
         fromYou: true,
+        author: "You",
+        author_username: null,
+        initials: "YO",
         anon_id: data.anon_id,
       },
     }, { status: 201 });
