@@ -14,7 +14,7 @@ export async function GET() {
     const supabase = await getSupabaseServerClient();
     const { data: userResult, error: userError } = await supabase.auth.getUser();
     if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in to view blocked accounts." }, { status: 401 });
+      return NextResponse.json({ blocked: [] });
     }
     const { data: blocks, error } = await supabase
       .from("user_blocks")

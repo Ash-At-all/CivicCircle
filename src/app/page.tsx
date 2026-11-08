@@ -302,7 +302,7 @@ export default function Home() {
         if (active) setBlockedState({ userId: currentUserId, accounts: parsed.data.blocked });
       })
       .catch((error: unknown) => {
-        if (active) setNotice({ kind: "error", text: error instanceof Error ? error.message : "Could not load blocked accounts." });
+        if (active) setBlockedState({ userId: currentUserId, accounts: [] });
       });
     return () => { active = false; };
   }, [currentUserId]);
