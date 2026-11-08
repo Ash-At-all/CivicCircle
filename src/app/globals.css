@@ -548,3 +548,11 @@ textarea { resize: vertical; }
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

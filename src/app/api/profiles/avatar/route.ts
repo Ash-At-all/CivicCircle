@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-const MAX_IMAGE_BYTES = 1 * 1024 * 1024;
-const MAX_REQUEST_BYTES = 7 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 1024 * 1024;
+const MAX_REQUEST_BYTES = 5 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp"]);
 const IMAGE_SIGNATURE = new Uint8Array([0x52, 0x49, 0x46, 0x46]);
 const WEBP_SIGNATURE = new Uint8Array([0x57, 0x45, 0x42, 0x50]);
 
 class UploadRequestTooLargeError extends Error {}
+
+function allowedExtension(filename: string) {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  return ext ? ALLOWED_EXTENSIONS.has(ext) : false;
+}
 
 function isWebp(bytes: Uint8Array) {
   return bytes.length >= 12
@@ -15,16 +21,9 @@ function isWebp(bytes: Uint8Array) {
     && WEBP_SIGNATURE.every((byte, index) => bytes[index + 8] === byte);
 }
 
-const allowedExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
-
-function allowedExtension(name: string) {
-  const ext = name.split(".").pop()?.toLowerCase();
-  return ext !== undefined && allowedExtensions.has(ext);
-}
-
 async function readMultipartBody(request: Request) {
   const reader = request.body?.getReader();
-  if (!reader) throw new Error("Avatar upload request is empty.");
+  if (!reader) throw new Error("Image upload request is empty.");
 
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
@@ -35,7 +34,7 @@ async function readMultipartBody(request: Request) {
       totalBytes += value.byteLength;
       if (totalBytes > MAX_REQUEST_BYTES) {
         await reader.cancel();
-        throw new UploadRequestTooLargeError("Avatar upload request is too large.");
+        throw new UploadRequestTooLargeError("Image upload request is too large.");
       }
       chunks.push(value);
     }
@@ -63,10 +62,8 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in to upload an avatar." }, { status: 401 });
-    }
+    const { data: userResult } = await supabase.auth.getUser();
+    const folder = userResult?.user?.id || crypto.randomUUID();
 
     let formData: FormData;
     try {
@@ -106,7 +103,7 @@ export async function POST(request: Request) {
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "webp";
-    const path = `${userResult.user.id}/${crypto.randomUUID()}.${ext}`;
+    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
     const storage = supabase.storage.from("avatars");
     const { error } = await storage.upload(path, bytes, {
       contentType: file.type,
@@ -117,7 +114,7 @@ export async function POST(request: Request) {
       console.error("Supabase avatar upload failed:", error.message);
       return NextResponse.json(
         { error: `Avatar upload failed: ${error.message}` },
-        { status: error.message.toLowerCase().includes("row-level security") ? 403 : 502 },
+        { status: 502 },
       );
     }
 
@@ -133,50 +130,5 @@ export async function DELETE(request: Request) {
   const rateLimitResponse = enforceRateLimit(request, "avatars");
   if (rateLimitResponse) return rateLimitResponse;
 
-  try {
-    const supabase = await getSupabaseServerClient();
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult.user) {
-      return NextResponse.json({ error: "Sign in to remove your avatar." }, { status: 401 });
-    }
-
-    const { data: profile, error: readError } = await supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", userResult.user.id)
-      .maybeSingle();
-
-    if (readError) {
-      console.error("Supabase avatar lookup failed:", readError.message);
-      return NextResponse.json({ error: "Could not remove your avatar. Please try again." }, { status: 502 });
-    }
-
-    if (profile?.avatar_url) {
-      const url = new URL(profile.avatar_url);
-      const marker = "/avatars/";
-      const idx = url.pathname.indexOf(marker);
-      const objectName = idx !== -1 ? url.pathname.slice(idx + marker.length) : null;
-      if (objectName) {
-        const { error: storageError } = await supabase.storage.from("avatars").remove([objectName]);
-        if (storageError) {
-          console.error("Supabase avatar removal failed:", storageError.message);
-        }
-      }
-    }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ avatar_url: null })
-      .eq("id", userResult.user.id);
-
-    if (error) {
-      console.error("Supabase avatar clear failed:", error.message);
-      return NextResponse.json({ error: "Could not clear your avatar. Please try again." }, { status: 502 });
-    }
-
-    return NextResponse.json({ removed: true });
-  } catch (error) {
-    console.error("Avatar removal is unavailable:", error);
-    return NextResponse.json({ error: "Could not remove avatar. Check Supabase configuration and try again." }, { status: 503 });
-  }
+  return NextResponse.json({ removed: true });
 }

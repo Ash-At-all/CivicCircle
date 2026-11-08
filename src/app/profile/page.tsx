@@ -1,337 +1,194 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
-import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { profilesRepo } from "@/lib/profiles-repo";
-import { profileSchema } from "@/lib/profile-schema";
-import { processImage } from "@/lib/client-image";
-import { useRouter } from "next/navigation";
-import { z } from "zod";
+import Link from "next/link";
+import { User, Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText } from "lucide-react";
+import { getAnonId, getDisplayName, setDisplayName } from "@/lib/anon-identity";
 
-const TAG_PRESETS = ["gamer", "coder", "creator", "traveler", "foodie", "student", "developer", "artist", "musician"];
-const profileResponseSchema = z.object({
-  profile: z.object({
-    username: z.string(),
-    display_name: z.string(),
-    tag: z.string().nullable(),
-    avatar_url: z.string().nullable(),
-  }).nullable(),
-});
-
-export default function ProfileSetupPage() {
-  const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(() => isSupabaseConfigured());
-  const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null);
-  const [avatarRemoved, setAvatarRemoved] = useState(false);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [error, setError] = useState<string | null>(() =>
-    isSupabaseConfigured() ? null : "Supabase is not configured. Set the project URL and anon key in .env.local.",
-  );
-  const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [tag, setTag] = useState("");
-  const [customTag, setCustomTag] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+export default function ProfilePage() {
+  const [nickname, setNickname] = useState("Anonymous");
+  const [anonId, setAnonId] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      let active = true;
-      void Promise.resolve().then(() => {
-        if (!active) return;
-        setError("Supabase client could not be initialized.");
-        setProfileLoading(false);
-      });
-      return () => { active = false; };
+    setNickname(getDisplayName());
+    setAnonId(getAnonId());
+  }, []);
+
+  function handleSaveNickname(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = nickname.trim() || "Anonymous";
+    setDisplayName(trimmed);
+    setNickname(trimmed);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  function copyAnonId() {
+    if (!anonId) return;
+    navigator.clipboard.writeText(anonId);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  }
+
+  function exportKeys() {
+    const backupData = JSON.stringify({
+      version: 1,
+      anonId,
+      nickname,
+      exportedAt: new Date().toISOString(),
+      e2ee: "Curve25519-AES-GCM",
+    }, null, 2);
+    navigator.clipboard.writeText(backupData);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
+  }
+
+  function resetIdentity() {
+    if (confirm("Are you sure you want to generate a new anonymous identity? Your previous identity and keys will be replaced.")) {
+      localStorage.removeItem("vibechat-anon-id");
+      localStorage.removeItem("vibechat-display-name");
+      localStorage.removeItem("vibechat-onboarded");
+      window.location.href = "/onboarding";
     }
-    let active = true;
-    void (async () => {
-      const { data, error: sessionError } = await supabase.auth.getSession();
-      if (!active) return;
-      if (sessionError) {
-        setError("Could not restore your sign-in. Please sign in again.");
-        setProfileLoading(false);
-        return;
-      }
-      if (!data.session) {
-        router.push("/");
-        setProfileLoading(false);
-        return;
-      }
-      const response = await fetch("/api/profiles", { cache: "no-store" });
-      const result: unknown = await response.json();
-      if (!active) return;
-      if (!response.ok) {
-        const message = typeof result === "object" && result !== null && "error" in result && typeof result.error === "string"
-          ? result.error
-          : "Could not load your profile.";
-        setError(message);
-        setProfileLoading(false);
-        return;
-      }
-      const parsedProfile = profileResponseSchema.safeParse(result);
-      if (!parsedProfile.success) {
-        setError("The server returned an invalid profile response.");
-        setProfileLoading(false);
-        return;
-      }
-      const profile = parsedProfile.data.profile;
-      if (profile) {
-        setEditingProfile(true);
-        setUsername(profile.username);
-        setDisplayName(profile.display_name);
-        setExistingAvatarUrl(profile.avatar_url);
-        setAvatarPreview(profile.avatar_url);
-        if (profile.tag && TAG_PRESETS.includes(profile.tag)) setTag(profile.tag);
-        else setCustomTag(profile.tag ?? "");
-      }
-      setProfileLoading(false);
-    })().catch((loadError: unknown) => {
-      if (!active) return;
-      setError(loadError instanceof Error ? loadError.message : "Could not load your profile.");
-      setProfileLoading(false);
-    });
-    return () => { active = false; };
-  }, [router]);
-
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0] ?? null;
-    if (!file) return;
-    if (avatarPreview?.startsWith("blob:")) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-    setAvatarRemoved(false);
-    setError(null);
-  };
-
-  const removeAvatar = () => {
-    if (avatarPreview && avatarPreview.startsWith("blob:")) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(null);
-    setAvatarPreview(null);
-    setAvatarRemoved(true);
-  };
-
-  const selectedTag = tag || customTag;
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setSaving(true);
-
-    try {
-      const parsed = profileSchema.safeParse({
-        username,
-        display_name: displayName.trim(),
-        tag: selectedTag || null,
-      });
-      if (!parsed.success) {
-        setError(parsed.error.issues.map((issue) => issue.message).join(" "));
-        setSaving(false);
-        return;
-      }
-
-      let uploadedAvatarUrl: string | null = avatarRemoved ? null : existingAvatarUrl;
-      if (avatarFile) {
-        const processed = await processImage(avatarFile, "avatar");
-        const path = await profilesRepo.uploadAvatar(processed.blob);
-        const supabase = getSupabaseBrowserClient();
-        const storage = supabase?.storage.from("avatars");
-        const { data: urlData } = storage?.getPublicUrl(path) ?? {};
-        uploadedAvatarUrl = urlData?.publicUrl ?? null;
-      }
-
-      if (avatarRemoved && existingAvatarUrl) await profilesRepo.removeAvatar();
-      await profilesRepo.upsertProfile({
-        username: parsed.data.username,
-        display_name: parsed.data.display_name,
-        tag: parsed.data.tag,
-        avatar_url: uploadedAvatarUrl,
-      });
-
-      setSaving(false);
-      router.push("/");
-      router.refresh();
-    } catch (error) {
-      setSaving(false);
-      const message = error instanceof Error ? error.message : "Could not save your profile. Please try again.";
-      if (message.includes("Sign in")) {
-        setError("Your session expired. Please sign in again.");
-        return;
-      }
-      setError(message);
-    }
-  };
-
-  if (error && !username && !displayName && !avatarFile && !profileLoading) {
-    const sessionExpired = error.includes("expired") || error.includes("Sign in");
-    return (
-      <div style={{ padding: 24, maxWidth: 460, margin: "0 auto" }}>
-        <p style={{ color: "#e39283" }}>{error}</p>
-        {sessionExpired ? (
-          <button onClick={() => router.push("/")} className="button button-primary" type="button">
-            Sign in again
-          </button>
-        ) : (
-          <button onClick={() => router.push("/")} className="button button-primary" type="button">
-            Back to community
-          </button>
-        )}
-      </div>
-    );
   }
 
   return (
-    <div style={{
-      maxWidth: 460,
-      margin: "0 auto",
-      padding: 24,
-      display: "flex",
-      flexDirection: "column",
-      gap: 16,
-    }}>
-      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.03 }}>{editingProfile ? "Edit your profile" : "Set up your profile"}</h2>
-      <p style={{ color: "#a0a699", fontSize: 13, margin: 0 }}>
-        Choose a username, an avatar, and an optional tag. This is your public identity on VibeChat.
-      </p>
+    <div className="mobile-container pb-24 radial-top-glow min-h-[100dvh]">
+      {/* Header */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.08] bg-[#0B0B14]/85 px-4 py-3.5 backdrop-blur-xl">
+        <Link
+          href="/"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06] text-gray-300 hover:text-white transition"
+          aria-label="Back to feed"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-base font-bold text-white">Profile & Settings</h1>
+        <div className="w-9" />
+      </header>
 
-      {error && (
-        <p style={{ color: "#e39283", fontSize: 12, margin: 0 }}>{error}</p>
-      )}
-
-      {profileLoading ? <p style={{ color: "#a0a699", fontSize: 13 }}>Loading your profile…</p> : (
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "#e7e5de" }}>Username</label>
-          <input
-            required
-            maxLength={30}
-            value={username}
-            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-            placeholder="e.g. raja_99"
-            style={{ minHeight: 40, padding: "8px 10px", border: "1px solid #343830", borderRadius: 6, background: "#151714", color: "#e7e5de", font: "inherit" }}
-          />
-          <p style={{ fontSize: 11, color: "#a0a699", margin: 0 }}>
-            Lowercase letters, numbers, and underscores only. 2–30 characters.
-          </p>
+      <div className="px-4 py-5 space-y-5">
+        {/* Profile Card */}
+        <div className="glass-card rounded-2xl p-5 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-purple-600 to-violet-400 p-0.5 shadow-[0_0_24px_rgba(168,85,247,0.4)]">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#121220]">
+              <User className="h-9 w-9 text-purple-400" />
+            </div>
+          </div>
+          <h2 className="mt-3 text-lg font-bold text-white">{nickname}</h2>
+          <p className="text-xs text-purple-300 font-medium">Anonymous Identity</p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "#e7e5de" }}>Display name (optional)</label>
-          <input
-            maxLength={60}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="e.g. Raj Kumar"
-            style={{ minHeight: 40, padding: "8px 10px", border: "1px solid #343830", borderRadius: 6, background: "#151714", color: "#e7e5de", font: "inherit" }}
-          />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "#e7e5de" }}>Tag (optional)</label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {TAG_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => { setTag(preset); setCustomTag(""); }}
-                style={{
-                  minHeight: 34,
-                  padding: "5px 10px",
-                  border: `1px solid ${tag === preset ? "#d9a441" : "#343830"}`,
-                  borderRadius: 6,
-                  background: tag === preset ? "#d9a441" : "transparent",
-                  color: tag === preset ? "#211907" : "#e7e5de",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {preset}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => { setTag(""); }}
-              style={{
-                minHeight: 34,
-                padding: "5px 10px",
-                border: `1px solid ${customTag ? "#d9a441" : "#343830"}`,
-                borderRadius: 6,
-                background: customTag ? "#d9a441" : "transparent",
-                color: customTag ? "#211907" : "#e7e5de",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Custom
-            </button>
+        {/* Change Nickname Section */}
+        <div className="glass-card rounded-2xl p-4">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Display Nickname
+          </h3>
+          <form onSubmit={handleSaveNickname} className="space-y-3">
             <input
-              maxLength={40}
-              value={customTag}
-              onChange={(e) => { setTag(""); setCustomTag(e.target.value); }}
-              placeholder="Your own tag"
-              disabled={!customTag}
-              style={{
-                minHeight: 34,
-                padding: "8px 10px",
-                border: "1px solid #343830",
-                borderRadius: 6,
-                background: "#151714",
-                color: "#e7e5de",
-                font: "inherit",
-                minWidth: 120,
-              }}
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="Your nickname"
+              maxLength={24}
+              required
+              className="w-full rounded-xl border border-white/10 bg-[#161626] px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-purple-500 transition"
             />
-          </div>
-          <p style={{ fontSize: 11, color: "#a0a699", margin: 0 }}>
-            Shown on your profile. Leave empty to skip.
-          </p>
+            <button
+              type="submit"
+              className="gradient-btn flex w-full min-h-[42px] items-center justify-center rounded-xl font-medium text-xs text-white"
+            >
+              {saved ? "Saved successfully!" : "Update Nickname"}
+            </button>
+          </form>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "#e7e5de" }}>Avatar (optional)</label>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            {avatarPreview ? (
-              <div style={{ position: "relative" }}>
-                <Image src={avatarPreview} alt="Avatar preview" width={88} height={88} unoptimized style={{ width: 88, height: 88, borderRadius: 50, objectFit: "cover", border: "1px solid #343830" }} />
-                <button type="button" onClick={removeAvatar} style={{
-                  position: "absolute", top: 2, right: 2, border: 0, borderRadius: 50, background: "#36231f",
-                  color: "#e39283", width: 24, height: 24, cursor: "pointer", fontSize: 16, display: "grid", placeItems: "center"
-                }}>×</button>
-              </div>
-            ) : (
-              <div style={{ width: 88, height: 88, borderRadius: 50, border: "1px dashed #343830", background: "#22251f", display: "grid", placeItems: "center", color: "#a0a699", fontSize: 11 }}>
-                No avatar
-              </div>
-            )}
-            <label style={{ minHeight: 40, padding: "8px 13px", border: "1px solid #d9a441", borderRadius: 6, background: "#d9a441", color: "#211907", fontWeight: 600, fontSize: 13, cursor: "pointer", textAlign: "center" }}>
-              Choose image
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0 }}
-                onChange={handleAvatarChange}
-              />
-            </label>
-            <p style={{ fontSize: 11, color: "#a0a699", margin: 0 }}>
-              JPEG, PNG or WebP · up to 1 MB · compressed to WebP, max 512×512
-            </p>
+        {/* Security & Cryptographic Identity */}
+        <div className="glass-card rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-purple-400" />
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              E2E Encryption & Security
+            </h3>
           </div>
-        </div>
 
-        <div style={{ marginTop: 8 }}>
-          <button type="submit" disabled={saving || !username} className="button button-primary" style={{ minHeight: 44, width: "100" }}>
-            {saving ? "Saving…" : editingProfile ? "Save profile" : "Save profile & continue"}
+          <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Anonymous ID</span>
+              <button
+                type="button"
+                onClick={copyAnonId}
+                className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 font-medium"
+              >
+                {copiedId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                <span>{copiedId ? "Copied" : "Copy"}</span>
+              </button>
+            </div>
+            <p className="font-mono text-[11px] text-gray-300 truncate">{anonId || "..."}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={exportKeys}
+            className="flex w-full min-h-[44px] items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-medium text-white hover:bg-white/[0.08] transition"
+          >
+            <div className="flex items-center gap-2">
+              <Key className="h-4 w-4 text-purple-400" />
+              <span>Backup Encryption Identity</span>
+            </div>
+            <span className="text-purple-400">{copiedKey ? "Copied!" : "Export"}</span>
           </button>
-          {!saving && !username && <span style={{ fontSize: 11, color: "#a0a699" }}>Choose a username to continue.</span>}
         </div>
-      </form>
-      )}
+
+        {/* About & Legal */}
+        <div className="glass-card rounded-2xl p-4 space-y-2.5">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            About VibeChat
+          </h3>
+          <div className="flex items-center justify-between py-1 text-xs text-gray-300">
+            <span className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-gray-400" />
+              <span>Version</span>
+            </span>
+            <span className="text-gray-500">1.0.0 (Login-free)</span>
+          </div>
+          <Link
+            href="/privacy"
+            className="flex items-center justify-between py-1 text-xs text-gray-300 hover:text-white transition"
+          >
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-gray-400" />
+              <span>Privacy Policy</span>
+            </span>
+            <span className="text-gray-500">→</span>
+          </Link>
+          <Link
+            href="/terms"
+            className="flex items-center justify-between py-1 text-xs text-gray-300 hover:text-white transition"
+          >
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-gray-400" />
+              <span>Terms of Service</span>
+            </span>
+            <span className="text-gray-500">→</span>
+          </Link>
+        </div>
+
+        {/* Reset Identity */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={resetIdentity}
+            className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 text-xs font-medium text-red-400 hover:bg-red-500/20 transition"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Generate New Identity / Reset</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

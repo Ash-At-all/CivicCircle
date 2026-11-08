@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, Plus, MessageSquare, User } from "lucide-react";
 
-export function BottomNav({ onNewPost }: { onNewPost?: () => void }) {
+export function BottomNav() {
   const pathname = usePathname();
 
-  const isHome = pathname === "/home" || pathname === "/";
+  const isHome = pathname === "/home";
   const isProfile = pathname === "/profile";
 
   return (
@@ -30,7 +30,7 @@ export function BottomNav({ onNewPost }: { onNewPost?: () => void }) {
 
         {/* Explore */}
         <Link
-          href="/home?tab=explore"
+          href="/home"
           aria-label="Explore"
           className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-xl text-gray-400 hover:text-white transition-colors"
         >
@@ -38,19 +38,18 @@ export function BottomNav({ onNewPost }: { onNewPost?: () => void }) {
           <span className="text-[10px] mt-1 font-medium">Explore</span>
         </Link>
 
-        {/* Center Action Button (Create/New Post) */}
-        <button
-          type="button"
-          onClick={onNewPost}
+        {/* Center Action Button */}
+        <Link
+          href="/home"
           aria-label="Create Post"
           className="gradient-circle-btn flex h-11 w-11 items-center justify-center rounded-full text-white active:scale-95 transition-transform"
         >
           <Plus className="h-6 w-6" strokeWidth={2.5} />
-        </button>
+        </Link>
 
-        {/* Chats / Topics */}
+        {/* Chats */}
         <Link
-          href="/home?tab=chats"
+          href="/chat/general"
           aria-label="Chats"
           className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-xl text-gray-400 hover:text-white transition-colors"
         >
