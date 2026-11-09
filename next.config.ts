@@ -1,16 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  experimental: {
-    turbopack: {
-      rules: [
-        {
-          test: /\.css$/i,
-          use: ['@tailwindcss/turbopack'],
-        },
-      ],
-    },
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
