@@ -34,7 +34,7 @@ export interface PostsRepo {
   listPosts(city?: string): Promise<PersistedPost[]>;
   uploadPostImages(images: Blob[]): Promise<string[]>;
   removePostImages(imagePaths: string[]): Promise<void>;
-  createPost(post: PostDraft, imagePaths?: string[], anonId?: string, authorName?: string): Promise<PersistedPost>;
+  createPost(post: PostDraft, imagePaths?: string[], anonId?: string): Promise<PersistedPost>;
   updatePost(id: string, post: PostEdit): Promise<PersistedPost>;
   deletePost(id: string): Promise<string | null>;
 }
@@ -87,12 +87,12 @@ export const postsRepo: PostsRepo = {
     );
   },
 
-  async createPost(post, imagePaths = [], anonId?: string, authorName?: string) {
+  async createPost(post: PostDraft, imagePaths?: string[], anonId?: string): Promise<PersistedPost> {
     const result = await readResponse<{ post: PersistedPost }>(
       await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ post, imagePaths, anonId, authorName }),
+        body: JSON.stringify({ post, imagePaths, anonId }),
       }),
     );
     return result.post;

@@ -35,7 +35,6 @@ function HomeContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const clientId = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || crypto.randomUUID() : "";
-  const clientName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") || "Anonymous" : "Anonymous";
 
   if (typeof window !== "undefined" && !localStorage.getItem("vibechat-client-id")) {
     localStorage.setItem("vibechat-client-id", clientId);
@@ -148,7 +147,6 @@ function HomeContent() {
         },
         imagePaths,
         clientId,
-        clientName,
       );
 
       setPosts((prev) => [created, ...prev]);
