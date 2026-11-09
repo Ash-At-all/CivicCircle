@@ -330,6 +330,20 @@ function HomeContent() {
                 </p>
               </div>
 
+              {/* Post Images */}
+              {post.image_paths && post.image_paths.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-2 max-w-[calc(100vw-2rem)]">
+                  {post.image_paths.map((path) => (
+                    <img
+                      key={path}
+                      src={path}
+                      alt="Post attachment"
+                      className="rounded-xl w-full h-32 object-cover border border-white/10"
+                    />
+                  ))}
+                </div>
+              )}
+
               {/* Actions: Upvote & Topic link */}
               <div className="flex items-center justify-between pt-1 border-t border-white/[0.04]">
                 <button
