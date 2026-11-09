@@ -99,7 +99,6 @@ export async function POST(request: Request) {
       image_paths: parsed.data.imagePaths,
       author_id: parsed.data.anonId,
       anon_id: parsed.data.anonId,
-      author_name: parsed.data.authorName,
     };
 
     let { data, error } = await supabase
@@ -111,13 +110,12 @@ export async function POST(request: Request) {
     // If anon_id column does not exist, retry without it
     if (error && error.message.includes("anon_id")) {
       delete insertPayload.anon_id;
-      delete insertPayload.author_name;
       const retryResult = await supabase
         .from("posts")
         .insert(insertPayload)
         .select("id, city_slug, author_id, tag, title, body, created_at, updated_at")
         .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId, author_name: parsed.data.authorName, image_paths: parsed.data.imagePaths } : null;
+      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId, image_paths: parsed.data.imagePaths } : null;
       error = retryResult.error;
     }
 
