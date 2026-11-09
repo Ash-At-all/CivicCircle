@@ -84,53 +84,54 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
     }
   }, [messages]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || sending) return;
+async function handleSend(e: React.FormEvent) {
+     e.preventDefault();
+     const text = input.trim();
+     if (!text || sending) return;
 
-    const tempId = `temp-${Date.now()}`;
-    const displayName = getDisplayName();
-    const optimisticMessage: Message = {
-      id: tempId,
-      body: text,
-      time: "Just now",
-      fromYou: true,
-      author: displayName,
-      author_username: null,
-      initials: displayName.slice(0, 2).toUpperCase(),
-    };
+     const tempId = `temp-${Date.now()}`;
+     const displayName = getDisplayName();
+     const optimisticMessage: Message = {
+       id: tempId,
+       body: text,
+       time: "Just now",
+       fromYou: true,
+       author: displayName,
+       author_username: null,
+       initials: displayName.slice(0, 2).toUpperCase(),
+     };
 
-    setMessages((prev) => [...prev, optimisticMessage]);
-    setInput("");
-    setSending(true);
-    isNearBottomRef.current = true;
+     setMessages((prev) => [...prev, optimisticMessage]);
+     setInput("");
+     setSending(true);
+     isNearBottomRef.current = true;
 
-    try {
-      const res = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          city: roomId,
-          channel: "chitchat",
-          body: text,
-          anonId,
-          authorName: displayName,
-        }),
-      });
+     try {
+       const res = await fetch("/api/messages", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+           city: roomId,
+           channel: "chitchat",
+           body: text,
+           anonId,
+           authorName: displayName,
+         }),
+       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...data.message, fromYou: true } : m))
-        );
-      }
-    } catch {
-      // optimistic keeps message
-    } finally {
-      setSending(false);
-    }
-  }
+       if (res.ok) {
+         const data = await res.json();
+         setMessages((prev) =>
+           prev.map((m) => (m.id === tempId ? { ...data.message, fromYou: true } : m))
+         );
+       }
+     } catch {
+       // optimistic keep message
+     } finally {
+       setSending(false);
+       scrollToBottom();
+     }
+   }
 
   return (
     <div className="mobile-container chat-page h-[100dvh] flex flex-col justify-between overflow-hidden bg-[#0B0B14]">
