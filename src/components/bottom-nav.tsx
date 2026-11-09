@@ -13,7 +13,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 mx-auto max-w-[430px] border-t border-white/[0.08] bg-[#0E0E18]/90 backdrop-blur-xl pb-[max(env(safe-area-inset-bottom),8px)] pt-2"
+      className="bottom-nav fixed bottom-0 left-0 right-0 z-40 mx-auto w-full max-w-lg border-t border-white/[0.08] bg-[#0E0E18]/95 backdrop-blur-xl pb-[max(env(safe-area-inset-bottom),8px)] pt-2 md:hidden"
     >
       <div className="flex items-center justify-around px-2">
         {/* Home */}
@@ -42,7 +42,7 @@ export function BottomNav() {
         <Link
           href="/home"
           aria-label="Create Post"
-          className="gradient-circle-btn flex h-11 w-11 items-center justify-center rounded-full text-white active:scale-95 transition-transform"
+          className="gradient-circle-btn flex h-11 w-11 items-center justify-center rounded-full text-white active:scale-95 transition-transform shadow-lg"
         >
           <Plus className="h-6 w-6" strokeWidth={2.5} />
         </Link>

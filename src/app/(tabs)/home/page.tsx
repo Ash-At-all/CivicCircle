@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Flame, MessageSquare, ThumbsUp, Plus, Image as ImageIcon, Sparkles, X, ChevronRight } from "lucide-react";
 import { CITIES, type City } from "@/lib/cities";
 import { POST_TAGS, type PostTag } from "@/lib/post-schema";
@@ -13,8 +13,11 @@ import { processImage } from "@/lib/client-image";
 
 type CitySlug = typeof CITIES[number]["slug"];
 
-export default function HomePage() {
+function HomeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlTopic = searchParams.get("topic") as CitySlug | null;
+
   const [activeTopic, setActiveTopic] = useState<CitySlug>("general");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -32,9 +35,16 @@ export default function HomePage() {
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Sync active topic from URL if present
+  useEffect(() => {
+    if (urlTopic && CITIES.some((c) => c.slug === urlTopic)) {
+      setActiveTopic(urlTopic);
+    }
+  }, [urlTopic]);
+
   useEffect(() => {
     // Check onboarding
-    const onboarded = localStorage.getItem("vibechat-onboarded");
+    const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
     if (!onboarded) {
       router.replace("/onboarding");
       return;
@@ -123,7 +133,6 @@ export default function HomePage() {
         imagePaths = await postsRepo.uploadPostImages(selectedImages);
       }
       const anonId = getAnonId();
-      const displayName = getDisplayName();
 
       const created = await postsRepo.createPost(
         {
@@ -154,10 +163,13 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.08] bg-[#0B0B14]/85 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-600/20 border border-purple-500/30">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-600/20 border border-purple-500/30 md:hidden">
             <Image src="/logo.svg" alt="Logo" width={20} height={20} />
           </div>
-          <span className="text-base font-bold tracking-tight text-white">VibeChat</span>
+          <span className="text-base font-bold tracking-tight text-white md:hidden">VibeChat</span>
+          <span className="hidden md:inline-block text-base font-bold tracking-tight text-white capitalize">
+            {activeTopic.replace("-", " ")}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -172,7 +184,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setCreatePostOpen(true)}
-            className="gradient-btn flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white shadow-md"
+            className="gradient-btn flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-xs font-semibold text-white shadow-md"
           >
             <Plus className="h-4 w-4" />
             <span>Post</span>
@@ -207,7 +219,7 @@ export default function HomePage() {
       )}
 
       {/* Horizontal Scrollable Topic Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 no-scrollbar border-b border-white/[0.04]">
+      <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 no-scrollbar border-b border-white/[0.04] md:flex-wrap">
         {CITIES.map((topic) => {
           const isActive = activeTopic === topic.slug;
           return (
@@ -287,11 +299,18 @@ export default function HomePage() {
               key={post.id}
               className="glass-card rounded-2xl p-4 transition hover:border-white/15 space-y-2.5"
             >
-              {/* Author & Time */}
+              {/* Author & Tag & Time */}
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span className="font-medium text-purple-300">
-                  {post.author || "Community member"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-purple-300">
+                    {post.author || "Community member"}
+                  </span>
+                  {post.tag && (
+                    <span className="tag-chip">
+                      {post.tag}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[11px] text-gray-500">
                   {new Date(post.created_at).toLocaleDateString()}
                 </span>
@@ -331,14 +350,14 @@ export default function HomePage() {
 
       {/* Create Post Modal */}
       {createPostOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4">
-          <div className="w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl border border-white/10 bg-[#121220] p-5 space-y-4 max-h-[90dvh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md p-0 sm:p-4">
+          <div className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-white/10 bg-[#121220] p-5 sm:p-6 space-y-4 max-h-[90dvh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white">Create a Post</h2>
               <button
                 type="button"
                 onClick={() => setCreatePostOpen(false)}
-                className="rounded-full p-1 text-gray-400 hover:text-white"
+                className="rounded-full p-1 text-gray-400 hover:text-white hover:bg-white/10 transition"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -437,5 +456,17 @@ export default function HomePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
