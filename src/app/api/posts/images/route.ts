@@ -123,7 +123,8 @@ export async function POST(request: Request) {
           { status: error.message.toLowerCase().includes("row-level security") ? 403 : 502 },
         );
       }
-      uploadedPaths.push(path);
+      const { data: urlData } = storage.getPublicUrl(path);
+      uploadedPaths.push(urlData.publicUrl);
     }
 
     return NextResponse.json({ imagePaths: uploadedPaths });
@@ -154,7 +155,11 @@ export async function DELETE(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { error } = await supabase.storage.from("post-images").remove(parsed.data.imagePaths);
+    const paths = parsed.data.imagePaths.map((p) => {
+      const m = p.match(/\/post-images\/(.+)$/);
+      return m ? m[1] : p;
+    });
+    const { error } = await supabase.storage.from("post-images").remove(paths);
     if (error) {
       console.error("Supabase post image cleanup failed:", error.message);
       return NextResponse.json({ error: "Uploaded images could not be cleaned up." }, { status: 502 });
