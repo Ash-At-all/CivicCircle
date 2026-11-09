@@ -7,8 +7,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Flame, MessageSquare, ThumbsUp, Plus, Image as ImageIcon, Sparkles, X, ChevronRight } from "lucide-react";
 import { CITIES, type City } from "@/lib/cities";
 import { POST_TAGS, type PostTag } from "@/lib/post-schema";
-import { getAnonId, getDisplayName } from "@/lib/anon-identity";
-import { ensureAnonymousSession } from "@/lib/auth";
 import { postsRepo, type PersistedPost } from "@/lib/posts-repo";
 import { processImage } from "@/lib/client-image";
 
@@ -36,6 +34,13 @@ function HomeContent() {
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const clientId = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || crypto.randomUUID() : "";
+  const clientName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") || "Anonymous" : "Anonymous";
+
+  if (typeof window !== "undefined" && !localStorage.getItem("vibechat-client-id")) {
+    localStorage.setItem("vibechat-client-id", clientId);
+  }
+
   // Sync active topic from URL if present
   useEffect(() => {
     if (urlTopic && CITIES.some((c) => c.slug === urlTopic)) {
@@ -44,7 +49,6 @@ function HomeContent() {
   }, [urlTopic]);
 
   useEffect(() => {
-    ensureAnonymousSession();
     // Check onboarding
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
     if (!onboarded) {
@@ -130,12 +134,10 @@ function HomeContent() {
     setErrorMsg(null);
 
     try {
-      await ensureAnonymousSession();
       let imagePaths: string[] = [];
       if (selectedImages.length > 0) {
         imagePaths = await postsRepo.uploadPostImages(selectedImages);
       }
-      const anonId = getAnonId();
 
       const created = await postsRepo.createPost(
         {
@@ -145,7 +147,8 @@ function HomeContent() {
           body: postBody.trim(),
         },
         imagePaths,
-        anonId,
+        clientId,
+        clientName,
       );
 
       setPosts((prev) => [created, ...prev]);
@@ -306,7 +309,7 @@ function HomeContent() {
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-purple-300">
-                    {post.author || "Community member"}
+                    {post.author || "Anonymous"}
                   </span>
                   {post.tag && (
                     <span className="tag-chip">

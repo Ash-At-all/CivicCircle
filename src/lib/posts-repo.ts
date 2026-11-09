@@ -87,12 +87,12 @@ export const postsRepo: PostsRepo = {
     );
   },
 
-  async createPost(post, imagePaths = [], anonId?: string) {
+  async createPost(post, imagePaths = [], anonId?: string, authorName?: string) {
     const result = await readResponse<{ post: PersistedPost }>(
       await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ post, imagePaths, anonId }),
+        body: JSON.stringify({ post, imagePaths, anonId, authorName }),
       }),
     );
     return result.post;

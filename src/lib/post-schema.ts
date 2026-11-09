@@ -26,6 +26,8 @@ export const postImagePathSchema = z.string()
 export const postCreateRequestSchema = z.object({
   post: postDraftSchema,
   imagePaths: z.array(postImagePathSchema).max(4, "A post can include up to 4 images."),
+  anonId: z.string().optional(),
+  authorName: z.string().optional(),
 }).strict();
 
 export const postEditSchema = postDraftSchema.pick({ title: true, body: true }).strict();

@@ -4,14 +4,14 @@ import { NextResponse } from "next/server";
 const RATE_LIMITS = {
   posts: { limit: 5, windowMs: 60 * 60 * 1000 },
   postValidation: { limit: 30, windowMs: 60 * 60 * 1000 },
-  postImages: { limit: 20, windowMs: 60 * 60 * 1000 },
+  postImages: { limit: 1, windowMs: 60 * 60 * 1000 },
   comments: { limit: 30, windowMs: 60 * 60 * 1000 },
   votes: { limit: 60, windowMs: 60 * 60 * 1000 },
   reports: { limit: 10, windowMs: 60 * 60 * 1000 },
   blocks: { limit: 30, windowMs: 60 * 60 * 1000 },
   messages: { limit: 30, windowMs: 60 * 1000 },
   profiles: { limit: 10, windowMs: 60 * 60 * 1000 },
-  avatars: { limit: 10, windowMs: 60 * 60 * 1000 },
+  avatars: { limit: 1, windowMs: 60 * 60 * 1000 },
 } as const;
 
 type RateLimitAction = keyof typeof RATE_LIMITS;

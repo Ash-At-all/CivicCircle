@@ -90,13 +90,6 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
-    
-    // 2. Server-side session validation using auth.uid()
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult?.user) {
-      return NextResponse.json({ error: "Unauthorized. Please authenticate first." }, { status: 401 });
-    }
-    const user = userResult.user;
 
     const insertPayload: Record<string, unknown> = {
       city_slug: parsed.data.post.city,
@@ -104,8 +97,9 @@ export async function POST(request: Request) {
       title: parsed.data.post.title,
       body: parsed.data.post.body,
       image_paths: parsed.data.imagePaths,
-      author_id: user.id,
-      anon_id: user.id,
+      author_id: parsed.data.anonId,
+      anon_id: parsed.data.anonId,
+      author_name: parsed.data.authorName,
     };
 
     let { data, error } = await supabase
@@ -117,12 +111,13 @@ export async function POST(request: Request) {
     // If anon_id column does not exist, retry without it
     if (error && error.message.includes("anon_id")) {
       delete insertPayload.anon_id;
+      delete insertPayload.author_name;
       const retryResult = await supabase
         .from("posts")
         .insert(insertPayload)
         .select("id, city_slug, author_id, tag, title, body, created_at, updated_at")
         .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: user.id, image_paths: parsed.data.imagePaths } : null;
+      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId, author_name: parsed.data.authorName, image_paths: parsed.data.imagePaths } : null;
       error = retryResult.error;
     }
 

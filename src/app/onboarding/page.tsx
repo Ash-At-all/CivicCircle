@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, ArrowRight, Sparkles } from "lucide-react";
-import { getAnonId, getDisplayName, setDisplayName } from "@/lib/anon-identity";
-import { ensureAnonymousSession } from "@/lib/auth";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -14,34 +12,32 @@ export default function OnboardingPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check if nickname + key/identity already exists in localStorage
+    // Check if nickname already exists in localStorage
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
-    const existingName = typeof window !== "undefined" ? localStorage.getItem("vibechat-display-name") : null;
+    const existingName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") : null;
     if (onboarded === "true" && existingName && existingName !== "Anonymous") {
       router.replace("/home");
       return;
     }
-    const current = getDisplayName();
-    if (current && current !== "Anonymous") {
-      setNicknameInput(current);
+    if (existingName && existingName !== "Anonymous") {
+      setNicknameInput(existingName);
     }
-    ensureAnonymousSession().finally(() => {
-      setChecking(false);
-    });
+    setChecking(false);
   }, [router]);
 
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
     const chosenName = nickname.trim() || "Anonymous";
     setLoading(true);
-    setDisplayName(chosenName);
-    const user = await ensureAnonymousSession();
-    if (user?.id && typeof window !== "undefined") {
-      localStorage.setItem("vibechat-anon-id", user.id);
-    } else {
-      getAnonId();
-    }
+
     if (typeof window !== "undefined") {
+      localStorage.setItem("vibechat-client-name", chosenName);
+      // Generate client ID if not exists
+      let id = localStorage.getItem("vibechat-client-id");
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem("vibechat-client-id", id);
+      }
       localStorage.setItem("vibechat-onboarded", "true");
     }
     router.push("/home");
@@ -103,10 +99,10 @@ export default function OnboardingPage() {
               required
               className="w-full rounded-2xl border border-white/10 bg-[#161626]/80 px-4 py-3.5 text-sm text-white placeholder-gray-500 backdrop-blur-md outline-none transition focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
             />
+            <p className="text-[11px] text-gray-500 ml-1">
+              You can change this anytime in profile settings.
+            </p>
           </div>
-          <p className="text-[11px] text-gray-500 ml-1">
-            You can change this anytime in profile settings.
-          </p>
         </div>
 
         <button

@@ -3,32 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { User, Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText } from "lucide-react";
-import { getAnonId, getDisplayName, setDisplayName } from "@/lib/anon-identity";
 
 export default function ProfilePage() {
   const [nickname, setNickname] = useState("Anonymous");
-  const [anonId, setAnonId] = useState("");
+  const [clientId, setClientId] = useState("");
   const [saved, setSaved] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
-    setNickname(getDisplayName());
-    setAnonId(getAnonId());
+    setNickname(typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") || "Anonymous" : "Anonymous");
+    setClientId(typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || "" : "");
   }, []);
 
   function handleSaveNickname(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = nickname.trim() || "Anonymous";
-    setDisplayName(trimmed);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("vibechat-client-name", trimmed);
+    }
     setNickname(trimmed);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function copyAnonId() {
-    if (!anonId) return;
-    navigator.clipboard.writeText(anonId);
+  function copyClientId() {
+    if (!clientId) return;
+    navigator.clipboard.writeText(clientId);
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 2000);
   }
@@ -36,10 +37,9 @@ export default function ProfilePage() {
   function exportKeys() {
     const backupData = JSON.stringify({
       version: 1,
-      anonId,
+      clientId,
       nickname,
       exportedAt: new Date().toISOString(),
-      e2ee: "Curve25519-AES-GCM",
     }, null, 2);
     navigator.clipboard.writeText(backupData);
     setCopiedKey(true);
@@ -47,9 +47,9 @@ export default function ProfilePage() {
   }
 
   function resetIdentity() {
-    if (confirm("Are you sure you want to generate a new anonymous identity? Your previous identity and keys will be replaced.")) {
-      localStorage.removeItem("vibechat-anon-id");
-      localStorage.removeItem("vibechat-display-name");
+    if (confirm("Are you sure you want to generate a new identity? Your previous identity will be replaced.")) {
+      localStorage.removeItem("vibechat-client-id");
+      localStorage.removeItem("vibechat-client-name");
       localStorage.removeItem("vibechat-onboarded");
       window.location.href = "/onboarding";
     }
@@ -106,28 +106,28 @@ export default function ProfilePage() {
           </form>
         </div>
 
-        {/* Security & Cryptographic Identity */}
+        {/* Security & Identity */}
         <div className="glass-card rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-purple-400" />
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              E2E Encryption & Security
+              Identity & Security
             </h3>
           </div>
 
           <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3.5 space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Anonymous ID</span>
+              <span className="text-gray-400">Client ID</span>
               <button
                 type="button"
-                onClick={copyAnonId}
+                onClick={copyClientId}
                 className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 font-medium"
               >
                 {copiedId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 <span>{copiedId ? "Copied" : "Copy"}</span>
               </button>
             </div>
-            <p className="font-mono text-[11px] text-gray-300 truncate">{anonId || "..."}</p>
+            <p className="font-mono text-[11px] text-gray-300 truncate">{clientId || "..."}</p>
           </div>
 
           <button
@@ -137,7 +137,7 @@ export default function ProfilePage() {
           >
             <div className="flex items-center gap-2">
               <Key className="h-4 w-4 text-purple-400" />
-              <span>Backup Encryption Identity</span>
+              <span>Backup Identity</span>
             </div>
             <span className="text-purple-400">{copiedKey ? "Copied!" : "Export"}</span>
           </button>

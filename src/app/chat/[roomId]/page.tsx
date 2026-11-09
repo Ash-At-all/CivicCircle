@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Lock, Send, Paperclip, ShieldCheck, ChevronDown } from "lucide-react";
-import { getAnonId, getDisplayName } from "@/lib/anon-identity";
-import { ensureAnonymousSession } from "@/lib/auth";
 
 type Message = {
   id: string;
@@ -23,19 +21,23 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
-  const [anonId, setAnonId] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const activeRef = useRef(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const clientId = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || crypto.randomUUID() : "";
+  const clientName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") || "Anonymous" : "Anonymous";
+
+  if (typeof window !== "undefined" && !localStorage.getItem("vibechat-client-id")) {
+    localStorage.setItem("vibechat-client-id", clientId);
+  }
 
   const roomTitle = roomId.replace(/-/g, " ");
 
   const loadMessages = async () => {
     try {
-      const id = getAnonId();
-      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&anon=${encodeURIComponent(id)}`, { cache: "no-store" });
+      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&client=${encodeURIComponent(clientId)}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (!activeRef.current || !data.messages) return;
@@ -52,9 +54,6 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   };
 
   useEffect(() => {
-    ensureAnonymousSession();
-    const id = getAnonId();
-    setAnonId(id);
     activeRef.current = true;
 
     loadMessages();
@@ -64,7 +63,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
       clearInterval(intervalRef.current ?? 0);
       intervalRef.current = null;
     };
-  }, [roomId]);
+  }, [roomId, clientId]);
 
   function handleScroll() {
     if (!scrollRef.current) return;
@@ -99,15 +98,14 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
     }
 
     const tempId = `temp-${Date.now()}`;
-    const displayName = getDisplayName();
     const optimisticMessage: Message = {
       id: tempId,
       body: text,
       time: "Just now",
       fromYou: true,
-      author: displayName,
+      author: clientName,
       author_username: null,
-      initials: displayName.slice(0, 2).toUpperCase(),
+      initials: clientName.slice(0, 2).toUpperCase(),
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
@@ -123,8 +121,8 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
           city: roomId,
           channel: "chitchat",
           body: text,
-          anonId,
-          authorName: displayName,
+          clientId,
+          authorName: clientName,
         }),
       });
 

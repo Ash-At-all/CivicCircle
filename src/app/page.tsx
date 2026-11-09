@@ -2,22 +2,17 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ensureAnonymousSession } from "@/lib/auth";
 
 export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    async function init() {
-      await ensureAnonymousSession();
-      const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
-      if (!onboarded) {
-        router.replace("/onboarding");
-      } else {
-        router.replace("/home");
-      }
+    const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
+    if (!onboarded) {
+      router.replace("/onboarding");
+    } else {
+      router.replace("/home");
     }
-    init();
   }, [router]);
 
   return (
