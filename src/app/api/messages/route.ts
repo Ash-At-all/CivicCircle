@@ -131,13 +131,13 @@ export async function POST(request: Request) {
     }
     const user = userResult.user;
 
-    const insertPayload: Record<string, unknown> = {
-      city_slug: parsed.data.city,
-      channel_id: parsed.data.channel,
-      body: parsed.data.body,
-      author_id: user.id,
-      anon_id: user.id,
-    };
+const insertPayload: Record<string, unknown> = {
+  city_slug: parsed.data.city,
+  channel_id: parsed.data.channel,
+  body: parsed.data.body,
+  author_id: user.id,
+  anon_id: parsed.data.anonId ?? user.id,
+};
 
     let { data, error } = await supabase
       .from("messages")

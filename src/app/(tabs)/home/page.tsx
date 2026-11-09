@@ -229,10 +229,10 @@ function HomeContent() {
             <button
               key={topic.slug}
               onClick={() => setActiveTopic(topic.slug)}
-              className={`flex-none rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+              className={`tag-chip flex-none transition-all ${
                 isActive
-                  ? "bg-white text-[#0B0B14] shadow-[0_2px_10px_rgba(255,255,255,0.2)] font-semibold"
-                  : "bg-white/[0.06] text-gray-300 hover:bg-white/[0.1] hover:text-white border border-white/[0.06]"
+                  ? "bg-white text-[#0B0B14] shadow-[0_2px_10px_rgba(255,255,255,0.2)] font-semibold border-white/30"
+                  : "hover:bg-purple-600/20 hover:border-purple-500/40 hover:text-purple-200"
               }`}
             >
               {topic.name}

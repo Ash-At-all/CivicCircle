@@ -180,13 +180,29 @@ input::placeholder, textarea::placeholder {
   background-color: #0B0B14;
 }
 
-/* Desktop layout adaptations */
-@media (min-width: 768px) {
+/* Tablet breakpoint (480px - 767px): centered container with max-width ~640px */
+@media (min-width: 480px) and (max-width: 767px) {
   .mobile-container {
-    max-width: 760px;
+    max-width: 640px;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 0 50px -10px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Desktop layout adaptations (>= 768px) */
+@media (min-width: 768px) {
+  .mobile-container {
+    max-width: 960px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 50px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Chat and Profile pages: centered at ~720px on desktop */
+  .mobile-container.chat-page,
+  .mobile-container.profile-page {
+    max-width: 720px;
   }
 
   /* Force hide bottom navigation on desktop via CSS */

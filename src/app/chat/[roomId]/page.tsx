@@ -133,7 +133,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   }
 
   return (
-    <div className="mobile-container h-[100dvh] flex flex-col justify-between overflow-hidden bg-[#0B0B14]">
+    <div className="mobile-container chat-page h-[100dvh] flex flex-col justify-between overflow-hidden bg-[#0B0B14]">
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.08] bg-[#0B0B14]/90 px-3 py-2.5 backdrop-blur-xl">
         <div className="flex items-center gap-2">
