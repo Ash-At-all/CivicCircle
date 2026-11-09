@@ -124,20 +124,17 @@ export async function POST(request: Request) {
   try {
     const supabase = await getSupabaseServerClient();
 
-    // 2. Server-side session validation using auth.uid()
-    const { data: userResult, error: userError } = await supabase.auth.getUser();
-    if (userError || !userResult?.user) {
-      return NextResponse.json({ error: "Unauthorized. Please authenticate first." }, { status: 401 });
-    }
-    const user = userResult.user;
+    // Optional: attach supabase user if session exists, otherwise allow anonymous
+    const { data: userResult } = await supabase.auth.getUser();
+    const userId = userResult?.user?.id ?? null;
 
-const insertPayload: Record<string, unknown> = {
-  city_slug: parsed.data.city,
-  channel_id: parsed.data.channel,
-  body: parsed.data.body,
-  author_id: user.id,
-  anon_id: parsed.data.anonId ?? user.id,
-};
+    const insertPayload: Record<string, unknown> = {
+      city_slug: parsed.data.city,
+      channel_id: parsed.data.channel,
+      body: parsed.data.body,
+      author_id: userId ?? parsed.data.anonId,
+      anon_id: parsed.data.anonId ?? userId,
+    };
 
     let { data, error } = await supabase
       .from("messages")
@@ -153,7 +150,7 @@ const insertPayload: Record<string, unknown> = {
         .insert(insertPayload)
         .select("id, city_slug, channel_id, author_id, body, created_at")
         .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: user.id } : null;
+      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId ?? userId } : null;
       error = retryResult.error;
     }
 
