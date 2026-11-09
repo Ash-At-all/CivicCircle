@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Lock, Send, Paperclip, ShieldCheck, ChevronDown } from "lucide-react";
 import { getAnonId, getDisplayName } from "@/lib/anon-identity";
+import { ensureAnonymousSession } from "@/lib/auth";
 
 type Message = {
   id: string;
@@ -30,6 +31,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   const roomTitle = roomId.replace(/-/g, " ");
 
   useEffect(() => {
+    ensureAnonymousSession();
     const id = getAnonId();
     setAnonId(id);
 

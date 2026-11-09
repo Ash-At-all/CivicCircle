@@ -29,11 +29,13 @@ export async function GET(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
+    const { data: userResult } = await supabase.auth.getUser();
+    const currentUserId = userResult?.user?.id ?? null;
 
-    // 1. Try querying messages with anon_id
+    // 1. Try querying messages with anon_id & author_id
     const query = supabase
       .from("messages")
-      .select("id, city_slug, channel_id, anon_id, body, created_at")
+      .select("id, city_slug, channel_id, author_id, anon_id, body, created_at")
       .eq("city_slug", parsed.data.city)
       .eq("channel_id", parsed.data.channel)
       .order("created_at", { ascending: true })
@@ -42,20 +44,26 @@ export async function GET(request: Request) {
     const { data, error } = await query;
 
     if (!error && data) {
-      const messages = data.map((row) => ({
-        id: row.id,
-        body: row.body,
-        time: new Date(row.created_at).toLocaleString(),
-        fromYou: Boolean(parsed.data.anon && row.anon_id === parsed.data.anon),
-        author: row.anon_id && row.anon_id === parsed.data.anon ? "You" : "Community member",
-        author_username: null,
-        initials: row.anon_id && row.anon_id === parsed.data.anon ? "YO" : "CM",
-        anon_id: row.anon_id,
-      }));
+      const messages = data.map((row) => {
+        const isMine = Boolean(
+          (currentUserId && (row.author_id === currentUserId || row.anon_id === currentUserId)) ||
+          (parsed.data.anon && row.anon_id === parsed.data.anon)
+        );
+        return {
+          id: row.id,
+          body: row.body,
+          time: new Date(row.created_at).toLocaleString(),
+          fromYou: isMine,
+          author: isMine ? "You" : "Community member",
+          author_username: null,
+          initials: isMine ? "YO" : "CM",
+          anon_id: row.anon_id,
+        };
+      });
       return NextResponse.json({ messages });
     }
 
-    // 2. If anon_id does not exist, fall back to basic columns
+    // 2. If query failed, fallback to basic columns
     console.warn("Direct anon_id message query failed, falling back to basic columns:", error?.message);
     const fallbackQuery = supabase
       .from("messages")
@@ -90,6 +98,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // 1. Rate limiting on message creation
   const rateLimitResponse = enforceRateLimit(request, "messages");
   if (rateLimitResponse) return rateLimitResponse;
 
@@ -100,7 +109,8 @@ export async function POST(request: Request) {
     city: z.string().min(1),
     channel: z.string().min(1),
     body: messageDraftSchema.shape.body,
-    anonId: z.string().min(1),
+    anonId: z.string().optional(),
+    authorName: z.string().optional(),
   }).strict();
 
   const parsed = schema.safeParse(payload.value);
@@ -114,18 +124,25 @@ export async function POST(request: Request) {
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Try inserting with anon_id first
+    // 2. Server-side session validation using auth.uid()
+    const { data: userResult, error: userError } = await supabase.auth.getUser();
+    if (userError || !userResult?.user) {
+      return NextResponse.json({ error: "Unauthorized. Please authenticate first." }, { status: 401 });
+    }
+    const user = userResult.user;
+
     const insertPayload: Record<string, unknown> = {
       city_slug: parsed.data.city,
       channel_id: parsed.data.channel,
       body: parsed.data.body,
-      anon_id: parsed.data.anonId,
+      author_id: user.id,
+      anon_id: user.id,
     };
 
     let { data, error } = await supabase
       .from("messages")
       .insert(insertPayload)
-      .select("id, city_slug, channel_id, anon_id, body, created_at")
+      .select("id, city_slug, channel_id, author_id, anon_id, body, created_at")
       .single();
 
     // If anon_id column does not exist, retry without it
@@ -134,9 +151,9 @@ export async function POST(request: Request) {
       const retryResult = await supabase
         .from("messages")
         .insert(insertPayload)
-        .select("id, city_slug, channel_id, body, created_at")
+        .select("id, city_slug, channel_id, author_id, body, created_at")
         .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId } : null;
+      data = retryResult.data ? { ...retryResult.data, anon_id: user.id } : null;
       error = retryResult.error;
     }
 

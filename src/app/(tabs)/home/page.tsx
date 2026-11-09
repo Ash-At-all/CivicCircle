@@ -8,6 +8,7 @@ import { Search, Flame, MessageSquare, ThumbsUp, Plus, Image as ImageIcon, Spark
 import { CITIES, type City } from "@/lib/cities";
 import { POST_TAGS, type PostTag } from "@/lib/post-schema";
 import { getAnonId, getDisplayName } from "@/lib/anon-identity";
+import { ensureAnonymousSession } from "@/lib/auth";
 import { postsRepo, type PersistedPost } from "@/lib/posts-repo";
 import { processImage } from "@/lib/client-image";
 
@@ -43,6 +44,7 @@ function HomeContent() {
   }, [urlTopic]);
 
   useEffect(() => {
+    ensureAnonymousSession();
     // Check onboarding
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
     if (!onboarded) {
@@ -128,6 +130,7 @@ function HomeContent() {
     setErrorMsg(null);
 
     try {
+      await ensureAnonymousSession();
       let imagePaths: string[] = [];
       if (selectedImages.length > 0) {
         imagePaths = await postsRepo.uploadPostImages(selectedImages);

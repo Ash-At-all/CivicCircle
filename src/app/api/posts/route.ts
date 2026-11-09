@@ -18,23 +18,29 @@ export async function GET(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
+    const { data: userResult } = await supabase.auth.getUser();
+    const currentUserId = userResult?.user?.id ?? null;
 
-    // 1. Try querying `posts` with anon_id
+    // 1. Try querying `posts` with anon_id & author_id
     let queryWithAnon = supabase
       .from("posts")
-      .select("id, city_slug, anon_id, tag, title, body, image_paths, created_at, updated_at")
+      .select("id, city_slug, author_id, anon_id, tag, title, body, image_paths, created_at, updated_at")
       .order("created_at", { ascending: false });
     if (city) queryWithAnon = queryWithAnon.eq("city_slug", city);
     if (author) queryWithAnon = queryWithAnon.eq("anon_id", author);
 
     const { data: postsData, error: postsError } = await queryWithAnon;
 
-    if (!postsError) {
-      return NextResponse.json({ posts: postsData ?? [] });
+    if (!postsError && postsData) {
+      const posts = postsData.map((p) => ({
+        ...p,
+        mine: Boolean(currentUserId && (p.author_id === currentUserId || p.anon_id === currentUserId)),
+      }));
+      return NextResponse.json({ posts });
     }
 
-    // 2. If anon_id or posts table permissions failed, fallback to `posts_public` view
-    console.warn("Direct posts query failed, falling back to posts_public:", postsError.message);
+    // 2. If anon_id or posts table query failed, fallback to `posts_public` view
+    console.warn("Direct posts query failed, falling back to posts_public:", postsError?.message);
     let fallbackQuery = supabase
       .from("posts_public")
       .select("id, city_slug, tag, title, body, image_paths, created_at, updated_at, author, author_username")
@@ -58,7 +64,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ posts: basicData.map((p) => ({ ...p, image_paths: [] })) });
     }
 
-    console.error("All post queries failed:", postsError.message, fallbackError?.message, basicError?.message);
+    console.error("All post queries failed:", postsError?.message, fallbackError?.message, basicError?.message);
     return NextResponse.json({ error: "Could not load posts from Supabase. Please try again." }, { status: 502 });
   } catch (error) {
     console.error("Supabase post list is unavailable:", error);
@@ -67,6 +73,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // 1. Rate limiting on post creation
   const rateLimitResponse = enforceRateLimit(request, "posts");
   if (rateLimitResponse) return rateLimitResponse;
 
@@ -81,25 +88,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const anonId = (payload.value as { anonId?: string }).anonId || crypto.randomUUID();
-
   try {
     const supabase = await getSupabaseServerClient();
+    
+    // 2. Server-side session validation using auth.uid()
+    const { data: userResult, error: userError } = await supabase.auth.getUser();
+    if (userError || !userResult?.user) {
+      return NextResponse.json({ error: "Unauthorized. Please authenticate first." }, { status: 401 });
+    }
+    const user = userResult.user;
 
-    // Try inserting with anon_id first
     const insertPayload: Record<string, unknown> = {
       city_slug: parsed.data.post.city,
       tag: parsed.data.post.tag,
       title: parsed.data.post.title,
       body: parsed.data.post.body,
       image_paths: parsed.data.imagePaths,
-      anon_id: anonId,
+      author_id: user.id,
+      anon_id: user.id,
     };
 
     let { data, error } = await supabase
       .from("posts")
       .insert(insertPayload)
-      .select("id, city_slug, anon_id, tag, title, body, image_paths, created_at, updated_at")
+      .select("id, city_slug, author_id, anon_id, tag, title, body, image_paths, created_at, updated_at")
       .single();
 
     // If anon_id column does not exist, retry without it
@@ -108,9 +120,9 @@ export async function POST(request: Request) {
       const retryResult = await supabase
         .from("posts")
         .insert(insertPayload)
-        .select("id, city_slug, tag, title, body, created_at, updated_at")
+        .select("id, city_slug, author_id, tag, title, body, created_at, updated_at")
         .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: anonId, image_paths: parsed.data.imagePaths } : null;
+      data = retryResult.data ? { ...retryResult.data, anon_id: user.id, image_paths: parsed.data.imagePaths } : null;
       error = retryResult.error;
     }
 

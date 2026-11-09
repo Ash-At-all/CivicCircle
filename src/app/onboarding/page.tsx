@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, ArrowRight, Sparkles } from "lucide-react";
 import { getAnonId, getDisplayName, setDisplayName } from "@/lib/anon-identity";
+import { ensureAnonymousSession } from "@/lib/auth";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -24,15 +25,22 @@ export default function OnboardingPage() {
     if (current && current !== "Anonymous") {
       setNicknameInput(current);
     }
-    setChecking(false);
+    ensureAnonymousSession().finally(() => {
+      setChecking(false);
+    });
   }, [router]);
 
-  function handleContinue(e: React.FormEvent) {
+  async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
     const chosenName = nickname.trim() || "Anonymous";
     setLoading(true);
     setDisplayName(chosenName);
-    getAnonId(); // ensure anon id is generated
+    const user = await ensureAnonymousSession();
+    if (user?.id && typeof window !== "undefined") {
+      localStorage.setItem("vibechat-anon-id", user.id);
+    } else {
+      getAnonId();
+    }
     if (typeof window !== "undefined") {
       localStorage.setItem("vibechat-onboarded", "true");
     }
