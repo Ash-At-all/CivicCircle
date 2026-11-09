@@ -27,39 +27,42 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
+  const activeRef = useRef(true);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
+
+  const loadMessages = async () => {
+    try {
+      const id = getAnonId();
+      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&anon=${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!activeRef.current || !data.messages) return;
+
+      setMessages((prev) => {
+        if (prev.length > 0 && data.messages.length > prev.length && !isNearBottomRef.current) {
+          setHasNewMessages(true);
+        }
+        return data.messages;
+      });
+    } catch {
+      // silent
+    }
+  };
 
   useEffect(() => {
     ensureAnonymousSession();
     const id = getAnonId();
     setAnonId(id);
-
-    let active = true;
-
-    async function loadMessages() {
-      try {
-        const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&anon=${encodeURIComponent(id)}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!active || !data.messages) return;
-
-        setMessages((prev) => {
-          if (prev.length > 0 && data.messages.length > prev.length && !isNearBottomRef.current) {
-            setHasNewMessages(true);
-          }
-          return data.messages;
-        });
-      } catch {
-        // silent
-      }
-    }
+    activeRef.current = true;
 
     loadMessages();
-    const interval = setInterval(loadMessages, 3000);
+    intervalRef.current = setInterval(loadMessages, 3000);
     return () => {
-      active = false;
-      clearInterval(interval);
+      activeRef.current = false;
+      clearInterval(intervalRef.current ?? 0);
+      intervalRef.current = null;
     };
   }, [roomId]);
 
@@ -84,54 +87,64 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
     }
   }, [messages]);
 
-async function handleSend(e: React.FormEvent) {
-     e.preventDefault();
-     const text = input.trim();
-     if (!text || sending) return;
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || sending) return;
 
-     const tempId = `temp-${Date.now()}`;
-     const displayName = getDisplayName();
-     const optimisticMessage: Message = {
-       id: tempId,
-       body: text,
-       time: "Just now",
-       fromYou: true,
-       author: displayName,
-       author_username: null,
-       initials: displayName.slice(0, 2).toUpperCase(),
-     };
+    // Stop polling while sending to avoid overwriting optimistic messages
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-     setMessages((prev) => [...prev, optimisticMessage]);
-     setInput("");
-     setSending(true);
-     isNearBottomRef.current = true;
+    const tempId = `temp-${Date.now()}`;
+    const displayName = getDisplayName();
+    const optimisticMessage: Message = {
+      id: tempId,
+      body: text,
+      time: "Just now",
+      fromYou: true,
+      author: displayName,
+      author_username: null,
+      initials: displayName.slice(0, 2).toUpperCase(),
+    };
 
-     try {
-       const res = await fetch("/api/messages", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({
-           city: roomId,
-           channel: "chitchat",
-           body: text,
-           anonId,
-           authorName: displayName,
-         }),
-       });
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setInput("");
+    setSending(true);
+    isNearBottomRef.current = true;
 
-       if (res.ok) {
-         const data = await res.json();
-         setMessages((prev) =>
-           prev.map((m) => (m.id === tempId ? { ...data.message, fromYou: true } : m))
-         );
-       }
-     } catch {
-       // optimistic keep message
-     } finally {
-       setSending(false);
-       scrollToBottom();
-     }
-   }
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          city: roomId,
+          channel: "chitchat",
+          body: text,
+          anonId,
+          authorName: displayName,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...data.message, fromYou: true } : m))
+        );
+      }
+    } catch {
+      // optimistic keeps message
+    } finally {
+      setSending(false);
+      scrollToBottom();
+      // Restart polling
+      if (!intervalRef.current) {
+        intervalRef.current = setInterval(loadMessages, 3000);
+      }
+    }
+  }
 
   return (
     <div className="mobile-container chat-page h-[100dvh] flex flex-col justify-between overflow-hidden bg-[#0B0B14]">
