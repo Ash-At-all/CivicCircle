@@ -34,7 +34,7 @@ export interface PostsRepo {
   listPosts(city?: string): Promise<PersistedPost[]>;
   uploadPostImages(images: Blob[]): Promise<string[]>;
   removePostImages(imagePaths: string[]): Promise<void>;
-  createPost(post: PostDraft, imagePaths?: string[], anonId?: string): Promise<PersistedPost>;
+  createPost(post: PostDraft, imagePaths?: string[], anonId?: string, authorName?: string): Promise<PersistedPost>;
   updatePost(id: string, post: PostEdit): Promise<PersistedPost>;
   deletePost(id: string): Promise<string | null>;
 }
