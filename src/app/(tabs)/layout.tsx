@@ -7,7 +7,7 @@ export default function TabsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-[100dvh] bg-[#0B0B14] flex justify-center">
+    <div className="min-h-[100dvh] bg-[#171921] flex justify-center">
       <div className="w-full max-w-5xl flex flex-col md:flex-row min-h-[100dvh]">
         {/* Desktop Sidebar (hidden on mobile, visible on desktop >= 768px) */}
         <aside className="hidden md:flex md:w-64 flex-none border-r border-white/[0.08] sticky top-0 h-screen overflow-y-auto">
