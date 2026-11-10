@@ -176,3 +176,59 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
   }
 }
+
+export async function DELETE(request: Request) {
+  // 1. Rate limiting on message deletion
+  const rateLimitResponse = enforceRateLimit(request, "messages");
+  if (rateLimitResponse) return rateLimitResponse;
+
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "Message id is required." }, { status: 400 });
+  }
+
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data: userResult } = await supabase.auth.getUser();
+    const userId = userResult?.user?.id ?? null;
+
+    // First, fetch the message to verify ownership
+    const { data: existing, error: fetchError } = await supabase
+      .from("messages")
+      .select("id, anon_id, author_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: "Message not found." }, { status: 404 });
+    }
+
+    // Verify ownership: either supabase user match or anon_id match
+    const isOwner = Boolean(
+      (userId && (existing.author_id === userId || existing.anon_id === userId)) ||
+      (existing.anon_id && url.searchParams.get("anon") === existing.anon_id)
+    );
+
+    if (!isOwner) {
+      return NextResponse.json({ error: "Not authorized to delete this message." }, { status: 403 });
+    }
+
+    const { error: deleteError } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      console.error("Message delete failed:", deleteError.message);
+      return NextResponse.json({ error: "Could not delete message." }, { status: 502 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Message delete is unavailable:", error);
+    return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
+  }
+}
