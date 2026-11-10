@@ -37,7 +37,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
 
   const loadMessages = async () => {
     try {
-      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&client=${encodeURIComponent(clientId)}`, { cache: "no-store" });
+      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&anon=${encodeURIComponent(clientId)}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (!activeRef.current || !data.messages) return;
