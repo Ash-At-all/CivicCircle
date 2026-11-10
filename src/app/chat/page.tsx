@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, Users } from "lucide-react";
+import { MessageSquare, Users, SlidersHorizontal } from "lucide-react";
 import { CITIES } from "@/lib/cities";
 
 export default function ChatDiscoveryPage({
@@ -37,42 +37,46 @@ export default function ChatDiscoveryPage({
   };
 
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#171921] flex flex-col">
+    <div className="mobile-container min-h-[100dvh] bg-[#F2F0FA] flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#FFFFFF]/08 bg-[#171921]/90 px-4 py-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[#FFFFFF]/12 bg-[#F2F0FA]/95 px-3 py-3 backdrop-blur-md pt-[max(env(safe-area-inset-top),4px)]">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#F2F0FA]/10 border border-[#AD68F5]/30">
-            <svg className="h-5 w-5 text-[#AD68F5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF] p-1">
+            <svg className="h-5 w-5 text-[#AD68F5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <h1 className="text-base font-bold tracking-tight text-[#F2F0FA]">All Chat Rooms</h1>
+          <h1 className="text-h2 text-[#171921]">Chat rooms</h1>
         </div>
         <Link
           href="/home"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F2F0FA]/10 text-[#AD68F5] hover:text-[#FFFFFF] transition"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF] text-[#AD68F5] hover:bg-[#F2F0FA] transition-all"
           aria-label="Back to feed"
         >
-          <MessageSquare className="h-4 w-4" />
+          <MessageSquare className="h-5 w-5" strokeWidth={1.75} />
         </Link>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {/* Segmented control */}
         <section className="mb-4">
-          <div className="flex items-center gap-1 rounded-xl border border-[#FFFFFF]/08 bg-[#1A1A2E] p-1">
+          <div className="flex items-center rounded-[999px] border border-[#FFFFFF]/10 bg-[#FFFFFF] p-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.08)]">
             <Link
               href={`/chat${setQuery("tab", "popular")}`}
-              className={`flex h-9 items-center justify-center rounded-lg px-3 py-1 text-[11px] font-bold transition ${
-                tab === "popular" ? "bg-[#F8DC47] text-[#171921]" : "text-[#9CA3AF]"
+              className={`flex h-9 items-center justify-center rounded-[999px] px-4 py-1 transition-all ${
+                tab === "popular"
+                  ? "bg-[#F8DC47] text-[#171921] font-semibold text-[11px]"
+                  : "text-[#8B8FA3] font-medium text-[11px]"
               }`}
             >
               POPULAR ROOMS
             </Link>
             <Link
               href={`/chat${setQuery("tab", "new")}`}
-              className={`flex h-9 items-center justify-center rounded-lg px-3 py-1 text-[11px] font-medium transition ${
-                tab === "new" ? "bg-[#F8DC47] text-[#171921]" : "text-[#9CA3AF]"
+              className={`flex h-9 items-center justify-center rounded-[999px] px-4 py-1 transition-all ${
+                tab === "new"
+                  ? "bg-[#F8DC47] text-[#171921] font-semibold text-[11px]"
+                  : "text-[#8B8FA3] font-medium text-[11px]"
               }`}
             >
               NEW ROOMS
@@ -80,91 +84,89 @@ export default function ChatDiscoveryPage({
           </div>
         </section>
 
-        {/* Filter pills */}
-        <section className="mb-4">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-            <Link
-              href={`/chat${setQuery("filter", "all")}`}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition ${
-                filter === "all"
-                  ? "bg-[#171921] text-[#F2F0FA] shadow-lg"
-                  : "bg-[#1A1A2E] border border-[#FFFFFF]/10 text-[#F2F0FA]/60 hover:text-[#FFFFFF]"
-              }`}
-            >
-              ALL
-            </Link>
-            {CITIES.map((city) => (
+        {/* White lower sheet with notch */}
+        <div className="relative z-10">
+          <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 w-9 h-[5px] rounded-full bg-[#FFFFFF] z-20" />
+          <section className="rounded-t-[36px] rounded-b-[36px] border border-[#FFFFFF]/12 bg-[#FFFFFF] p-4 shadow-[0_6px_20px_rgba(0,0,0,0.08)]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[#171921] text-sm font-semibold">All Chat Rooms</h2>
+              <button
+                type="button"
+                aria-label="Filters"
+                className="flex h-9 w-9 items-center justify-center rounded-[20px] bg-[#171921]/05 text-[#AD68F5] hover:bg-[#FFFFFF]/10 transition-all"
+              >
+                <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} />
+              </button>
+            </div>
+
+            {/* Filter pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 mb-3">
               <Link
-                key={city.slug}
-                href={`/chat${setQuery("filter", city.slug)}`}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition ${
-                  filter === city.slug
-                    ? "bg-[#F2F0FA]/20 border border-[#F2F0FA]/30 text-[#F2F0FA]"
-                    : "bg-[#1A1A2E] border border-[#FFFFFF]/10 text-[#F2F0FA]/60 hover:text-[#FFFFFF] hover:border-[#AD68F5]/40"
+                href={`/chat${setQuery("filter", "all")}`}
+                className={`flex items-center gap-1.5 rounded-[999px] px-3 py-1.5 text-[10px] font-semibold transition-all ${
+                  filter === "all"
+                    ? "bg-[#171921] text-[#FFFFFF]"
+                    : "bg-[#FFF3B8] text-[#171921]/70 hover:bg-[#FFF3B8]/80"
                 }`}
               >
-                {city.name}
+                ALL
               </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Room list */}
-        <section>
-          <div className="space-y-2">
-            {activeRooms.length === 0 ? (
-              <div className="rounded-2xl border border-[#FFFFFF]/08 bg-[#1A1A2E] p-8 text-center space-y-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F2F0FA]/20 mx-auto mb-2 text-[#AD68F5]">
-                  <Users className="h-5 w-5" />
-                </div>
-                <p className="text-sm font-bold text-[#171921]">No rooms found</p>
-                <p className="text-xs text-[#6B7280]">Try a different filter.</p>
-              </div>
-            ) : (
-              activeRooms.map((room) => (
+              {CITIES.map((city) => (
                 <Link
-                  key={room.id}
-                  href={room.href}
-                  className="flex items-center justify-between rounded-xl border border-[#FFFFFF]/08 bg-[#1A1A2E] p-3 hover:border-[#AD68F5]/30 transition"
+                  key={city.slug}
+                  href={`/chat${setQuery("filter", city.slug)}`}
+                  className={`flex items-center gap-1.5 rounded-[999px] px-3 py-1.5 text-[10px] font-medium transition-all ${
+                    filter === city.slug
+                      ? "bg-[#FFF3B8] text-[#171921]"
+                      : "bg-[#FFF3B8] text-[#171921]/60 hover:bg-[#FFF3B8]/80 hover:text-[#171921]"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AD68F5]/20 text-[#AD68F5]">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-[#F2F0FA]">{room.name}</h3>
-                      <p className="text-[10px] text-[#6B7280]">{room.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-[10px] text-[#22C55E]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-                      <span>Online</span>
-                    </span>
-                    <span
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5B5ED] text-[#171921] font-bold text-[10px] shadow-md hover:bg-[#F8DC47] transition"
-                      aria-label={`Join ${room.name}`}
-                    >
-                      Join
-                    </span>
-                  </div>
+                  {city.name}
                 </Link>
-              ))
-            )}
-          </div>
-        </section>
+              ))}
+            </div>
 
-        {/* Legend */}
-        <section className="mt-6 pt-4 border-t border-[#FFFFFF]/06">
-          <div className="flex items-center gap-2 text-[10px] text-[#6B7280]">
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-              <span>Online now</span>
-            </span>
-            <span className="h-[1px] w-4 bg-[#FFFFFF]/20" />
-            <span>Tap Join to enter a room</span>
-          </div>
-        </section>
+            {/* Room list */}
+            <div className="space-y-3">
+              {activeRooms.length === 0 ? (
+                <div className="rounded-[20px] border border-[#FFFFFF]/12 bg-[#FFFFFF]/40 p-8 text-center">
+                  <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#171921]/10 mx-auto mb-3 text-[#AD68F5]">
+                    <Users className="h-5 w-5" strokeWidth={1.75} />
+                  </div>
+                  <p className="text-[#171921] font-semibold text-sm">No rooms found</p>
+                  <p className="text-[11px] text-[#8B8FA3]">Try a different filter.</p>
+                </div>
+              ) : (
+                activeRooms.map((room) => (
+                  <Link
+                    key={room.id}
+                    href={room.href}
+                    className="flex items-center justify-between rounded-[20px] border border-[#FFFFFF]/12 bg-[#FFFFFF] p-3 hover:bg-[#FFFFFF]/30 transition-all press-active"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#171921]">
+                        <Users className="h-5 w-5 text-[#FFFFFF]" strokeWidth={1.75} />
+                      </div>
+                      <div>
+                        <h3 className="text-[#171921] text-sm font-semibold">{room.name}</h3>
+                        <p className="text-[11px] text-[#8B8FA3]">{room.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-[11px] text-[#3DDC84]">
+                        <span className="h-2 w-2 rounded-full bg-[#3DDC84] animate-pulse" />
+                        <span>Online</span>
+                      </span>
+                      <div className="flex h-[40px] w-[40px] items-center justify-center rounded-full bg-[#F5B5ED] shadow-[0_3px_10px_rgba(245,181,237,0.5)] hover:bg-[#FFE7BE] transition-all press-active" aria-label={`Join ${room.name}`}>
+                        <span className="text-[10px] font-medium text-[#171921]">Join</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
