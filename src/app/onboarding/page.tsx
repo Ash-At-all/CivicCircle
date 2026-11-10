@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Lock, ArrowRight, Sparkles } from "lucide-react";
+import { Lock, ArrowRight } from "lucide-react";
+import { CITIES } from "@/lib/cities";
+
+const TOPIC_COLORS = ["#AD68F5", "#F5B5ED", "#FFE7BE", "#FFFFFF"] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [nickname, setNicknameInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Check if nickname already exists in localStorage
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("vibechat-onboarded") : null;
     const existingName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") : null;
     if (onboarded === "true" && existingName && existingName !== "Anonymous") {
@@ -25,6 +28,15 @@ export default function OnboardingPage() {
     setChecking(false);
   }, [router]);
 
+  function toggleTopic(slug: string) {
+    setSelectedTopics((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  }
+
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
     const chosenName = nickname.trim() || "Anonymous";
@@ -32,7 +44,6 @@ export default function OnboardingPage() {
 
     if (typeof window !== "undefined") {
       localStorage.setItem("vibechat-client-name", chosenName);
-      // Generate client ID if not exists
       let id = localStorage.getItem("vibechat-client-id");
       if (!id) {
         id = crypto.randomUUID();
@@ -45,70 +56,101 @@ export default function OnboardingPage() {
 
   if (checking) {
     return (
-      <div className="mobile-container flex items-center justify-center bg-[#0B0B14]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+      <div className="fixed inset-0 flex items-center justify-center bg-[#171921]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AD68F5] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="mobile-container min-h-[100dvh] justify-between p-6 radial-top-glow">
-      {/* Top branding & ambient glow */}
-      <div className="flex flex-col items-center pt-16 text-center">
-        {/* Glow Logo Container */}
-        <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-b from-purple-500/20 to-transparent p-0.5 shadow-[0_0_40px_rgba(168,85,247,0.35)]">
-          <div className="flex h-full w-full items-center justify-center rounded-3xl bg-[#121220]/90 backdrop-blur-md border border-purple-500/30">
-            <Image
-              src="/logo.svg"
-              alt="VibeChat Logo"
-              width={56}
-              height={56}
-              className="drop-shadow-[0_0_12px_rgba(168,85,247,0.8)]"
-              priority
-            />
-          </div>
+    <div className="mobile-container min-h-[100dvh] bg-[#171921] text-[#FFFFFF] flex flex-col justify-between">
+      {/* Top branding */}
+      <div className="flex flex-col items-center pt-10 px-6 text-center">
+        <div className="relative mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#F2F0FA]/10 p-0.5 border border-[#AD68F5]/30">
+          <Image
+            src="/logo.svg"
+            alt="VibeChat Logo"
+            width={48}
+            height={48}
+            className="drop-shadow-[0_0_12px_rgba(248,220,71,0.4)]"
+            priority
+          />
         </div>
-
-        {/* Tagline */}
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-300 mb-3">
-          <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-          <span>Hyperlocal & Encrypted</span>
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-          Welcome to VibeChat
+        <h1 className="text-xl font-bold tracking-tight text-[#FFFFFF] sm:text-2xl">
+          Choose your topics
         </h1>
-        <p className="mt-2 text-sm text-gray-400 max-w-[280px]">
-          Anonymous, real-time conversations with people around you.
+        <p className="mt-1 text-xs text-[#9CA3AF] max-w-[280px]">
+          Pick what interests you. You can change this later.
         </p>
       </div>
 
-      {/* Center Form */}
-      <form onSubmit={handleContinue} className="w-full space-y-4 my-auto">
+      {/* Progress segments */}
+      <div className="w-full px-6">
+        <div className="flex w-full gap-1">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex-1 h-1.5 rounded-full bg-[#F2F0FA]/20" />
+          ))}
+        </div>
+      </div>
+
+      {/* Scattered rotated topic tags */}
+      <div className="flex-1 px-6 pt-4">
+        <div className="relative h-[300px]">
+          {CITIES.map((topic, i) => {
+            const color = TOPIC_COLORS[i % TOPIC_COLORS.length];
+            const isSelected = selectedTopics.has(topic.slug);
+            const rotate = -40 + (i * 13) % 105;
+            let baseClass = "";
+            if (color === "#FFFFFF") baseClass = "text-[#FFFFFF]";
+            else if (color === "#AD68F5") baseClass = "text-[#AD68F5]";
+            else if (color === "#F5B5ED") baseClass = "text-[#F5B5ED]";
+            else baseClass = "text-[#FFE7BE]";
+            const buttonClass = isSelected
+              ? "absolute rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-tighter transition-all duration-200 bg-[#F8DC47] text-[#171921] shadow-lg"
+              : `absolute rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-tighter transition-all duration-200 bg-[#1A1A2E] border border-[#F2F0FA]/20 ${baseClass}`;
+            return (
+              <button
+                key={topic.slug}
+                type="button"
+                onClick={() => toggleTopic(topic.slug)}
+                className={buttonClass}
+                style={{
+                  transform: `rotate(${rotate}deg) translate(${i * 18}px, ${i * 14}px)`,
+                }}
+                aria-pressed={isSelected}
+              >
+                {topic.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Nickname input */}
+      <form onSubmit={handleContinue} className="w-full px-6 space-y-3">
         <div className="space-y-1.5">
-          <label htmlFor="nickname" className="text-xs font-medium text-gray-300 ml-1">
-            Choose your nickname
+          <label htmlFor="nickname" className="text-xs font-medium text-[#9CA3AF] ml-1">
+            Your nickname
           </label>
-          <div className="relative">
-            <input
-              id="nickname"
-              type="text"
-              value={nickname}
-              onChange={(e) => setNicknameInput(e.target.value)}
-              placeholder="e.g. CyberVibe, NeonFox"
-              maxLength={24}
-              required
-              className="w-full rounded-2xl border border-white/10 bg-[#161626]/80 px-4 py-3.5 text-sm text-white placeholder-gray-500 backdrop-blur-md outline-none transition focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-            />
-            <p className="text-[11px] text-gray-500 ml-1">
-              You can change this anytime in profile settings.
-            </p>
-          </div>
+          <input
+            id="nickname"
+            type="text"
+            value={nickname}
+            onChange={(e) => setNicknameInput(e.target.value)}
+            placeholder="e.g. CyberVibe"
+            maxLength={24}
+            required
+            className="w-full rounded-xl border border-[#FFFFFF]/10 bg-[#1A1A2E]/80 px-4 py-3 text-sm text-[#FFFFFF] placeholder-[#6B7280] outline-none transition focus:border-[#AD68F5] focus:ring-1 focus:ring-[#AD68F5]"
+          />
+          <p className="text-[10px] text-[#6B7280] ml-1">
+            You can change this anytime in profile settings.
+          </p>
         </div>
 
         <button
           type="submit"
           disabled={loading || !nickname.trim()}
-          className="gradient-btn flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl font-semibold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          className="w-full bg-[#F8DC47] text-[#171921] font-bold py-3.5 rounded-xl items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           <span>{loading ? "Setting up..." : "Continue"}</span>
           <ArrowRight className="h-4 w-4" />
@@ -116,10 +158,10 @@ export default function OnboardingPage() {
       </form>
 
       {/* Footer reassurance */}
-      <div className="pb-4 text-center">
-        <div className="inline-flex items-center justify-center gap-1.5 text-xs text-gray-400">
-          <Lock className="h-3.5 w-3.5 text-purple-400" />
-          <span>No account needed. Chats are end-to-end encrypted.</span>
+      <div className="pb-4 px-6 text-center">
+        <div className="inline-flex items-center justify-center gap-1.5 text-xs text-[#6B7280]">
+          <Lock className="h-3.5 w-3.5 text-[#AD68F5]" />
+          <span>No account needed. Chats are encrypted.</span>
         </div>
       </div>
     </div>
