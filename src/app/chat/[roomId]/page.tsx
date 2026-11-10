@@ -22,16 +22,19 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   const [sending, setSending] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isNearBottomRef = useRef(true);
-  const activeRef = useRef(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const clientId = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || crypto.randomUUID() : "";
-  const clientName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") || "Anonymous" : "Anonymous";
+const scrollRef = useRef<HTMLDivElement>(null);
+const isNearBottomRef = useRef(true);
+const activeRef = useRef(true);
+const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+const attachRef = useRef<HTMLInputElement>(null);
+const clientId = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || crypto.randomUUID() : "";
+const clientName = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-name") || "Anonymous" : "Anonymous";
 
-  if (typeof window !== "undefined" && !localStorage.getItem("vibechat-client-id")) {
-    localStorage.setItem("vibechat-client-id", clientId);
-  }
+if (typeof window !== "undefined" && !localStorage.getItem("vibechat-client-id")) {
+  localStorage.setItem("vibechat-client-id", clientId);
+}
+
+const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
 
@@ -113,6 +116,8 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
     setSending(true);
     isNearBottomRef.current = true;
 
+    const fullBody = pendingImageUrl ? `${pendingImageUrl}\n${text}` : text;
+
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
@@ -120,7 +125,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
         body: JSON.stringify({
           city: roomId,
           channel: "chitchat",
-          body: text,
+          body: fullBody,
           anonId: clientId,
           authorName: clientName,
         }),
@@ -136,6 +141,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
       // optimistic keeps message
     } finally {
       setSending(false);
+      setPendingImageUrl(null);
       scrollToBottom();
       // Restart polling
       if (!intervalRef.current) {
@@ -242,11 +248,43 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
         <form onSubmit={handleSend} className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => attachRef.current?.click()}
             className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/[0.06] text-gray-400 hover:text-white transition"
             aria-label="Attach file"
           >
             <Paperclip className="h-4 w-4" />
           </button>
+          <input
+            ref={attachRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setSending(true);
+              try {
+                const formData = new FormData();
+                formData.append("imagePaths", file);
+                const res = await fetch("/api/posts/images", {
+                  method: "POST",
+                  body: formData,
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  const url = Array.isArray(data.imagePaths) ? data.imagePaths[0] : data.imagePaths;
+                  if (url) {
+                    setPendingImageUrl(url);
+                  }
+                }
+              } catch {
+                // silent
+              } finally {
+                setSending(false);
+                e.target.value = "";
+              }
+            }}
+          />
 
           <input
             type="text"
