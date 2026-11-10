@@ -35,10 +35,16 @@ function HomeContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const clientId = typeof window !== "undefined" ? localStorage.getItem("vibechat-client-id") || crypto.randomUUID() : "";
-
+  const supabaseUrl = typeof window !== "undefined" ? process.env.NEXT_PUBLIC_SUPABASE_URL : "";
   if (typeof window !== "undefined" && !localStorage.getItem("vibechat-client-id")) {
     localStorage.setItem("vibechat-client-id", clientId);
   }
+
+  const normalizeImageUrl = (path: string) => {
+    if (!path) return path;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return `${supabaseUrl}/storage/v1/object/public/post-images/${path}`;
+  };
 
   // Sync active topic from URL if present
   useEffect(() => {
@@ -334,9 +340,12 @@ function HomeContent() {
                   {post.image_paths.map((path) => (
                     <img
                       key={path}
-                      src={path}
+                      src={normalizeImageUrl(path)}
                       alt="Post attachment"
                       className="rounded-xl w-full h-32 object-cover border border-white/10"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                     />
                   ))}
                 </div>
