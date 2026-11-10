@@ -121,7 +121,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
           city: roomId,
           channel: "chitchat",
           body: text,
-          clientId,
+          anonId: clientId,
           authorName: clientName,
         }),
       });
