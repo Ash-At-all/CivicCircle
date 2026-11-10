@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["400", "600", "700"],
   display: "swap",
 });
 
@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0B0B14",
+  themeColor: "#171921",
 };
 
 export const metadata: Metadata = {
@@ -39,8 +39,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="bg-[#0B0B14] text-[#EDEDEF] antialiased selection:bg-purple-600 selection:text-white">
+    <html lang="en" className={jakarta.className}>
+      <body className="bg-[#171921] text-[#F2F0FA] antialiased selection:bg-[#F8DC47] selection:text-[#171921]">
         {children}
       </body>
     </html>
