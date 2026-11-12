@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { siteConfig } from "@/config/site";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -17,11 +18,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "CivicCircle",
-    template: "%s | CivicCircle",
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
   },
-  description: "City boards and live chat for your community.",
-  applicationName: "CivicCircle",
+  description: siteConfig.tagline,
+  applicationName: siteConfig.name,
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -32,31 +33,31 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "CivicCircle",
+    title: siteConfig.name,
     statusBarStyle: "black-translucent",
   },
-  metadataBase: new URL("https://civiccircle.in"),
+  metadataBase: new URL(siteConfig.url),
   openGraph: {
-    title: "CivicCircle — City boards and live chat",
-    description: "Join your city, share posts, and talk with neighbors — no account needed.",
+    title: `${siteConfig.name} — City boards and live chat`,
+    description: siteConfig.description,
     type: "website",
-    url: "https://civiccircle.in",
-    siteName: "CivicCircle",
+    url: siteConfig.url,
+    siteName: siteConfig.name,
     images: [
       {
         url: "/icons/icon-512.png",
         width: 512,
         height: 512,
-        alt: "CivicCircle",
+        alt: siteConfig.name,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CivicCircle — City boards and live chat",
-    description: "Join your city, share posts, and talk with neighbors — no account needed.",
+    title: `${siteConfig.name} — City boards and live chat`,
+    description: siteConfig.description,
     images: ["/icons/icon-512.png"],
-    creator: "@civiccircle",
+    creator: siteConfig.creator,
   },
 };
 

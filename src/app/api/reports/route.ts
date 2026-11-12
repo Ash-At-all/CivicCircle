@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readJsonBody } from "@/lib/server/json-body";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 4 * 1024;
@@ -83,3 +83,4 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ report: { id: parsed.data.id, status: parsed.data.status } });
 }
+

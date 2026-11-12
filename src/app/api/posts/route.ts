@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { citySlugSchema, postCreateRequestSchema } from "@/features/posts/schema";
 import { readJsonBody } from "@/lib/server/json-body";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
@@ -129,3 +129,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
   }
 }
+

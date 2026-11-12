@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { profileSchema } from "@/features/auth/schema";
 import { readJsonBody } from "@/lib/server/json-body";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const PROFILE_COLUMNS = "id, username, display_name, tag, avatar_url, created_at, updated_at";
@@ -95,3 +95,4 @@ export async function POST(request: Request) {
     });
   }
 }
+

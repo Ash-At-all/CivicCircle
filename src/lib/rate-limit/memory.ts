@@ -1,3 +1,6 @@
+// ⚠️ In-memory rate limiter is NOT safe for multi-instance production.
+// Each server instance maintains its own Map, so limits are per-process, not global.
+// Use createRateLimiter("redis") with Upstash for production deployments.
 import { createHmac, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 

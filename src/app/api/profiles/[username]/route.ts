@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const PROFILE_COLUMNS = "id, username, display_name, tag, avatar_url, created_at, updated_at";

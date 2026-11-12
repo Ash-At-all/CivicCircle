@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { postImagePathSchema } from "@/features/posts/schema";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_IMAGES = 4;
@@ -170,3 +170,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Could not clean up uploaded images." }, { status: 503 });
   }
 }
+

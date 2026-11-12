@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
@@ -132,3 +132,4 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ removed: true });
 }
+

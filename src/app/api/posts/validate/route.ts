@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { postValidationRequestSchema } from "@/features/posts/schema";
-import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const rateLimitResponse = enforceRateLimit(request, "postValidation");
@@ -27,3 +27,4 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ valid: true });
 }
+

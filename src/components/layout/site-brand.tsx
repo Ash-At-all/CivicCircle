@@ -1,18 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 
 export function SiteBrand() {
   return (
-    <Link className="brand" href="/" aria-label="CivicCircle home">
+    <Link className="brand" href="/" aria-label={`${siteConfig.name} home`}>
       <Image
         src="/brand/logo.png"
-        alt="CivicCircle logo"
+        alt={`${siteConfig.name} logo`}
         width={30}
         height={30}
         className="brand-logo"
         priority
       />
-      <span>CivicCircle</span>
+      <span>{siteConfig.name}</span>
     </Link>
   );
 }

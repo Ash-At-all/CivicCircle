@@ -1,4 +1,3 @@
-import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function getSupabaseServerClient() {
@@ -9,16 +8,24 @@ export async function getSupabaseServerClient() {
   }
 
   const cookieStore = await cookies();
-  return createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        for (const { name, value, options } of cookiesToSet) {
-          cookieStore.set(name, value, options);
-        }
-      },
+  return {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
     },
-  });
+    from: () => ({
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+      insert: () => ({ select: () => ({ single: async () => ({ data: null, error: new Error("Supabase placeholder not connected") }) }) }),
+      update: () => ({ eq: () => ({ error: new Error("Supabase placeholder not connected") }) }),
+      delete: () => ({ eq: () => ({ error: new Error("Supabase placeholder not connected") }) }),
+      upsert: () => ({ select: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+    }),
+    storage: {
+      from: () => ({
+        upload: async () => ({ data: null, error: new Error("Supabase placeholder not connected") }),
+        remove: async () => ({ data: null, error: new Error("Supabase placeholder not connected") }),
+        getPublicUrl: () => ({ data: { publicUrl: "" } }),
+      }),
+    },
+    rpc: async () => ({ data: null, error: new Error("Supabase placeholder not connected") }),
+  } as unknown;
 }
