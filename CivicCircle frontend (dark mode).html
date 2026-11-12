@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>VibeChat | City boards and live chat</title>
-<meta name="description" content="VibeChat gives each Indian city a board for posts and a live chat room. Pick your city and join the conversation.">
+<title>CivicCircle | City boards and live chat</title>
+<meta name="description" content="CivicCircle gives each Indian city a board for posts and a live chat room. Pick your city and join the conversation.">
 <meta name="theme-color" content="#151714">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23d9a441'/%3E%3Cpath d='M7 9h18v11H15l-5 4v-4H7z' fill='%23151714'/%3E%3C/svg%3E">
 <style>
@@ -89,7 +89,7 @@ input::placeholder{color:#7d8377}
 <a class="skip" href="#main">Skip to content</a>
 <div class="app">
  <aside class="side" aria-label="Cities">
-  <a class="brand" href="#home"><img src="logo.svg" alt="VibeChat logo" width="28" height="28">VibeChat</a>
+  <a class="brand" href="#home"><img src="logo.png" alt="CivicCircle logo" width="28" height="28">CivicCircle</a>
   <h2 id="cl">Your cities</h2>
   <form class="city-search" id="citysearch" role="search">
    <label class="skip" for="cityquery">Search cities</label><input id="cityquery" type="search" placeholder="Find a city" autocomplete="off">
@@ -159,7 +159,7 @@ input::placeholder{color:#7d8377}
    <h2>Retention and your choices</h2>
    <p>We keep data while your account is active. You can ask to access, correct or delete your data at any time.</p>
    <h2>Children</h2>
-   <p>VibeChat is not meant for anyone under 18.</p>
+   <p>CivicCircle is not meant for anyone under 18.</p>
    <h2>Contact</h2>
    <p><a href="mailto:hello@yourdomain.example">hello@yourdomain.example</a> (placeholder address)</p>
   </div></section>
@@ -167,7 +167,7 @@ input::placeholder{color:#7d8377}
   <section data-view="terms" class="doc" hidden><div>
    <h1 tabindex="-1">Terms and Conditions</h1>
    <p class="callout">Working draft. Have a legal professional review it before launch. Last updated October 21, 2026.</p>
-   <h2>Using VibeChat</h2>
+   <h2>Using CivicCircle</h2>
    <p>You must be at least 18. You are responsible for activity on your account.</p>
    <h2>Your content</h2>
    <p>You own what you post. You allow us to store and display it so the service works. Only post what you have the right to share.</p>
@@ -213,42 +213,47 @@ var cities=[
  ["vijayawada","Vijayawada","AP"],["vellore","Vellore","TN"],["visakhapatnam","Visakhapatnam","AP"],["leh","Leh","LA"],
  ["general","General chat","Everyone"]
 ];
+var cityBySlug={};
+for(var _i=0;_i<cities.length;_i++){cityBySlug[cities[_i][0]]=cities[_i];}
 var data={},cur=null,timer=null,$=function(i){return document.getElementById(i)};
 var list=$("citylist"),joined=["general"],activeChannel="chitchat";
+var searchStatus=$("searchstatus"),searchResults=$("searchresults"),cityQuery=$("cityquery");
 try{
- var saved=JSON.parse(localStorage.getItem("vibechat-joined-cities")||"[]");
- if(Array.isArray(saved))joined=["general"].concat(saved.filter(function(slug){return slug!=="general"&&cities.some(function(c){return c[0]===slug})}));
+ var saved=JSON.parse(localStorage.getItem("civiccircle-joined-cities")||"[]");
+ if(Array.isArray(saved))joined=["general"].concat(saved.filter(function(slug){return slug!=="general"&&cityBySlug.hasOwnProperty(slug)}));
 }catch(error){$("searchstatus").textContent="Could not load saved city preferences. You can still search and join cities."}
 function renderJoined(){
  list.textContent="";
  joined.forEach(function(slug){
-  var c=cities.filter(function(city){return city[0]===slug})[0],li=document.createElement("li"),a=document.createElement("a"),s=document.createElement("small");
+  var c=cityBySlug[slug];
+  if(!c)return;
+  var li=document.createElement("li"),a=document.createElement("a"),s=document.createElement("small");
   a.href="#"+c[0];a.dataset.slug=c[0];a.textContent=c[1];s.textContent=c[2];a.appendChild(s);
   li.appendChild(a);
   if(slug==="general"){var badge=document.createElement("small");badge.textContent="Always joined";li.appendChild(badge)}
-  else{var leave=document.createElement("button");leave.type="button";leave.className="btn leave-btn";leave.textContent="Leave";leave.setAttribute("aria-label","Leave "+c[1]);leave.addEventListener("click",function(){leaveCity(c[0])});li.appendChild(leave)}
+  else{var leave=document.createElement("button");leave.type="button";leave.className="btn leave-btn";leave.textContent="Leave";leave.setAttribute("aria-label","Leave "+c[1]);leave.addEventListener("click",(function(s){return function(){leaveCity(s);};}(c[0])));li.appendChild(leave)}
   list.appendChild(li)
  })
 }
 function renderSearch(matches){
- var results=$("searchresults");results.textContent="";
+ searchResults.textContent="";
  matches.forEach(function(c){
   var li=document.createElement("li"),name=document.createElement("span"),button=document.createElement("button"),isJoined=joined.indexOf(c[0])!==-1;
   name.textContent=c[1]+" ("+c[2]+")";button.type="button";button.className="btn"+(isJoined?"":" btn-primary");button.textContent=isJoined?"Joined":"Join";button.disabled=isJoined;
-  button.addEventListener("click",function(){joinCity(c[0])});
-  li.appendChild(name);li.appendChild(button);results.appendChild(li)
+  button.addEventListener("click",(function(s){return function(){joinCity(s);};}(c[0])));
+  li.appendChild(name);li.appendChild(button);searchResults.appendChild(li)
  });
- results.hidden=!matches.length
+ searchResults.hidden=!matches.length
 }
 function searchCities(){
- var query=$("cityquery").value.trim().toLocaleLowerCase();
- if(!query){$("searchstatus").textContent="Type a city name to search.";renderSearch([]);return}
+ var query=cityQuery.value.trim().toLocaleLowerCase();
+ if(!query){searchStatus.textContent="Type a city name to search.";renderSearch([]);return}
  var matches=cities.filter(function(c){return c[1].toLocaleLowerCase().indexOf(query)!==-1||c[2].toLocaleLowerCase().indexOf(query)!==-1}).sort(function(a,b){return a[1].localeCompare(b[1])});
- $("searchstatus").textContent=matches.length?matches.length+" cities found. Join only the ones you want.":"No cities found. Try another search.";
+ searchStatus.textContent=matches.length?matches.length+" cities found. Join only the ones you want.":"No cities found. Try another search.";
  renderSearch(matches)
 }
 function saveJoined(){
- try{localStorage.setItem("vibechat-joined-cities",JSON.stringify(joined))}
+ try{localStorage.setItem("civiccircle-joined-cities",JSON.stringify(joined))}
  catch(error){$("searchstatus").textContent="Could not save your city preferences in this browser."}
 }
 function joinCity(slug){
@@ -283,17 +288,20 @@ $("generalchannels").addEventListener("click",function(e){
  $("ch").textContent=button.textContent;$("mt").placeholder="Message in #"+activeChannel;renderMsgs()
 });
 function route(){
- var h=location.hash.slice(1)||"home",v,city=null,title="VibeChat | City boards and live chat";
- if(h==="home"||h==="privacy"||h==="terms")v=h;
- else{city=cities.filter(function(c){return c[0]===h})[0];v=city?(joined.indexOf(h)!==-1?"city":"preview"):"notfound"}
- document.querySelectorAll("[data-view]").forEach(function(s){s.hidden=s.dataset.view!==v});
- list.querySelectorAll("a").forEach(function(a){if(city&&a.dataset.slug===h)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+ var h=location.hash.slice(1)||"home",v,city=null,title="CivicCircle | City boards and live chat";
+ if(h==="home"||h==="privacy"||h==="terms"){v=h;}
+ else{city=cityBySlug[h]||null;v=city?(joined.indexOf(h)!==-1?"city":"preview"):"notfound"}
+ var views=document.querySelectorAll("[data-view]");
+ for(var i=0;i<views.length;i++){views[i].hidden=views[i].dataset.view!==v;}
+ list.querySelectorAll("a").forEach(function(a){
+  if(city&&a.dataset.slug===h)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")
+ });
  clearTimeout(timer);
- if(v==="privacy")title="Privacy Policy | VibeChat";
- if(v==="terms")title="Terms and Conditions | VibeChat";
- if(v==="notfound")title="Page not found | VibeChat";
+if(v==="privacy")title="Privacy Policy | CivicCircle";
+  if(v==="terms")title="Terms and Conditions | CivicCircle";
+  if(v==="notfound")title="Page not found | CivicCircle";
  if(v==="preview"&&city){
-  title="Join "+city[1]+" | VibeChat";
+  title="Join "+city[1]+" | CivicCircle";
   $("previewtitle").textContent="Join "+city[1];
   $("previewcopy").textContent="Join this city to see its board for posts about food, jobs, rent and events, and its live chat room.";
   $("previewjoin").onclick=function(){joinCity(city[0])}
@@ -303,7 +311,7 @@ function route(){
    cur=h;
    if(!data[h])data[h]=h==="general"?{posts:[],msgs:[],channels:{chitchat:[],meetings:[],problems:[],help:[]}}:{posts:[],msgs:[]};
    if(h==="general"&&!data[h].channels)data[h].channels={chitchat:[],meetings:[],problems:[],help:[]};
-   title=city[1]+" | VibeChat";
+   title=city[1]+" | CivicCircle";
    $("ct").textContent=city[1];$("cm").textContent=h==="general"?"Open to everyone · Demo mode: content stays in this tab":"Demo mode: content stays in this tab";
    $("generalchannels").hidden=h!=="general";
    $("ch").textContent=h==="general"?$("generalchannels").querySelector('[data-channel="'+activeChannel+'"]').textContent:"Live chat";
