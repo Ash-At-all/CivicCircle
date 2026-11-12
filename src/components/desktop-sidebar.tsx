@@ -24,7 +24,7 @@ function SidebarContent() {
         {/* Brand */}
         <Link href="/home" className="flex items-center gap-2.5 px-2 pt-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F8DC47]/20 border border-[#F8DC47]/40">
-            <Image src="/logo.png" alt="CivicCircle" width={22} height={22} />
+            <Image src="/brand/logo.png" alt="CivicCircle" width={22} height={22} />
           </div>
           <div>
             <span className="text-base font-bold tracking-tight text-[#F2F0FA] block leading-tight">

@@ -26,9 +26,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     siteName: "CivicCircle",
     images: [
       {
-        url: "/icon-512.png",
+        url: "/icons/icon-512.png",
         width: 512,
         height: 512,
         alt: "CivicCircle",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CivicCircle — City boards and live chat",
     description: "Join your city, share posts, and talk with neighbors — no account needed.",
-    images: ["/icon-512.png"],
+    images: ["/icons/icon-512.png"],
     creator: "@civiccircle",
   },
 };

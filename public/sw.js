@@ -6,9 +6,9 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then((cache) => cache.addAll([
       OFFLINE_URL,
       "/manifest.webmanifest",
-      "/icon-192.png",
-      "/icon-512.png",
-      "/apple-touch-icon.png",
+      "/icons/icon-192.png",
+      "/icons/icon-512.png",
+      "/icons/apple-touch-icon.png",
     ])).then(() => self.skipWaiting()),
   );
 });
@@ -35,7 +35,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"].includes(url.pathname)) {
+  if (url.pathname.startsWith("/_next/static/") || ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"].includes(url.pathname)) {
     event.respondWith(caches.match(request).then(async (cached) => {
       if (cached) return cached;
       const response = await fetch(request);
