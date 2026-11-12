@@ -1,8 +1,125 @@
 # CivicCircle
 
-CivicCircle is a Next.js App Router app for city communities, public posts, and topic-based chat. Supabase provides Google sign-in, profiles, posts, comments, votes, chat messages, reports, blocks, and image storage. Without Supabase configuration, the app shows setup guidance instead of fabricated community content.
+CivicCircle is a Next.js (App Router, TypeScript, Tailwind) application for city communities, public posts, and topic-based chat. Supabase provides authentication, profiles, posts, comments, votes, chat messages, reports, blocks, and image storage. Without Supabase configuration, the app shows setup guidance instead of fabricated community content.
 
-## Run locally
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript 5
+- **Styling:** Tailwind CSS 4
+- **Backend:** Supabase (auth, database, realtime, storage)
+- **Validation:** Zod
+- **Icons:** Lucide React
+- **Testing:** Vitest + Playwright (placeholders)
+
+## Folder Structure
+
+```
+civiccircle/
+├── public/
+│   ├── brand/
+│   │   └── logo.png
+│   ├── icons/
+│   │   ├── apple-touch-icon.png
+│   │   ├── icon-192.png
+│   │   └── icon-512.png
+│   ├── manifest.webmanifest
+│   ├── offline.html
+│   └── sw.js
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── (marketing)/
+│   │   │   └── page.tsx
+│   │   ├── (legal)/
+│   │   │   ├── layout.tsx
+│   │   │   ├── privacy/page.tsx
+│   │   │   └── terms/page.tsx
+│   │   ├── (app)/
+│   │   │   ├── layout.tsx
+│   │   │   ├── error.tsx
+│   │   │   ├── loading.tsx
+│   │   │   ├── not-found.tsx
+│   │   │   ├── home/page.tsx
+│   │   │   ├── profile/page.tsx
+│   │   │   ├── chat/page.tsx
+│   │   │   ├── chat/[roomId]/page.tsx
+│   │   │   ├── discovery/page.tsx
+│   │   │   ├── onboarding/page.tsx
+│   │   │   ├── user/[username]/page.tsx
+│   │   │   └── c/[citySlug]/page.tsx
+│   │   └── api/
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── bottom-nav.tsx
+│   │   │   ├── desktop-sidebar.tsx
+│   │   │   ├── legal-shell.tsx
+│   │   │   └── site-brand.tsx
+│   │   └── ui/
+│   │       ├── button.tsx
+│   │       ├── input.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── empty-state.tsx
+│   │       └── error-state.tsx
+│   ├── config/
+│   │   ├── site.ts
+│   │   └── cities.ts
+│   ├── features/
+│   │   ├── cities/
+│   │   │   ├── cities.ts
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
+│   │   ├── posts/
+│   │   │   ├── actions.ts
+│   │   │   ├── index.ts
+│   │   │   ├── schema.ts
+│   │   │   └── types.ts
+│   │   ├── chat/
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
+│   │   └── auth/
+│   │       ├── actions.ts
+│   │       ├── index.ts
+│   │       ├── schema.ts
+│   │       └── types.ts
+│   ├── lib/
+│   │   ├── client-image.ts
+│   │   ├── env.ts
+│   │   ├── logger.ts
+│   │   ├── rate-limit/
+│   │   │   ├── index.ts
+│   │   │   ├── memory.ts
+│   │   │   └── redis.ts
+│   │   ├── server/
+│   │   │   └── json-body.ts
+│   │   └── supabase/
+│   │       ├── client.ts
+│   │       └── server.ts
+│   ├── types/
+│   │   └── index.ts
+│   └── globals.css
+├── supabase/
+│   ├── migrations/
+│   │   └── .gitkeep
+│   └── seed.sql
+├── tests/
+│   ├── unit/.gitkeep
+│   └── e2e/.gitkeep
+├── .github/workflows/ci.yml
+├── .vscode/
+├── docs/
+├── _old-root/
+├── .env.example
+├── .env.local (not committed)
+├── .gitignore
+├── .prettierrc
+├── .editorconfig
+├── package.json
+├── tsconfig.json
+└── next.config.ts
+```
+
+## Setup
 
 ```bash
 npm install
@@ -11,42 +128,51 @@ npm run dev
 
 Open http://localhost:3000.
 
-## Environment variables
+### Environment Variables
 
-Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` using the values from Supabase Project Settings > API. These are public client values. Keep Row Level Security enabled, never put a `service_role` key in a `NEXT_PUBLIC_` variable, and do not commit `.env.local`.
+Copy `.env.example` to `.env.local` and fill in the values:
 
-## Supabase setup
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL (Project Settings > API) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key (Project Settings > API) |
+| `NEXT_PUBLIC_APP_URL` | No | Public app URL (default: https://civiccircle.in) |
+| `NEXT_PUBLIC_SITE_NAME` | No | Site display name (default: CivicCircle) |
 
-1. Configure the project URL and anon key in `.env.local`, then restart Next.js.
-2. In Supabase Dashboard > Authentication > Providers, enable Google and configure the Google OAuth client. Set its authorized redirect URI to `https://<project-ref>.supabase.co/auth/v1/callback`.
-3. In Supabase Dashboard > Authentication > URL Configuration, allow the app callback URL, such as `http://localhost:3000/auth/callback`. Add the exact LAN callback URL if testing from a phone.
-4. Apply the migrations in `supabase/migrations` in timestamp order. This creates the posts, profiles, chat, comments, votes, blocks, reports, and image-storage schemas and policies. The post-image policy repair and ensure-image-path migrations are safe to apply in order after the initial image-storage migration.
-5. For moderator access, set the trusted Supabase Auth `app_metadata.role` to `moderator` or `admin` for the relevant user. Do not assign moderator privileges through user-editable metadata. Moderator role changes may require a fresh session before the updated JWT claims take effect.
+Do not commit `.env.local`. Never put a `service_role` key in `NEXT_PUBLIC_` variables.
 
-Google OAuth uses the server callback and Supabase-managed cookies. Profile, post, message, comment, vote, report, and block writes require a verified signed-in user and are checked by server routes and database RLS. Reports are private to their reporter and moderators. The chat is shared per city/channel and refreshes by polling; it is not end-to-end encrypted or private messaging.
+### Supabase Setup
 
-Posts and profile images use public storage buckets and are publicly viewable. Do not upload content that should remain private. The age gate is currently removed and must be implemented before public launch. Joined cities, favourites, and drafts are stored in this browser; blocking is account-backed and filters the blocked user's posts, comments, and messages for the blocker.
+1. Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`, then restart Next.js.
+2. In Supabase Dashboard > Authentication > Providers, enable Google and configure the authorized redirect URI to `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. In Supabase Dashboard > Authentication > URL Configuration, allow the app callback URL (e.g. `http://localhost:3000/auth/callback`).
+4. Apply migrations in `supabase/migrations` in timestamp order.
+5. Optionally run `supabase/seed.sql` to seed initial city data.
 
-The in-memory rate limiter is a per-process safeguard: limits reset on restart and are not shared across server instances. Production deployment should use a shared rate-limit store and a trusted proxy that overwrites forwarding headers. The current legal pages are draft guidance and require legal review before public launch.
+## Scripts
 
-## Private Vercel review
+| Script | Description |
+|---|---|
+| `npm run dev` | Start development server with Turbopack |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run TypeScript type checking (`tsc --noEmit`) |
+| `npm run format` | Format code with Prettier |
 
-Import the private `Ash-At-all/CivicCircle` repository into Vercel with the repository root (`./`) as the project root. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for Production and Preview, then add the deployed Vercel callback URL (`https://<project>.vercel.app/auth/callback`) to Supabase Authentication > URL Configuration > Redirect URLs. The Google provider's OAuth callback remains `https://<project-ref>.supabase.co/auth/v1/callback`.
+## Known Limitations
 
-For a friends-only review on Hobby, enable Vercel Deployment Protection with **Vercel Authentication** and **All Deployments**, then share a Vercel Shareable Link with reviewers. Treat that link as a bearer credential and revoke it after review. Password protection is not available on Hobby.
+- **In-memory rate limiter:** The rate limiter stores counts in a per-process Map. Limits reset on restart and are not shared across server instances. Production deployment should use a shared store (Redis/Upstash) via `createRateLimiter("redis")`.
+- **Mock data / no Supabase:** Without Supabase configuration, API routes return placeholder responses and the app shows setup guidance.
+- **Legal pages:** Privacy and Terms pages are draft guidance requiring legal review before public launch.
+- **Chat:** Uses polling-based refresh; not end-to-end encrypted or private messaging.
 
-Vercel protection gates access to the hosted app, but it does not make Supabase data private: the current database policies allow public reads of community posts, comments, and messages, and post/avatar images are public. Use test content only; never put sensitive or private information in the review project.
+## Deployment
 
-## Validation
+### Vercel
 
-```bash
-npm run lint
-npm run build
-```
+Import the repository into Vercel with the repository root (`./`) as the project root. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for Production and Preview environments. Add the deployed Vercel callback URL (`https://<project>.vercel.app/auth/callback`) to Supabase Authentication > URL Configuration > Redirect URLs.
 
-## Feature boundaries
+## CI
 
-- Supabase is required for account profiles, shared posts and post images, comments and replies, votes, chat, reports, and blocks.
-- Stories, friend/presence previews, voice channels, and chat-image uploads are not implemented and are not presented as working features.
-- City membership, favourites, and drafts are browser-local preferences, not shared account settings.
-- The age gate is not currently implemented.
+GitHub Actions runs on push to `main` and pull requests: Node 20, `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`.
