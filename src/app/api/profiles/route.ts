@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { profileSchema } from "@/lib/profile-schema";
+import { profileSchema } from "@/features/auth/schema";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";

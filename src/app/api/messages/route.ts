@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { messageDraftSchema } from "@/lib/post-schema";
+import { messageDraftSchema } from "@/features/posts/schema";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";

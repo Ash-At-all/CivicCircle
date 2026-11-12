@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LegalShell } from "@/components/legal-shell";
+import { LegalShell } from "@/components/layout/legal-shell";
 
 export const metadata: Metadata = { title: "Terms" };
 

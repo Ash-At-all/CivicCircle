@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, ArrowRight, ChevronLeft } from "lucide-react";
-import { CITIES } from "@/lib/cities";
+import { CITIES } from "@/features/cities/cities";
 
 const TOPIC_ICONS: Record<string, string> = {
   general: "GENERAL",

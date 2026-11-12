@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { postImagePathSchema } from "@/lib/post-schema";
+import { postImagePathSchema } from "@/features/posts/schema";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 

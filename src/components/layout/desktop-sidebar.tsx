@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Home, MessageSquare, User } from "lucide-react";
-import { CITIES } from "@/lib/cities";
+import { CITIES } from "@/features/cities/cities";
 import { Suspense } from "react";
 
 const NAV_ITEMS = [

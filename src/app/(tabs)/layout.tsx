@@ -1,5 +1,5 @@
-import { BottomNav } from "@/components/bottom-nav";
-import { DesktopSidebar } from "@/components/desktop-sidebar";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
 
 export default function TabsLayout({
   children,

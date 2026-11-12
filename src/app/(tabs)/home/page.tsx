@@ -5,9 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Flame, MessageSquare, ThumbsUp, Plus, Image as ImageIcon, Bell, X, Menu, Lock } from "lucide-react";
-import { CITIES, type City } from "@/lib/cities";
-import { POST_TAGS, type PostTag } from "@/lib/post-schema";
-import { postsRepo, type PersistedPost } from "@/lib/posts-repo";
+import { CITIES, type City } from "@/features/cities/cities";
+import { POST_TAGS, type PostTag } from "@/features/posts/schema";
+import { postsRepo, type PersistedPost } from "@/features/posts/actions";
 import { processImage } from "@/lib/client-image";
 
 type CitySlug = typeof CITIES[number]["slug"];
@@ -197,7 +197,7 @@ function HomeContent() {
           aria-label="CivicCircle"
         >
           <Image
-            src="/logo.png"
+            src="/brand/logo.png"
             alt="CivicCircle Logo"
             width={24}
             height={24}
@@ -240,7 +240,7 @@ function HomeContent() {
                 <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-[#AD68F5] to-[#7C3AED] p-0.5 drop-shadow-[0_6px_20px_rgba(0,0,0,0.25)]">
                   <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#0B1530]">
                     <Image
-                      src="/logo.png"
+                      src="/brand/logo.png"
                       alt="Owl mascot"
                       width={100}
                       height={100}

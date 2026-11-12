@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { citySlugSchema, postCreateRequestSchema } from "@/lib/post-schema";
+import { citySlugSchema, postCreateRequestSchema } from "@/features/posts/schema";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";

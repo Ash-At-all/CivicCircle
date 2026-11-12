@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MessageSquare, Users, SlidersHorizontal } from "lucide-react";
-import { CITIES } from "@/lib/cities";
+import { CITIES } from "@/features/cities/cities";
 
 export default function ChatDiscoveryPage({
   searchParams,

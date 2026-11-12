@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { postValidationRequestSchema } from "@/lib/post-schema";
+import { postValidationRequestSchema } from "@/features/posts/schema";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 
 export async function POST(request: Request) {

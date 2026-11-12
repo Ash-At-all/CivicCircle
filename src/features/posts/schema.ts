@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CITIES } from "./cities";
+import { CITIES } from "../cities/cities";
 
 const CITY_SLUGS = CITIES.map((city) => city.slug) as [typeof CITIES[number]["slug"], ...typeof CITIES[number]["slug"][]];
 

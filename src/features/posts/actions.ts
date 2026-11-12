@@ -1,4 +1,4 @@
-import type { PostDraft } from "@/lib/post-schema";
+import type { PostDraft } from "./schema";
 
 export type PersistedPost = {
   id: string;

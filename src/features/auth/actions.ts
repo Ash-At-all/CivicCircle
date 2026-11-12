@@ -1,4 +1,4 @@
-import type { Profile, ProfileDraft } from "@/lib/profile-schema";
+import type { Profile, ProfileDraft } from "./schema";
 
 export type PersistedProfile = {
   id: string;

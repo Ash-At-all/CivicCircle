@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Compass, TrendingUp, MapPin, Flame, Users } from "lucide-react";
-import { CITIES } from "@/lib/cities";
+import { CITIES } from "@/features/cities/cities";
 import { Suspense } from "react";
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
