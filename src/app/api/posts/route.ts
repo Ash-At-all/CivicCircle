@@ -32,7 +32,9 @@ export async function GET(request: Request) {
     const { data: postsData, error: postsError } = await queryWithAnon;
 
     if (!postsError && postsData) {
-      const posts = postsData.map((p) => ({
+      const posts = postsData.map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (p: any) => ({
         ...p,
         mine: Boolean(currentUserId && (p.author_id === currentUserId || p.anon_id === currentUserId)),
       }));
@@ -61,7 +63,12 @@ export async function GET(request: Request) {
 
     const { data: basicData, error: basicError } = await basicQuery;
     if (!basicError && basicData) {
-      return NextResponse.json({ posts: basicData.map((p) => ({ ...p, image_paths: [] })) });
+      return NextResponse.json({
+        posts: basicData.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (p: any) => ({ ...p, image_paths: [] })
+        ),
+      });
     }
 
     console.error("All post queries failed:", postsError?.message, fallbackError?.message, basicError?.message);

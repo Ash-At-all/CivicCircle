@@ -7,7 +7,7 @@ import type { RateLimitAction, RateLimiter } from "./index";
 
 export function createRedisRateLimiter(): RateLimiter {
   return {
-    enforce: async (_request: Request, _action: RateLimitAction): Promise<Response | null> => {
+    enforce: (_request: Request, _action: RateLimitAction): Response | null => {
       // Redis not configured — allow request through
       return null;
     },

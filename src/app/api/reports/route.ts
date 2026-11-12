@@ -35,7 +35,9 @@ export async function GET() {
     const rows = data ?? [];
     return NextResponse.json({
       isModerator,
-      reports: rows.map((r) => ({
+      reports: rows.map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => ({
         id: r.id,
         type: r.post_id ? "post" : "comment",
         targetId: r.post_id ?? r.comment_id,

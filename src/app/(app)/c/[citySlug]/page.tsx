@@ -1,28 +1,13 @@
 import Link from "next/link";
-import React from "react";
-import { processImage } from "@/lib/client-image";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
 
-export default function CityPage({ params }: { params: Promise<{ citySlug: string }> }) {
+export default async function CityPage({ params }: { params: Promise<{ citySlug: string }> }) {
   const { citySlug } = await params;
-  const [posts, setPosts] = React.useState<PersistedPost[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    postsRepo.listPosts(citySlug).then((data) => {
-      setPosts(data);
-      setLoading(false);
-    });
-  }, [citySlug]);
-
-  if (loading) {
-    return (
-      <div className="mobile-container min-h-[100dvh] bg-[#171921] flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="h-8 w-8 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[#AD68F5] border-t-transparent" />
-        </div>
-      </div>
-    );
+  let posts: PersistedPost[] = [];
+  try {
+    posts = await postsRepo.listPosts(citySlug);
+  } catch {
+    posts = [];
   }
 
   return (

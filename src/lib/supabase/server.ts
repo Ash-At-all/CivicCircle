@@ -27,5 +27,5 @@ export async function getSupabaseServerClient() {
       }),
     },
     rpc: async () => ({ data: null, error: new Error("Supabase placeholder not connected") }),
-  } as unknown;
+  } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }

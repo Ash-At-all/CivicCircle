@@ -29,12 +29,17 @@ export async function GET() {
     if (error) {
       return NextResponse.json({ blocked: [] });
     }
-    const blockedIds = (blocks ?? []).map((block) => block.blocked_id);
+    const blockedIds = (blocks ?? []).map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (block: any) => block.blocked_id
+    );
     const { data: profiles } = blockedIds.length
       ? await supabase.from("profiles").select("username, display_name").in("id", blockedIds)
       : { data: [] };
     return NextResponse.json({
-      blocked: (profiles ?? []).map((profile) => ({
+      blocked: (profiles ?? []).map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (profile: any) => ({
         username: profile.username,
         name: profile.display_name || profile.username,
       })),

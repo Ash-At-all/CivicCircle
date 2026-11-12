@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import * as React from "react";
 
 interface SkeletonProps {
   className?: string;
@@ -8,9 +8,6 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className="animate-pulse rounded-md bg-muted"
-      style={{ ...(className ? { className } : {}) }}
-    />
+    <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />
   );
 }

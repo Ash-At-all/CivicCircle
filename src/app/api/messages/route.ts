@@ -44,7 +44,9 @@ export async function GET(request: Request) {
     const { data, error } = await query;
 
     if (!error && data) {
-      const messages = data.map((row) => {
+      const messages = data.map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (row: any) => {
         const isMine = Boolean(
           (currentUserId && (row.author_id === currentUserId || row.anon_id === currentUserId)) ||
           (parsed.data.anon && row.anon_id === parsed.data.anon)
@@ -79,7 +81,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Could not load messages. Please try again." }, { status: 502 });
     }
 
-    const messages = (fallbackData ?? []).map((row) => ({
+    const messages = (fallbackData ?? []).map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (row: any) => ({
       id: row.id,
       body: row.body,
       time: new Date(row.created_at).toLocaleString(),

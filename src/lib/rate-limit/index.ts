@@ -1,6 +1,7 @@
 import { enforceRateLimit } from "./memory";
 import { createRedisRateLimiter } from "./redis";
 
+export { enforceRateLimit };
 export type RateLimitAction = "posts" | "postValidation" | "postImages" | "comments" | "votes" | "reports" | "blocks" | "messages" | "profiles" | "avatars";
 
 export interface RateLimiter {

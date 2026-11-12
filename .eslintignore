@@ -1,0 +1,6 @@
+vibetch-app
+node_modules
+.next
+.out
+build
+coverage
