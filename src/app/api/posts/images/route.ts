@@ -53,9 +53,6 @@ async function readMultipartBody(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rateLimitResponse = enforceRateLimit(request, "postImages");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_REQUEST_BYTES) {
     return NextResponse.json({ error: "Image upload request is too large." }, { status: 413 });
@@ -64,7 +61,10 @@ export async function POST(request: Request) {
   try {
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
-    const uploaderFolder = userResult?.user?.id || crypto.randomUUID();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to upload images.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "postImages");
+    if (rateLimitResponse) return rateLimitResponse;
+    const uploaderFolder = userResult.user.id;
 
     let formData: FormData;
     try {
@@ -135,9 +135,6 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const rateLimitResponse = enforceRateLimit(request, "postImages");
-  if (rateLimitResponse) return rateLimitResponse;
-
   let payload: unknown;
   try {
     payload = await request.json();
@@ -155,6 +152,11 @@ export async function DELETE(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
+    const { data: userResult } = await supabase.auth.getUser();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to remove images.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "postImages");
+    if (rateLimitResponse) return rateLimitResponse;
+
     const paths = parsed.data.imagePaths.map((p) => {
       const m = p.match(/\/post-images\/(.+)$/);
       return m ? m[1] : p;
@@ -170,4 +172,5 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Could not clean up uploaded images." }, { status: 503 });
   }
 }
+
 

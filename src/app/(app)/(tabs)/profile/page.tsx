@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { User, Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Trash2 } from "lucide-react";
 
 export default function ProfilePage() {
-  const [nickname, setNickname] = useState("Anonymous");
-  const [clientId, setClientId] = useState("");
+  const [nickname, setNickname] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("civiccircle-client-name") || "Anonymous"
+      : "Anonymous",
+  );
+  const [clientId] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || "" : "",
+  );
   const [saved, setSaved] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    setNickname(typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-name") || "Anonymous" : "Anonymous");
-    setClientId(typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || "" : "");
-  }, []);
 
   function handleSaveNickname(e: React.FormEvent) {
     e.preventDefault();

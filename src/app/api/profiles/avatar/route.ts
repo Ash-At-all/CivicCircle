@@ -52,9 +52,6 @@ async function readMultipartBody(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rateLimitResponse = enforceRateLimit(request, "avatars");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_REQUEST_BYTES) {
     return NextResponse.json({ error: "Avatar upload request is too large." }, { status: 413 });
@@ -63,7 +60,10 @@ export async function POST(request: Request) {
   try {
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
-    const folder = userResult?.user?.id || crypto.randomUUID();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to upload an avatar.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "avatars");
+    if (rateLimitResponse) return rateLimitResponse;
+    const folder = userResult.user.id;
 
     let formData: FormData;
     try {
@@ -126,10 +126,17 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  const rateLimitResponse = enforceRateLimit(request, "avatars");
-  if (rateLimitResponse) return rateLimitResponse;
-
+export async function DELETE() {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data: userResult } = await supabase.auth.getUser();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to remove an avatar.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "avatars");
+    if (rateLimitResponse) return rateLimitResponse;
+  } catch {
+    return NextResponse.json({ removed: true });
+  }
   return NextResponse.json({ removed: true });
 }
+
 

@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "vibetch-app/**",
+    ".kilo/worktrees/**",
+    "CivicCircle-app/**",
   ]),
 ]);
 

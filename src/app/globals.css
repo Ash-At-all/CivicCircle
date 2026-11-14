@@ -299,6 +299,16 @@ input::placeholder, textarea::placeholder {
   }
 }
 
+/* Nearby map controls sit below the floating area header. */
+.nearby-map .maplibregl-ctrl-top-right {
+  top: 4.75rem;
+  right: 0.35rem;
+}
+
+.nearby-map .maplibregl-ctrl-attrib {
+  font-size: 10px;
+}
+
 /* Grain/noise overlay for dark surfaces */
 .grain {
   position: absolute;

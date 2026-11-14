@@ -63,9 +63,6 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const rateLimitResponse = enforceRateLimit(request, "comments");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const id = await getPostId(context);
   if (!id.success) return NextResponse.json({ error: "Invalid post ID." }, { status: 400 });
 
@@ -75,7 +72,6 @@ export async function POST(request: Request, context: RouteContext) {
   const schema = commentDraftSchema.extend({
     parentId: z.string().uuid().nullable().optional(),
     authorName: z.string().max(50).optional(),
-    anonId: z.string().optional(),
   }).strict();
   const parsed = schema.safeParse(payload.value);
   if (!parsed.success) {
@@ -88,6 +84,9 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to comment.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "comments");
+    if (rateLimitResponse) return rateLimitResponse;
 
     const { data: post, error: postError } = await supabase
       .from("posts")
@@ -115,7 +114,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     let profile = null;
-    if (userResult?.user?.id) {
+    {
       const { data: p } = await supabase
         .from("profiles")
         .select("username, display_name")
@@ -129,7 +128,7 @@ export async function POST(request: Request, context: RouteContext) {
       .insert({
         post_id: id.data,
         parent_id: parsed.data.parentId ?? null,
-        author_id: userResult?.user?.id ?? null,
+        author_id: userResult.user.id,
         body: parsed.data.body,
       })
       .select("id, created_at")
@@ -144,7 +143,7 @@ export async function POST(request: Request, context: RouteContext) {
         id: row.id,
         post_id: id.data,
         parent_id: parsed.data.parentId ?? null,
-        author: profile?.display_name || profile?.username || parsed.data.authorName || "Community member",
+        author: profile?.display_name || profile?.username || "Community member",
         author_username: profile?.username ?? null,
         body: parsed.data.body,
         created_at: row.created_at,
@@ -156,3 +155,4 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Could not publish your comment. Check Supabase configuration and try again." }, { status: 503 });
   }
 }
+

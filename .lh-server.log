@@ -1,0 +1,9 @@
+
+> civiccircle-app@0.1.0 start
+> next start -p 3012
+
+▲ Next.js 16.4.2
+- Local:         http://localhost:3012
+- Network:       http://10.25.86.173:3012
+✓ Ready in 330ms
+✓ Running next.config.ts took 51ms

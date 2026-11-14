@@ -102,10 +102,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // 1. Rate limiting on message creation
-  const rateLimitResponse = enforceRateLimit(request, "messages");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const payload = await readJsonBody(request, MAX_REQUEST_BYTES);
   if (!payload.ok) return NextResponse.json({ error: payload.error }, { status: payload.status });
 
@@ -113,8 +109,6 @@ export async function POST(request: Request) {
     city: z.string().min(1),
     channel: z.string().min(1),
     body: messageDraftSchema.shape.body,
-    anonId: z.string().optional(),
-    authorName: z.string().optional(),
   }).strict();
 
   const parsed = schema.safeParse(payload.value);
@@ -127,40 +121,29 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
-
-    // Optional: attach supabase user if session exists, otherwise allow anonymous
     const { data: userResult } = await supabase.auth.getUser();
-    const userId = userResult?.user?.id ?? null;
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to send a message.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "messages");
+    if (rateLimitResponse) return rateLimitResponse;
 
+    // Legacy city/channel messages are deprecated in favor of area messages.
+    // With hardened RLS, inserts require an authenticated author.
     const insertPayload: Record<string, unknown> = {
       city_slug: parsed.data.city,
       channel_id: parsed.data.channel,
       body: parsed.data.body,
-      author_id: userId ?? parsed.data.anonId,
-      anon_id: parsed.data.anonId ?? userId,
+      author_id: userResult.user.id,
     };
 
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .insert(insertPayload)
-      .select("id, city_slug, channel_id, author_id, anon_id, body, created_at")
+      .select("id, city_slug, channel_id, author_id, body, created_at")
       .single();
-
-    // If anon_id column does not exist, retry without it
-    if (error && error.message.includes("anon_id")) {
-      delete insertPayload.anon_id;
-      const retryResult = await supabase
-        .from("messages")
-        .insert(insertPayload)
-        .select("id, city_slug, channel_id, author_id, body, created_at")
-        .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId ?? userId } : null;
-      error = retryResult.error;
-    }
 
     if (error || !data) {
       console.error("Supabase message create failed:", error?.message);
-      return NextResponse.json({ error: error?.message || "Could not send your message. Please check Supabase permissions." }, { status: 502 });
+      return NextResponse.json({ error: error?.message || "Could not send your message." }, { status: 502 });
     }
 
     return NextResponse.json({
@@ -172,7 +155,6 @@ export async function POST(request: Request) {
         author: "You",
         author_username: null,
         initials: "YO",
-        anon_id: data.anon_id,
       },
     }, { status: 201 });
   } catch (error) {
@@ -180,4 +162,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
   }
 }
+
 

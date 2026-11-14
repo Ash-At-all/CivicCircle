@@ -6,7 +6,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
-const POST_COLUMNS = "id, city_slug, title, body, tag, image_paths, votes, created_at, author_username, profiles(display_name)";
+const POST_COLUMNS = "id, city_slug, title, body, tag, image_paths, created_at, updated_at";
 const uuidSchema = z.string().uuid();
 
 type RouteContext = {
@@ -19,9 +19,6 @@ async function getPostId(context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
-  const rateLimitResponse = enforceRateLimit(request, "posts");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const id = await getPostId(context);
   if (!id.success) return NextResponse.json({ error: "Invalid post ID." }, { status: 400 });
 
@@ -38,6 +35,11 @@ export async function PUT(request: Request, context: RouteContext) {
 
   try {
     const supabase = await getSupabaseServerClient();
+    const { data: userResult } = await supabase.auth.getUser();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to edit a post.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "posts");
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { data, error } = await supabase
       .from("posts")
       .update({ title: parsed.data.title, body: parsed.data.body })
@@ -58,14 +60,16 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  const rateLimitResponse = enforceRateLimit(request, "posts");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const id = await getPostId(context);
   if (!id.success) return NextResponse.json({ error: "Invalid post ID." }, { status: 400 });
 
   try {
     const supabase = await getSupabaseServerClient();
+    const { data: userResult } = await supabase.auth.getUser();
+    if (!userResult?.user) return NextResponse.json({ error: "Sign in to delete a post.", code: "auth_required" }, { status: 401 });
+    const rateLimitResponse = await enforceRateLimit(supabase, "posts");
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { data: post, error: readError } = await supabase
       .from("posts")
       .select("id, image_paths")
@@ -101,3 +105,4 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
   }
 }
+

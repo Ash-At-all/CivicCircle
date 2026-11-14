@@ -26,7 +26,10 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const urlTopic = searchParams.get("topic") as CitySlug | null;
 
-  const [activeTopic, setActiveTopic] = useState<CitySlug>("general");
+  const [activeTopic, setActiveTopic] = useState<CitySlug>(() => {
+    const t = urlTopic as CitySlug | null;
+    return t && CITIES.some((c) => c.slug === t) ? t : "general";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [posts, setPosts] = useState<PersistedPost[]>([]);
@@ -55,9 +58,11 @@ function HomeContent() {
   };
 
   useEffect(() => {
-    if (urlTopic && CITIES.some((c) => c.slug === urlTopic)) {
-      setActiveTopic(urlTopic);
-    }
+    if (!urlTopic || !CITIES.some((c) => c.slug === urlTopic)) return;
+    const id = window.setTimeout(() => {
+      setActiveTopic((current) => (current === urlTopic ? current : urlTopic));
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [urlTopic]);
 
   useEffect(() => {
@@ -68,7 +73,9 @@ function HomeContent() {
     }
 
     let active = true;
-    setLoading(true);
+    const start = window.setTimeout(() => {
+      if (active) setLoading(true);
+    }, 0);
     postsRepo.listPosts(activeTopic === "general" ? undefined : activeTopic)
       .then((data) => {
         if (!active) return;
@@ -83,7 +90,10 @@ function HomeContent() {
         setLoading(false);
       });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.clearTimeout(start);
+    };
   }, [activeTopic, router]);
 
   const filteredPosts = useMemo(() => {

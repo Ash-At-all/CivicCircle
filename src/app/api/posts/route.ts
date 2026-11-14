@@ -80,10 +80,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // 1. Rate limiting on post creation
-  const rateLimitResponse = enforceRateLimit(request, "posts");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const payload = await readJsonBody(request, MAX_REQUEST_BYTES);
   if (!payload.ok) return NextResponse.json({ error: payload.error }, { status: payload.status });
 
@@ -97,6 +93,13 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await getSupabaseServerClient();
+    const { data: userResult, error: userError } = await supabase.auth.getUser();
+    if (userError || !userResult?.user) {
+      return NextResponse.json({ error: "Sign in to publish a post.", code: "auth_required" }, { status: 401 });
+    }
+
+    const rateLimitResponse = await enforceRateLimit(supabase, "posts");
+    if (rateLimitResponse) return rateLimitResponse;
 
     const insertPayload: Record<string, unknown> = {
       city_slug: parsed.data.post.city,
@@ -104,31 +107,29 @@ export async function POST(request: Request) {
       title: parsed.data.post.title,
       body: parsed.data.post.body,
       image_paths: parsed.data.imagePaths,
-      author_id: parsed.data.anonId,
-      anon_id: parsed.data.anonId,
+      author_id: userResult.user.id,
     };
 
     let { data, error } = await supabase
       .from("posts")
       .insert(insertPayload)
-      .select("id, city_slug, author_id, anon_id, tag, title, body, image_paths, created_at, updated_at")
+      .select("id, city_slug, author_id, tag, title, body, image_paths, created_at, updated_at")
       .single();
 
-    // If anon_id column does not exist, retry without it
-    if (error && error.message.includes("anon_id")) {
-      delete insertPayload.anon_id;
-      const retryResult = await supabase
+    // Legacy compatibility: include anon_id only if the column exists.
+    if (error?.message.includes("anon_id")) {
+      const retry = await supabase
         .from("posts")
-        .insert(insertPayload)
-        .select("id, city_slug, author_id, tag, title, body, created_at, updated_at")
+        .insert({ ...insertPayload, anon_id: userResult.user.id })
+        .select("id, city_slug, author_id, anon_id, tag, title, body, image_paths, created_at, updated_at")
         .single();
-      data = retryResult.data ? { ...retryResult.data, anon_id: parsed.data.anonId, image_paths: parsed.data.imagePaths } : null;
-      error = retryResult.error;
+      data = retry.data as typeof data;
+      error = retry.error;
     }
 
     if (error) {
       console.error("Supabase post create failed:", error.message);
-      return NextResponse.json({ error: error.message || "Could not publish your post. Please check Supabase permissions." }, { status: 502 });
+      return NextResponse.json({ error: error.message || "Could not publish your post." }, { status: 502 });
     }
     return NextResponse.json({ post: { ...data, mine: true } }, { status: 201 });
   } catch (error) {
@@ -136,4 +137,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
   }
 }
+
 

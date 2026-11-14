@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
+import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={jakarta.className}>
       <body className="antialiased selection:bg-[var(--yellow)] selection:text-[var(--charcoal)]">
+        <AuthBootstrap />
         {children}
       </body>
     </html>

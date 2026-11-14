@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const PROFILE_COLUMNS = "id, username, display_name, tag, avatar_url, created_at, updated_at";
@@ -8,9 +7,6 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ username: string }> },
 ) {
-  const rateLimitResponse = enforceRateLimit(_request, "profiles");
-  if (rateLimitResponse) return rateLimitResponse;
-
   const { username } = await context.params;
 
   try {
