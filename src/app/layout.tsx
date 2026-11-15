@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(siteConfig.url),
   openGraph: {
-    title: `${siteConfig.name} — City boards and live chat`,
+    title: `${siteConfig.name}  -  City boards and live chat`,
     description: siteConfig.description,
     type: "website",
     url: siteConfig.url,
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} — City boards and live chat`,
+    title: `${siteConfig.name}  -  City boards and live chat`,
     description: siteConfig.description,
     images: ["/icons/icon-512.png"],
     creator: siteConfig.creator,

@@ -1,5 +1,58 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Lock, MapPin, MessageSquare } from "lucide-react";
+
+const HERO_MESSAGES = [
+  "Your neighbourhood has a story. Be part of it.",
+  "Something's always happening around you.",
+  "Good things start with a conversation.",
+  "Your local community starts here.",
+  "Got something to say? Your neighbours are listening.",
+  "Stay curious about your neighbourhood.",
+  "A little local connection goes a long way.",
+  "Know your area. Meet your community.",
+  "What's happening around you today?",
+  "Every neighbourhood has something to talk about.",
+  "Your voice belongs in your community.",
+  "New day, new conversations.",
+  "There's more happening nearby than you think.",
+  "Make your neighbourhood a little more connected.",
+  "The best local updates come from locals.",
+  "Small chats can spark big things nearby.",
+  "See what's buzzing in your area.",
+  "Drop in and say hi to your neighbours.",
+  "Your corner of the city is worth knowing.",
+  "Local tips, real people, right here.",
+];
+
+function getGreeting(hour: number) {
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Hey night owl";
+}
+
+function daySeed(date: Date) {
+  return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+}
+
+function dailyMessageIndex(seed: number, count: number) {
+  let h = seed ^ 0x9e3779b9;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = (h ^ (h >>> 16)) >>> 0;
+  const idx = h % count;
+  if (count <= 1) return idx;
+  const prevSeed = seed - 1;
+  let ph = prevSeed ^ 0x9e3779b9;
+  ph = Math.imul(ph ^ (ph >>> 16), 0x45d9f3b);
+  ph = Math.imul(ph ^ (ph >>> 16), 0x45d9f3b);
+  ph = (ph ^ (ph >>> 16)) >>> 0;
+  const prevIdx = ph % count;
+  return idx === prevIdx ? (idx + 1) % count : idx;
+}
 
 const FEATURES = [
   {
@@ -10,7 +63,7 @@ const FEATURES = [
   {
     icon: MapPin,
     title: "Area rooms",
-    copy: "Locality, ward and city chat — set an approximate area and drop in.",
+    copy: "Locality, ward and city chat, set an approximate area and drop in.",
   },
   {
     icon: Lock,
@@ -20,6 +73,51 @@ const FEATURES = [
 ];
 
 export default function RootPage() {
+  const [heroPlace, setHeroPlace] = useState<string | null>(null);
+  const [heroTick, setHeroTick] = useState(0);
+  const [heroReady, setHeroReady] = useState(false);
+
+  useEffect(() => {
+    const readyId = window.setTimeout(() => setHeroReady(true), 0);
+    const id = window.setInterval(() => setHeroTick((t) => t + 1), 60000);
+    return () => {
+      window.clearTimeout(readyId);
+      window.clearInterval(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/area/nearby")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data) return;
+        const name = typeof data.localityName === "string" ? data.localityName.trim() : "";
+        if (name && name !== "Your area") setHeroPlace(name);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const heroGreeting = useMemo(() => {
+    void heroTick;
+    if (!heroReady) return "Your city, without the noise.";
+    const now = new Date();
+    const base = getGreeting(now.getHours());
+    return heroPlace ? `${base}, ${heroPlace}!` : `${base}!`;
+  }, [heroReady, heroPlace, heroTick]);
+
+  const heroMessage = useMemo(() => {
+    void heroTick;
+    if (!heroReady) {
+      return "City boards and live chat for your community. Post anonymously, follow the boards that matter, and talk to the people actually around you.";
+    }
+    const now = new Date();
+    return HERO_MESSAGES[dailyMessageIndex(daySeed(now), HERO_MESSAGES.length)];
+  }, [heroReady, heroTick]);
+
   return (
     <div className="relative isolate min-h-[100dvh] overflow-x-clip bg-[var(--canvas)]">
       <div className="hero-stripes" aria-hidden="true" />
@@ -55,12 +153,11 @@ export default function RootPage() {
               </p>
 
               <h1 className="mt-5 max-w-[16ch] text-balance text-display">
-                Your city, without the noise.
+                <span className="transition-opacity duration-500 ease-out">{heroGreeting}</span>
               </h1>
 
               <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
-                City boards and live chat for your community. Post anonymously, follow the
-                boards that matter, and talk to the people actually around you.
+                <span className="transition-opacity duration-500 ease-out">{heroMessage}</span>
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-2.5">
@@ -106,7 +203,7 @@ export default function RootPage() {
                       <path d="m20 20-3.5-3.5" />
                     </svg>
                     <span className="truncate text-[13px] text-[var(--stone)]">
-                      What&apos;s happening nearby…
+                      What&apos;s happening nearby...
                     </span>
                   </div>
                 </div>
@@ -121,7 +218,7 @@ export default function RootPage() {
                         Shops near you
                       </span>
                       <span className="block truncate text-[11px] text-[var(--mute)]">
-                        Grocery, pharmacy, repair…
+                        Grocery, pharmacy, repair...
                       </span>
                     </span>
                     <span className="keycap">↵</span>

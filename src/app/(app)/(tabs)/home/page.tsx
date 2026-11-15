@@ -24,6 +24,56 @@ import { processImage } from "@/lib/client-image";
 
 type CitySlug = typeof CITIES[number]["slug"];
 
+const HERO_MESSAGES = [
+  "Your neighbourhood has a story. Be part of it.",
+  "Something's always happening around you.",
+  "Good things start with a conversation.",
+  "Your local community starts here.",
+  "Got something to say? Your neighbours are listening.",
+  "Stay curious about your neighbourhood.",
+  "A little local connection goes a long way.",
+  "Know your area. Meet your community.",
+  "What's happening around you today?",
+  "Every neighbourhood has something to talk about.",
+  "Your voice belongs in your community.",
+  "New day, new conversations.",
+  "There's more happening nearby than you think.",
+  "Make your neighbourhood a little more connected.",
+  "The best local updates come from locals.",
+  "Small chats can spark big things nearby.",
+  "See what's buzzing in your area.",
+  "Drop in and say hi to your neighbours.",
+  "Your corner of the city is worth knowing.",
+  "Local tips, real people, right here.",
+];
+
+function getGreeting(hour: number) {
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Hey night owl";
+}
+
+function daySeed(date: Date) {
+  return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+}
+
+function dailyMessageIndex(seed: number, count: number) {
+  let h = seed ^ 0x9e3779b9;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = (h ^ (h >>> 16)) >>> 0;
+  const idx = h % count;
+  if (count <= 1) return idx;
+  const prevSeed = seed - 1;
+  let ph = prevSeed ^ 0x9e3779b9;
+  ph = Math.imul(ph ^ (ph >>> 16), 0x45d9f3b);
+  ph = Math.imul(ph ^ (ph >>> 16), 0x45d9f3b);
+  ph = (ph ^ (ph >>> 16)) >>> 0;
+  const prevIdx = ph % count;
+  return idx === prevIdx ? (idx + 1) % count : idx;
+}
+
 function relativeTime(createdAt: string) {
   const d = new Date(createdAt);
   const now = new Date();
@@ -58,6 +108,10 @@ function HomeContent() {
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [heroPlace, setHeroPlace] = useState<string | null>(null);
+  const [heroTick, setHeroTick] = useState(0);
+  const [heroReady, setHeroReady] = useState(false);
+
   const clientId = typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || crypto.randomUUID() : "";
   const supabaseUrl = typeof window !== "undefined" ? process.env.NEXT_PUBLIC_SUPABASE_URL : "";
   if (typeof window !== "undefined" && !localStorage.getItem("civiccircle-client-id")) {
@@ -89,6 +143,47 @@ function HomeContent() {
     const qs = params.toString();
     router.replace(qs ? `/home?${qs}` : "/home", { scroll: false });
   }, [composeParam, router, searchParams]);
+
+  useEffect(() => {
+    const readyId = window.setTimeout(() => setHeroReady(true), 0);
+    const id = window.setInterval(() => setHeroTick((t) => t + 1), 60000);
+    return () => {
+      window.clearTimeout(readyId);
+      window.clearInterval(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/area/nearby")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data) return;
+        const name = typeof data.localityName === "string" ? data.localityName.trim() : "";
+        if (name && name !== "Your area") setHeroPlace(name);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const heroGreeting = useMemo(() => {
+    void heroTick;
+    if (!heroReady) return "Your area. Your people. Your city.";
+    const now = new Date();
+    const base = getGreeting(now.getHours());
+    return heroPlace ? `${base}, ${heroPlace}!` : `${base}!`;
+  }, [heroReady, heroPlace, heroTick]);
+
+  const heroMessage = useMemo(() => {
+    void heroTick;
+    if (!heroReady) {
+      return "Post anonymously, follow the boards that matter, and drop into the room for your locality, no account required.";
+    }
+    const now = new Date();
+    return HERO_MESSAGES[dailyMessageIndex(daySeed(now), HERO_MESSAGES.length)];
+  }, [heroReady, heroTick]);
 
   useEffect(() => {
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("civiccircle-onboarded") : null;
@@ -281,7 +376,7 @@ function HomeContent() {
       </header>
 
       <div className="flex-1">
-        {/* Hero band — the single striped moment on the page */}
+        {/* Hero band  -  the single striped moment on the page */}
         <section className="hero-band">
           <div className="hero-stripes" aria-hidden="true" />
           <div className="px-4 pb-10 pt-9 sm:px-6 sm:pb-14 sm:pt-12">
@@ -293,12 +388,11 @@ function HomeContent() {
                 </p>
 
                 <h1 className="text-display max-w-[18ch] text-balance">
-                  Your area. Your people. Your city.
+                  <span className="transition-opacity duration-500 ease-out">{heroGreeting}</span>
                 </h1>
 
                 <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
-                  Post anonymously, follow the boards that matter, and drop into the room for your
-                  locality — no account required.
+                  <span className="transition-opacity duration-500 ease-out">{heroMessage}</span>
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center gap-2.5">
@@ -321,7 +415,7 @@ function HomeContent() {
                 </p>
               </div>
 
-              {/* Command-palette mockup — the hero's load-bearing visual */}
+              {/* Command-palette mockup  -  the hero's load-bearing visual */}
               <div className="min-w-0">
                 <div className="palette-card mx-auto w-full max-w-md">
                   <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5">
@@ -413,7 +507,7 @@ function HomeContent() {
             {
               icon: Lock,
               title: "Anonymous by default",
-              copy: "A nickname is enough — no signup, no profile photo.",
+              copy: "A nickname is enough  -  no signup, no profile photo.",
             },
             {
               icon: MapPin,
@@ -457,7 +551,7 @@ function HomeContent() {
             </div>
           </div>
 
-          {/* Topic chips — wrap on every breakpoint so nothing overflows */}
+          {/* Topic chips  -  wrap on every breakpoint so nothing overflows */}
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
             {CITIES.map((topic) => {
               const isActive = activeTopic === topic.slug;
@@ -569,20 +663,22 @@ function HomeContent() {
                       type="button"
                       onClick={(e) => handleUpvote(post.id, e)}
                       className="action-pill"
-                      aria-label="Like post"
+                      aria-label="+1 post"
                       aria-pressed={false}
                     >
                       <ThumbsUp className="h-4 w-4" strokeWidth={1.8} />
-                      <span className="tabular-nums">{votes[post.id] ?? post.votes ?? 0}</span>
+                      <span className="tabular-nums text-[var(--accent-green)]">
+                        {votes[post.id] ?? post.votes ?? 0}
+                      </span>
                     </button>
 
                     <Link
                       href={`/chat/${activeTopic}`}
                       className="action-pill"
-                      aria-label="Discuss post"
+                      aria-label="Chime in on post"
                     >
                       <MessageSquare className="h-4 w-4" strokeWidth={1.8} />
-                      <span>Discuss</span>
+                      <span>Chime in</span>
                     </Link>
 
                     <Link

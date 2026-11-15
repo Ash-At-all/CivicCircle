@@ -157,7 +157,7 @@ export default function OnboardingPage() {
               </div>
               <p className="mt-3 text-[11px] tracking-[0.3px] text-[var(--ash)]">
                 {selectedTopics.size === 0
-                  ? "Optional — skip if you like."
+                  ? "Optional, skip if you like."
                   : `${selectedTopics.size} selected`}
               </p>
             </div>

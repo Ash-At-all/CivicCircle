@@ -167,7 +167,7 @@ export default function ChatDiscoveryPage({
         </section>
 
         <p className="mt-4 text-[11px] leading-relaxed tracking-[0.2px] text-[var(--ash)]">
-          Rooms are public to everyone in the city. Keep it civil — reports go to moderators.
+          Rooms are public to everyone in the city. Keep it civil. Reports go to moderators.
         </p>
       </div>
     </div>
