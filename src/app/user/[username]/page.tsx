@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -59,22 +60,26 @@ export default async function UserProfilePage({
 
   if (error) {
     return (
-      <div style={{ padding: 16, maxWidth: 760, margin: "0 auto", color: "#e39283" }}>
-        <p>{error}</p>
-        <Link href="/" style={{ color: "#d9a441", textDecoration: "underline", textUnderlineOffset: 3 }}>
-          Back to community
-        </Link>
+      <div className="mobile-container justify-center px-4 py-16">
+        <div className="card mx-auto w-full max-w-md p-5">
+          <p className="text-[13px] text-[var(--accent-red)]" role="alert">{error}</p>
+          <Link href="/" className="btn btn-tertiary mt-4">
+            Back to community
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div style={{ padding: 16, maxWidth: 760, margin: "0 auto", color: "#e39283" }}>
-        <p>Profile not found.</p>
-        <Link href="/" style={{ color: "#d9a441", textDecoration: "underline", textUnderlineOffset: 3 }}>
-          Back to community
-        </Link>
+      <div className="mobile-container justify-center px-4 py-16">
+        <div className="card mx-auto w-full max-w-md p-5">
+          <p className="text-[13px] text-[var(--mute)]">Profile not found.</p>
+          <Link href="/" className="btn btn-tertiary mt-4">
+            Back to community
+          </Link>
+        </div>
       </div>
     );
   }
@@ -89,77 +94,81 @@ export default async function UserProfilePage({
     .toUpperCase() || "?";
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-      <Link href="/" style={{ color: "#a0a699", fontSize: 12, textDecoration: "underline", textUnderlineOffset: 3 }}>
-        ← Back to community
-      </Link>
-
-      <header style={{ display: "flex", alignItems: "center", gap: 16, paddingBottom: 16, borderBottom: "1px solid #343830" }}>
-        <div style={{
-          width: 72, height: 72, borderRadius: 50, background: "#303126", color: "#e1c37f",
-          fontSize: 20, fontWeight: 700, display: "grid", placeItems: "center", flex: "none",
-          border: profile.avatar_url ? "none" : "1px solid #4b4c3f",
-        }}>
-          {profile.avatar_url ? (
-            <Image
-              src={profile.avatar_url}
-              alt="Avatar"
-              width={72}
-              height={72}
-              style={{ borderRadius: 50, objectFit: "cover" }}
-              unoptimized
-              priority
-            />
-          ) : (
-            initials
-          )}
-        </div>
-        <div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: -0.03 }}>{profile.username}</h1>
-            {displayName !== profile.username && (
-              <span style={{ color: "#a0a699", fontSize: 14 }}>{displayName}</span>
-            )}
-            {profile.tag && (
-              <span style={{
-                border: "1px solid #343830", borderRadius: 4, padding: "0 7px", color: "#a0a699",
-                fontSize: 11, background: "#22251f",
-              }}>{profile.tag}</span>
-            )}
-          </div>
-          <p style={{ color: "#a0a699", fontSize: 12, marginTop: 4 }}>Member of CivicCircle</p>
+    <div className="mobile-container">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+          <Link
+            href="/"
+            className="btn btn-icon btn-secondary text-[var(--mute)]"
+            aria-label="Back to community"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </Link>
+          <span className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+            @{profile.username}
+          </span>
+          <div className="w-9" aria-hidden="true" />
         </div>
       </header>
 
-      <section>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Posts by {profile.username}</h2>
-        {posts.length === 0 ? (
-          <p style={{ color: "#a0a699", fontSize: 13 }}>No posts yet.</p>
-        ) : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {posts.map((post) => (
-              <article key={post.id} style={{
-                border: "1px solid #343830", borderRadius: 6, background: "#1c1f1b", padding: 12, display: "flex", gap: 10,
-              }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 50, background: "#303126", color: "#e1c37f",
-                  fontSize: 11, fontWeight: 700, display: "grid", placeItems: "center", flex: "none",
-                  border: "1px solid #4b4c3f",
-                }}>
-                  {initials}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12 }}>
-                    <span style={{ color: "#a0a699" }}>{post.tag}</span>
-                  </div>
-                  <h3 style={{ margin: "4px 0 2px", fontSize: 15, fontWeight: 600 }}>{post.title}</h3>
-                  <p style={{ color: "#c4c6bc", fontSize: 13, margin: 0, lineHeight: 1.45 }}>{post.body}</p>
-                </div>
-              </article>
-            ))}
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6">
+        <header className="card flex items-center gap-4 p-5">
+          <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] text-[16px] font-semibold text-[var(--body-text)]">
+            {profile.avatar_url ? (
+              <Image
+                src={profile.avatar_url}
+                alt="Avatar"
+                width={64}
+                height={64}
+                className="h-full w-full object-cover"
+                unoptimized
+                priority
+              />
+            ) : (
+              initials
+            )}
           </div>
-        )}
-      </section>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h1 className="text-h1 truncate">{profile.username}</h1>
+              {displayName !== profile.username && (
+                <span className="text-[13px] text-[var(--mute)]">{displayName}</span>
+              )}
+              {profile.tag && <span className="badge">{profile.tag}</span>}
+            </div>
+            <p className="mt-1 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+              Member of CivicCircle
+            </p>
+          </div>
+        </header>
+
+        <section className="mt-6">
+          <p className="text-label">Activity</p>
+          <h2 className="mt-1 text-h2">Posts by {profile.username}</h2>
+          {posts.length === 0 ? (
+            <div className="card mt-4 px-4 py-10 text-center text-[13px] text-[var(--mute)]">
+              No posts yet.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2.5">
+              {posts.map((post) => (
+                <article key={post.id} className="feed-card flex gap-2.5 p-4">
+                  <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] text-[10px] font-semibold text-[var(--mute)]">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="tag-chip">{post.tag}</span>
+                    <h3 className="mt-1.5 text-[15px] font-medium leading-snug text-[var(--ink)]">
+                      {post.title}
+                    </h3>
+                    <p className="mt-1 text-[13px] leading-relaxed text-[var(--mute)]">{post.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

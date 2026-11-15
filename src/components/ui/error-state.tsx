@@ -10,19 +10,16 @@ interface ErrorStateProps {
 
 export function ErrorState({ title, description, onRetry }: ErrorStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
-        <span className="text-red-400">!</span>
+    <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+      <div className="app-tile mb-4 h-12 w-12 border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]">
+        <span className="text-sm font-semibold">!</span>
       </div>
-      <h2 className="text-white font-semibold">{title}</h2>
+      <h2 className="text-h3">{title}</h2>
       {description && (
-        <p className="mt-1 text-sm text-muted">{description}</p>
+        <p className="mt-1.5 max-w-sm text-body-sm text-[var(--mute)]">{description}</p>
       )}
       {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-6 inline-flex items-center rounded-button px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple to-[#9B5CF6] shadow-lg hover:opacity-95"
-        >
+        <button onClick={onRetry} className="btn btn-primary mt-6">
           Try again
         </button>
       )}

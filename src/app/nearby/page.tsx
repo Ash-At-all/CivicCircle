@@ -186,20 +186,35 @@ export default function NearbyPage() {
 
   if (loading) {
     return (
-      <main className="grid min-h-[100dvh] place-items-center bg-[var(--charcoal)] p-4">
-        <p className="text-sm text-[var(--text-muted)]">Loading your area...</p>
+      <main className="grid min-h-[100dvh] place-items-center bg-[var(--canvas)] p-4">
+        <p className="text-sm text-[var(--mute)]">Loading your area...</p>
       </main>
     );
   }
 
   if (!data) {
     return (
-      <main className="mx-auto max-w-2xl p-4">
-        <h1 className="text-xl font-semibold text-[var(--text)]">Nearby</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Local shops and area rooms for Chhatrapati Sambhajinagar.
-        </p>
-        <div className="mt-4">
+      <main className="mobile-container">
+        <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-2 px-4 py-2.5 pt-[max(env(safe-area-inset-top),10px)]">
+            <div>
+              <h1 className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">Nearby</h1>
+              <p className="text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                Chhatrapati Sambhajinagar
+              </p>
+            </div>
+          </div>
+        </header>
+
+        <div className="mx-auto w-full max-w-2xl flex-1 space-y-3 px-4 py-6">
+          <div className="mb-2">
+            <p className="text-label">Local discovery</p>
+            <h2 className="mt-1 text-h2">Shops and rooms around you</h2>
+            <p className="mt-1.5 text-body-sm text-[var(--mute)]">
+              Approximate area only. Set your location or pick an area to start.
+            </p>
+          </div>
+
           {mode === "consent" ? (
             <AreaConsent
               onUseLocation={useLocation}
@@ -230,7 +245,7 @@ export default function NearbyPage() {
   }
 
   return (
-    <main className="relative h-[100dvh] w-full overflow-hidden bg-[var(--charcoal)]">
+    <main className="relative h-[100dvh] w-full overflow-hidden bg-[var(--canvas)]">
       <div className="nearby-map absolute inset-0">
         <NearbyMap
           centroid={data.centroid}
@@ -241,24 +256,22 @@ export default function NearbyPage() {
         />
       </div>
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b from-[#171921]/95 to-transparent p-3 pb-8">
-        <div className="pointer-events-auto rounded-lg bg-[var(--charcoal)]/85 px-3 py-2 backdrop-blur-sm">
-          <h1 className="text-base font-semibold text-[var(--text)]">Nearby</h1>
-          <p className="text-xs text-[var(--text-muted)]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b from-[rgba(7,8,10,0.92)] to-transparent p-3 pb-10">
+        <div className="pointer-events-auto rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[rgba(13,13,13,0.9)] px-3 py-2 backdrop-blur-md">
+          <h1 className="text-[13px] font-medium tracking-[0.2px] text-[var(--ink)]">Nearby</h1>
+          <p className="text-[11px] tracking-[0.3px] text-[var(--mute)]">
             {data.localityName || "Your area"} · Chhatrapati Sambhajinagar
           </p>
         </div>
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
           <div
-            className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--charcoal)]/90"
+            className="inline-flex items-center gap-0.5 rounded-full border border-[var(--hairline)] bg-[rgba(13,13,13,0.9)] p-1 backdrop-blur-md"
             role="group"
             aria-label="Map label language"
           >
             <button
               type="button"
-              className={`px-2.5 py-1.5 text-xs ${
-                language === "en" ? "bg-[var(--yellow)] text-[#171921]" : "text-[var(--text)]"
-              }`}
+              className={`pill-tab ${language === "en" ? "pill-tab-active" : ""}`}
               aria-pressed={language === "en"}
               onClick={() => setLanguage("en")}
             >
@@ -266,9 +279,7 @@ export default function NearbyPage() {
             </button>
             <button
               type="button"
-              className={`px-2.5 py-1.5 text-xs ${
-                language === "hi" ? "bg-[var(--yellow)] text-[#171921]" : "text-[var(--text)]"
-              }`}
+              className={`pill-tab ${language === "hi" ? "pill-tab-active" : ""}`}
               aria-pressed={language === "hi"}
               onClick={() => setLanguage("hi")}
             >
@@ -277,7 +288,7 @@ export default function NearbyPage() {
           </div>
           <button
             type="button"
-            className="rounded-lg border border-[var(--border)] bg-[var(--charcoal)]/90 px-2.5 py-1.5 text-xs text-[var(--text)]"
+            className="btn btn-sm btn-tertiary backdrop-blur-md"
             onClick={() => {
               setData(null);
               setSelectedRadius(null);
@@ -289,7 +300,7 @@ export default function NearbyPage() {
           </button>
           <button
             type="button"
-            className="rounded-lg border border-[var(--border)] bg-[var(--charcoal)]/90 px-2.5 py-1.5 text-xs text-[var(--text)]"
+            className="btn btn-sm btn-tertiary backdrop-blur-md"
             onClick={() => void clearArea()}
             disabled={busy}
           >
@@ -301,7 +312,7 @@ export default function NearbyPage() {
       <section
         id="nearby-sheet"
         aria-label="Nearby area"
-        className={`absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-3xl flex-col rounded-t-2xl border border-b-0 border-[var(--border)] bg-[var(--charcoal)] shadow-[0_-8px_30px_rgba(0,0,0,0.35)] transition-[height] duration-200 ${
+        className={`absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-3xl flex-col rounded-t-[var(--radius-xl)] border border-b-0 border-[var(--hairline)] bg-[var(--surface)] transition-[height] duration-200 ${
           sheetExpanded ? "h-[82dvh]" : "h-[46dvh]"
         }`}
       >
@@ -312,21 +323,21 @@ export default function NearbyPage() {
           aria-controls="nearby-sheet-content"
           onClick={() => setSheetExpanded((v) => !v)}
         >
-          <span className="h-1.5 w-12 rounded-full bg-[var(--muted)]" aria-hidden="true" />
+          <span className="h-1.5 w-12 rounded-full bg-[var(--stone)]" aria-hidden="true" />
           <span className="sr-only">{sheetExpanded ? "Collapse panel" : "Expand panel"}</span>
         </button>
 
         <div className="px-4">
-          <div role="tablist" aria-label="Nearby sections" className="flex gap-2 border-b border-[var(--border)] pb-2">
+          <div
+            role="tablist"
+            aria-label="Nearby sections"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] p-1"
+          >
             <button
               type="button"
               role="tab"
               aria-selected={tab === "shops"}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
-                tab === "shops"
-                  ? "bg-[var(--yellow)] text-[#171921]"
-                  : "border border-[var(--border)] text-[var(--text)]"
-              }`}
+              className={`pill-tab ${tab === "shops" ? "pill-tab-active" : ""}`}
               onClick={() => setTab("shops")}
             >
               Shops
@@ -335,11 +346,7 @@ export default function NearbyPage() {
               type="button"
               role="tab"
               aria-selected={tab === "chat"}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
-                tab === "chat"
-                  ? "bg-[var(--yellow)] text-[#171921]"
-                  : "border border-[var(--border)] text-[var(--text)]"
-              }`}
+              className={`pill-tab ${tab === "chat" ? "pill-tab-active" : ""}`}
               onClick={() => {
                 setTab("chat");
                 setSheetExpanded(true);
@@ -359,13 +366,13 @@ export default function NearbyPage() {
           {tab === "shops" ? (
             <>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-[var(--text)]">
+                <p className="text-[13px] text-[var(--body-text)]">
                   {shopResult ? shopRadiusMessage(shopResult) : "Loading shops..."}
                 </p>
-                <label className="text-sm text-[var(--text-muted)]">
+                <label className="flex items-center gap-2 text-[12px] tracking-[0.3px] text-[var(--mute)]">
                   Radius
                   <select
-                    className="ml-2 rounded-lg border border-[var(--border)] bg-[var(--charcoal-2)] px-2 py-1 text-sm text-[var(--text)]"
+                    className="field w-auto min-h-[32px] py-1 pl-2.5 text-[13px]"
                     value={effectiveRadius}
                     onChange={(e) => setSelectedRadius(Number(e.target.value))}
                   >
@@ -377,22 +384,22 @@ export default function NearbyPage() {
                   </select>
                 </label>
               </div>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
+              <p className="mt-1 text-[12px] tracking-[0.3px] text-[var(--mute)]">
                 {peopleChoice ? peopleMessage(peopleChoice, Boolean(data.showPresence)) : "Checking nearby activity..."}
               </p>
 
-              <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+              <div className="card-elevated mt-3 p-3">
                 <PresenceOptIn
                   checked={Boolean(data.showPresence)}
                   onChange={(next) => void togglePresence(next)}
                   disabled={busy}
                 />
-                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                <p className="mt-2 text-[11px] leading-relaxed tracking-[0.2px] text-[var(--ash)]">
                   Distances are approximate from your area centre. Map data © OpenStreetMap contributors.
                   Boundaries shown by the base map are not a legal claim.
                 </p>
                 {error ? (
-                  <p className="mt-2 text-sm text-red-400" role="alert">
+                  <p className="mt-2 text-[13px] text-[var(--accent-red)]" role="alert">
                     {error}
                   </p>
                 ) : null}
@@ -420,9 +427,7 @@ export default function NearbyPage() {
               />
             </div>
           ) : (
-            <p className="mt-4 text-sm text-[var(--text-muted)]">
-              Set your area to use chat.
-            </p>
+            <p className="mt-4 text-[13px] text-[var(--mute)]">Set your area to use chat.</p>
           )}
         </div>
       </section>

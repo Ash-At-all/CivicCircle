@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft, MessageSquare } from "lucide-react";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
 
 export default async function CityPage({ params }: { params: Promise<{ citySlug: string }> }) {
@@ -11,34 +12,56 @@ export default async function CityPage({ params }: { params: Promise<{ citySlug:
   }
 
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#171921] text-[#F2F0FA] flex flex-col">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.08] bg-[#171921]/95 px-4 py-3.5 backdrop-blur-xl pt-[max(env(safe-area-inset-top),4px)]">
-        <Link href="/home" className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFFFFF]/06 text-[#F2F0FA] hover:text-[#FFFFFF] transition" aria-label="Back to feed">
-          <svg className="h-5 w-5" strokeWidth={1.75} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </Link>
-        <h1 className="text-lg font-bold text-[#FFFFFF]">{citySlug.replace("-", " ")}</h1>
-        <div className="w-9" />
-      </header>
-      <main className="flex-1 px-4 py-4 space-y-4">
-        <h2 className="text-[#FFFFFF] font-semibold text-lg">Posts</h2>
-        {posts.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-[#8B8FA3] text-sm">No posts in {citySlug} yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <article key={post.id} className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-4">
-                <h3 className="text-[#FFFFFF] font-semibold">{post.title}</h3>
-                <p className="mt-1 text-[#8B8FA3] text-sm">{post.body}</p>
-              </article>
-            ))}
-          </div>
-        )}
-        <h2 className="text-[#FFFFFF] font-semibold text-lg mt-8">Chat</h2>
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-4 h-64 overflow-y-auto flex flex-col space-y-2">
-          <p className="text-[#8B8FA3] text-sm text-center mt-10">Chat for {citySlug} coming soon.</p>
+    <div className="mobile-container">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+          <Link
+            href="/home"
+            className="btn btn-icon btn-secondary text-[var(--mute)]"
+            aria-label="Back to feed"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </Link>
+          <h1 className="text-sm font-medium capitalize tracking-[0.2px] text-[var(--ink)]">
+            {citySlug.replace("-", " ")}
+          </h1>
+          <div className="w-9" aria-hidden="true" />
         </div>
+      </header>
+
+      <main className="flex-1 space-y-6 px-4 py-6 sm:px-6">
+        <section>
+          <p className="text-label">City board</p>
+          <h2 className="mt-1 text-h2">Posts</h2>
+          {posts.length === 0 ? (
+            <div className="card mt-4 px-4 py-10 text-center">
+              <span className="app-tile mx-auto mb-3 h-11 w-11 text-[var(--mute)]">
+                <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <p className="text-[13px] text-[var(--mute)]">No posts in {citySlug} yet.</p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2.5">
+              {posts.map((post) => (
+                <article key={post.id} className="feed-card p-4">
+                  <h3 className="text-[16px] font-medium leading-snug tracking-[0.1px] text-[var(--ink)]">
+                    {post.title}
+                  </h3>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--mute)]">{post.body}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 className="text-h2">Chat</h2>
+          <div className="card mt-4 flex h-64 flex-col overflow-y-auto p-4">
+            <p className="mt-10 text-center text-[13px] text-[var(--mute)]">
+              Chat for {citySlug} coming soon.
+            </p>
+          </div>
+        </section>
       </main>
     </div>
   );

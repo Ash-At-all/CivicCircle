@@ -34,9 +34,9 @@ export function AreaPicker({
   }
 
   return (
-    <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-      <h2 className="text-lg font-semibold text-[var(--text)]">Choose an area</h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
+    <section className="card p-5">
+      <h2 className="text-h3">Choose an area</h2>
+      <p className="mt-1 text-body-sm text-[var(--mute)]">
         Search for a place in Chhatrapati Sambhajinagar.
       </p>
       <form
@@ -49,38 +49,42 @@ export function AreaPicker({
         <label className="sr-only" htmlFor="area-search">Search for an area</label>
         <input
           id="area-search"
-          className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text)]"
+          className="field min-w-0 flex-1"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search area or landmark"
         />
         <button
           type="submit"
-          className="rounded-lg bg-[var(--yellow)] px-3 py-2 text-sm font-semibold text-[var(--charcoal)] disabled:opacity-60"
+          className="btn btn-primary"
           disabled={loading || query.trim().length < 2}
         >
           {loading ? "Searching..." : "Search"}
         </button>
       </form>
-      {error ? <p className="mt-2 text-sm text-red-400" role="alert">{error}</p> : null}
+      {error ? <p className="mt-2 text-[13px] text-[var(--accent-red)]" role="alert">{error}</p> : null}
       {results.length > 0 ? (
-        <ul className="mt-3 divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
+        <ul className="mt-3 divide-y divide-[var(--hairline)] overflow-hidden rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)]">
           {results.map((r, i) => (
             <li key={`${r.lat}-${r.lng}-${i}`}>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-hover,#222)]"
+                className="w-full px-3 py-2.5 text-left text-[13px] text-[var(--ink)] transition-colors hover:bg-[var(--surface-card)]"
                 onClick={() => void onPick(r)}
               >
                 <span className="font-medium">{r.name}</span>
-                <span className="block text-xs text-[var(--text-muted)]">{r.label}</span>
+                <span className="mt-0.5 block text-[11px] tracking-[0.2px] text-[var(--mute)]">{r.label}</span>
               </button>
             </li>
           ))}
         </ul>
       ) : null}
-      <button type="button" className="mt-3 text-sm text-[var(--text-muted)] underline" onClick={onCancel}>
-        Back
+      <button
+        type="button"
+        className="btn btn-sm btn-secondary mt-3 text-[var(--mute)]"
+        onClick={onCancel}
+      >
+        ← Back
       </button>
     </section>
   );

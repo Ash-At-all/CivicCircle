@@ -150,13 +150,13 @@ export function NearbyMap({
           id: "radius-fill",
           type: "fill",
           source: "radius",
-          paint: { "fill-color": "#F8DC47", "fill-opacity": 0.08 },
+          paint: { "fill-color": "#ffffff", "fill-opacity": 0.06 },
         });
         map.addLayer({
           id: "radius-line",
           type: "line",
           source: "radius",
-          paint: { "line-color": "#F8DC47", "line-width": 2, "line-opacity": 0.6 },
+          paint: { "line-color": "#ffffff", "line-width": 1.5, "line-opacity": 0.45 },
         });
       }
       if (!map.getSource("shops")) {
@@ -173,8 +173,8 @@ export function NearbyMap({
           source: "shops",
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": "#1F2230",
-            "circle-stroke-color": "#F8DC47",
+            "circle-color": "#101111",
+            "circle-stroke-color": "#ffffff",
             "circle-stroke-width": 2,
             "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 30, 26],
           },
@@ -193,7 +193,7 @@ export function NearbyMap({
             // down with them.
             "text-font": ["Noto Sans Regular"],
           },
-          paint: { "text-color": "#F2F0FA" },
+          paint: { "text-color": "#f4f4f6" },
         });
         map.addLayer({
           id: "unclustered-point",
@@ -201,10 +201,10 @@ export function NearbyMap({
           source: "shops",
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": "#F8DC47",
+            "circle-color": "#ffffff",
             "circle-radius": 6,
             "circle-stroke-width": 2,
-            "circle-stroke-color": "#171921",
+            "circle-stroke-color": "#07080a",
           },
         });
         map.addLayer({
@@ -222,8 +222,8 @@ export function NearbyMap({
             "text-optional": true,
           },
           paint: {
-            "text-color": "#F2F0FA",
-            "text-halo-color": "#171921",
+            "text-color": "#f4f4f6",
+            "text-halo-color": "#07080a",
             "text-halo-width": 1,
           },
         });

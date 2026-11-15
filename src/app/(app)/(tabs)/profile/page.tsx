@@ -74,38 +74,43 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto radial-top-glow">
+    <div className="flex w-full min-w-0 flex-1 flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.08] bg-[#171921]/95 px-4 py-3.5 backdrop-blur-xl pt-[max(env(safe-area-inset-top),4px)]">
-        <Link
-          href="/home"
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFFFFF]/06 text-[#F2F0FA] hover:text-[#FFFFFF] transition"
-          aria-label="Back to feed"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-base font-bold text-[#FFFFFF]">Profile & Settings</h1>
-        <div className="w-9" />
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+          <Link
+            href="/home"
+            className="btn btn-icon btn-secondary text-[var(--mute)]"
+            aria-label="Back to feed"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </Link>
+          <h1 className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+            Profile &amp; settings
+          </h1>
+          <div className="w-9" aria-hidden="true" />
+        </div>
       </header>
 
-      <div className="px-4 py-5 space-y-5">
+      <div className="mx-auto w-full max-w-2xl space-y-3 px-4 py-5 sm:px-6">
         {/* Profile Card */}
-        <div className="glass-card rounded-2xl p-6 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-[#AD68F5] to-[#F5B5ED] p-0.5 shadow-[0_0_24px_rgba(173,104,245,0.4)]">
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#1F2230]">
-              <User className="h-9 w-9 text-[#AD68F5]" />
-            </div>
+        <section className="card p-6">
+          <div className="flex flex-col items-center text-center">
+            <span className="app-tile h-16 w-16 rounded-full text-[var(--mute)]">
+              <User className="h-7 w-7" strokeWidth={1.6} />
+            </span>
+            <h2 className="mt-3 text-h3">{nickname}</h2>
+            <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] tracking-[0.3px] text-[var(--mute)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+              Anonymous identity
+            </p>
           </div>
-          <h2 className="mt-3 text-lg font-bold text-[#FFFFFF]">{nickname}</h2>
-          <p className="text-xs text-[#AD68F5] font-medium">Anonymous Identity</p>
-        </div>
+        </section>
 
         {/* Change Nickname Section */}
-        <div className="glass-card rounded-2xl p-5">
-          <h3 className="text-xs font-semibold text-[#8B8FA3] uppercase tracking-wider mb-3">
-            Display Nickname
-          </h3>
-          <form onSubmit={handleSaveNickname} className="space-y-3">
+        <section className="card p-5">
+          <h3 className="text-label mb-3">Display nickname</h3>
+          <form onSubmit={handleSaveNickname} className="space-y-2.5">
             <input
               type="text"
               value={nickname}
@@ -113,112 +118,109 @@ export default function ProfilePage() {
               placeholder="Your nickname"
               maxLength={24}
               required
-              className="w-full rounded-xl border border-[#FFFFFF]/10 bg-[#161626] px-3.5 py-2.5 text-sm text-[#FFFFFF] placeholder-[#8B8FA3] outline-none focus:border-[#AD68F5] transition"
+              className="field"
             />
-            <button
-              type="submit"
-              className="gradient-btn flex w-full min-h-[42px] items-center justify-center rounded-xl font-medium text-xs text-[#FFFFFF]"
-            >
-              {saved ? "Saved successfully!" : "Update Nickname"}
+            <button type="submit" className="btn btn-primary w-full">
+              {saved ? "Saved successfully!" : "Update nickname"}
             </button>
           </form>
-        </div>
+        </section>
 
         {/* Security & Identity */}
-        <div className="glass-card rounded-2xl p-5 space-y-3">
+        <section className="card space-y-3 p-5">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-[#AD68F5]" />
-            <h3 className="text-xs font-semibold text-[#8B8FA3] uppercase tracking-wider">
-              Identity & Security
-            </h3>
+            <Shield className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
+            <h3 className="text-label">Identity &amp; security</h3>
           </div>
 
-          <div className="rounded-xl border border-[#FFFFFF]/06 bg-black/20 p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[#8B8FA3]">Client ID</span>
+          <div className="rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3.5">
+            <div className="flex items-center justify-between gap-2 text-[12px]">
+              <span className="tracking-[0.3px] text-[var(--mute)]">Client ID</span>
               <button
                 type="button"
                 onClick={copyClientId}
-                className="inline-flex items-center gap-1 text-[#AD68F5] hover:text-[#F5B5ED] font-medium"
+                className="inline-flex items-center gap-1 font-medium text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
               >
                 {copiedId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 <span>{copiedId ? "Copied" : "Copy"}</span>
               </button>
             </div>
-            <p className="font-mono text-[11px] text-[#F1F4FF] truncate">{clientId || "..."}</p>
+            <p className="mt-1.5 truncate font-mono text-[11px] text-[var(--body-text)]">
+              {clientId || "..."}
+            </p>
           </div>
 
           <button
             type="button"
             onClick={exportKeys}
-            className="flex w-full min-h-[44px] items-center justify-between rounded-xl border border-[#FFFFFF]/10 bg-[#FFFFFF]/04 px-4 py-2.5 text-xs font-medium text-[#FFFFFF] hover:bg-[#FFFFFF]/08 transition"
+            className="btn btn-tertiary w-full justify-between"
           >
-            <div className="flex items-center gap-2">
-              <Key className="h-4 w-4 text-[#AD68F5]" />
-              <span>Backup Identity</span>
-            </div>
-            <span className="text-[#AD68F5]">{copiedKey ? "Copied!" : "Export"}</span>
+            <span className="flex items-center gap-2">
+              <Key className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
+              <span>Backup identity</span>
+            </span>
+            <span className="text-[var(--mute)]">{copiedKey ? "Copied!" : "Export"}</span>
           </button>
-        </div>
+        </section>
 
         {/* About & Legal */}
-        <div className="glass-card rounded-2xl p-5 space-y-2.5">
-          <h3 className="text-xs font-semibold text-[#8B8FA3] uppercase tracking-wider mb-2">
-            About CivicCircle
-          </h3>
-          <div className="flex items-center justify-between py-1 text-xs text-[#F2F0FA]">
-            <span className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-[#8B8FA3]" />
-              <span>Version</span>
-            </span>
-            <span className="text-[#8B8FA3]">1.0.0 (Login-free)</span>
+        <section className="card p-5">
+          <h3 className="text-label mb-2">About CivicCircle</h3>
+          <div className="divide-y divide-[var(--hairline)]">
+            <div className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)]">
+              <span className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
+                <span>Version</span>
+              </span>
+              <span className="text-[var(--mute)]">1.0.0 (login-free)</span>
+            </div>
+            <Link
+              href="/privacy"
+              className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
+            >
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
+                <span>Privacy policy</span>
+              </span>
+              <span className="text-[var(--ash)]">→</span>
+            </Link>
+            <Link
+              href="/terms"
+              className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
+            >
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
+                <span>Terms of service</span>
+              </span>
+              <span className="text-[var(--ash)]">→</span>
+            </Link>
           </div>
-          <Link
-            href="/privacy"
-            className="flex items-center justify-between py-1 text-xs text-[#F2F0FA] hover:text-[#FFFFFF] transition"
-          >
-            <span className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#8B8FA3]" />
-              <span>Privacy Policy</span>
-            </span>
-            <span className="text-[#8B8FA3]">→</span>
-          </Link>
-          <Link
-            href="/terms"
-            className="flex items-center justify-between py-1 text-xs text-[#F2F0FA] hover:text-[#FFFFFF] transition"
-          >
-            <span className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#8B8FA3]" />
-              <span>Terms of Service</span>
-            </span>
-            <span className="text-[#8B8FA3]">→</span>
-          </Link>
-        </div>
+        </section>
 
         {/* Reset Identity */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={resetIdentity}
-            className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#EF4444]/20 bg-[#EF4444]/10 text-xs font-medium text-[#EF4444] hover:bg-[#EF4444]/20 transition"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Generate New Identity / Reset</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={resetIdentity}
+          className="btn btn-tertiary w-full"
+        >
+          <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.8} />
+          <span>Generate new identity / reset</span>
+        </button>
 
         {/* Delete Account */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={deleteAccount}
-            disabled={deleting}
-            className={`flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#EF4444]/20 bg-[#EF4444]/10 text-xs font-medium text-[#EF4444] hover:bg-[#EF4444]/20 transition disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span>{deleting ? "Deleting..." : "Delete Account"}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={deleteAccount}
+          disabled={deleting}
+          className="btn btn-danger w-full"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+          <span>{deleting ? "Deleting..." : "Delete account"}</span>
+        </button>
+
+        <p className="pt-1 text-center text-[11px] tracking-[0.3px] text-[var(--ash)]">
+          Everything is stored on this device. Clearing your browser data removes your identity.
+        </p>
       </div>
     </div>
   );

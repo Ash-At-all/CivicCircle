@@ -7,15 +7,15 @@ export default function TabsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-[100dvh] bg-[#171921] flex justify-center">
-      <div className="w-full max-w-5xl flex flex-col md:flex-row min-h-[100dvh]">
+    <div className="min-h-[100dvh] bg-[var(--canvas)] flex justify-center">
+      <div className="w-full max-w-6xl min-w-0 flex flex-col md:flex-row min-h-[100dvh] md:border-x md:border-[var(--hairline)]">
         {/* Desktop Sidebar (hidden on mobile, visible on desktop >= 768px) */}
-        <aside className="hidden md:flex md:w-64 flex-none border-r border-white/[0.08] sticky top-0 h-screen overflow-y-auto">
+        <aside className="hidden md:flex md:w-60 lg:w-64 flex-none border-r border-[var(--hairline)] bg-[var(--canvas)] sticky top-0 h-screen overflow-y-auto">
           <DesktopSidebar />
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col min-w-0 pb-[76px] md:pb-6">
+        <main className="flex-1 flex flex-col min-w-0 pb-[calc(84px+env(safe-area-inset-bottom))] md:pb-0">
           {children}
         </main>
       </div>

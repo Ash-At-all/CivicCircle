@@ -151,35 +151,37 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   }
 
   return (
-    <div className="mobile-container chat-page h-[100dvh] flex flex-col justify-between overflow-hidden bg-[#0B0B14]">
+    <div className="mobile-container chat-page relative h-[100dvh] overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/[0.08] bg-[#0B0B14]/90 px-3 py-2.5 backdrop-blur-xl pt-[max(env(safe-area-inset-top),4px)]">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/home"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06] text-gray-300 hover:text-white transition"
-            aria-label="Back to home"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-sm font-bold text-white capitalize">{roomTitle}</h1>
-            <div className="flex items-center gap-1 text-[11px] text-gray-400">
-              <span>Community Chat</span>
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.88)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)]">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/home"
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              aria-label="Back to home"
+            >
+              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </Link>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-medium capitalize tracking-[0.2px] text-[var(--ink)]">
+                {roomTitle}
+              </h1>
+              <p className="text-[11px] tracking-[0.3px] text-[var(--ash)]">Community chat</p>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Live</span>
+          <span className="badge badge-success flex-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+            Live
+          </span>
         </div>
       </header>
 
       {/* Encryption banner */}
-      <div className="bg-[#121222] border-b border-white/[0.04] px-4 py-2 text-center">
-        <p className="inline-flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
-          <ShieldCheck className="h-3.5 w-3.5 text-gray-400" />
+      <div className="border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 text-center">
+        <p className="inline-flex items-center justify-center gap-1.5 text-[11px] tracking-[0.3px] text-[var(--mute)]">
+          <ShieldCheck className="h-3.5 w-3.5 text-[var(--ash)]" strokeWidth={1.8} />
           <span>Messages are shared with others in this city.</span>
         </p>
       </div>
@@ -188,14 +190,18 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
+        className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3"
       >
         {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-center p-6 text-gray-400 text-xs">
-            <div>
-              <Lock className="mx-auto h-7 w-7 text-purple-400/50 mb-2" />
-              <p className="font-medium text-white">No messages yet</p>
-              <p className="text-gray-500 mt-1">Start the conversation in this room.</p>
+          <div className="flex h-full items-center justify-center p-6 text-center">
+            <div className="flex flex-col items-center">
+              <span className="app-tile mb-3 h-11 w-11 text-[var(--mute)]">
+                <Lock className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <p className="text-[15px] font-medium text-[var(--ink)]">No messages yet</p>
+              <p className="mt-1 text-[12px] text-[var(--mute)]">
+                Start the conversation in this room.
+              </p>
             </div>
           </div>
         ) : (
@@ -205,21 +211,21 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
               className={`flex flex-col ${m.fromYou ? "items-end" : "items-start"}`}
             >
               {!m.fromYou && (
-                <span className="text-[10px] text-gray-400 font-medium mb-1 ml-1">
+                <span className="mb-1 ml-1 text-[11px] font-medium tracking-[0.3px] text-[var(--mute)]">
                   {m.author}
                 </span>
               )}
               <div
-                className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                className={`max-w-[82%] rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[14px] leading-relaxed ${
                   m.fromYou
-                    ? "bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-br-xs shadow-[0_2px_12px_rgba(168,85,247,0.3)]"
-                    : "glass-card text-gray-200 rounded-bl-xs border border-white/[0.08]"
+                    ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                    : "border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--body-text)]"
                 }`}
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <div
-                  className={`mt-1 text-[9px] text-right ${
-                    m.fromYou ? "text-purple-200" : "text-gray-400"
+                  className={`mt-1 text-right text-[10px] tracking-[0.2px] ${
+                    m.fromYou ? "text-black/55" : "text-[var(--ash)]"
                   }`}
                 >
                   {m.time}
@@ -235,23 +241,23 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
         <button
           type="button"
           onClick={scrollToBottom}
-          className="gradient-btn absolute bottom-20 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white shadow-lg"
+          className="btn btn-primary btn-sm absolute bottom-24 left-1/2 -translate-x-1/2"
         >
           <span>New messages</span>
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
       )}
 
       {/* Input Bar */}
-      <footer className="border-t border-white/[0.08] bg-[#0E0E18]/95 p-3 pb-[max(env(safe-area-inset-bottom),12px)] backdrop-blur-xl">
+      <footer className="border-t border-[var(--hairline)] bg-[rgba(7,8,10,0.94)] p-3 pb-[max(env(safe-area-inset-bottom),12px)] backdrop-blur-xl">
         <form onSubmit={handleSend} className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => attachRef.current?.click()}
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/[0.06] text-gray-400 hover:text-white transition"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
             aria-label="Attach file"
           >
-            <Paperclip className="h-4 w-4" />
+            <Paperclip className="h-4 w-4" strokeWidth={1.8} />
           </button>
           <input
             ref={attachRef}
@@ -290,16 +296,16 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 rounded-full border border-white/10 bg-[#161626] px-4 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-purple-500 transition"
+            className="field h-10 min-h-0 flex-1 rounded-full px-4"
           />
 
           <button
             type="submit"
             disabled={!input.trim() || sending}
-            className="gradient-circle-btn flex h-10 w-10 flex-none items-center justify-center rounded-full text-white shadow-md disabled:opacity-40 transition-transform active:scale-95"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)] active:scale-95"
             aria-label="Send message"
           >
-            <Send className="h-4 w-4 ml-0.5" />
+            <Send className="ml-0.5 h-4 w-4" strokeWidth={2} />
           </button>
         </form>
       </footer>

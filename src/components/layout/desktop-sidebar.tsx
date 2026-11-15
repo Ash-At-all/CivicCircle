@@ -19,25 +19,25 @@ function SidebarContent() {
   const currentTopic = searchParams.get("topic") || "general";
 
   return (
-    <div className="flex h-full flex-col justify-between p-4">
-      <div className="space-y-6">
+    <div className="flex h-full min-h-0 flex-col justify-between p-3">
+      <div className="min-h-0 space-y-6">
         {/* Brand */}
         <Link href="/home" className="flex items-center gap-2.5 px-2 pt-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F8DC47]/20 border border-[#F8DC47]/40">
+          <span className="app-tile h-9 w-9 min-h-0">
             <Image src="/brand/logo.png" alt="CivicCircle" width={22} height={22} />
-          </div>
-          <div>
-            <span className="text-base font-bold tracking-tight text-[#F2F0FA] block leading-tight">
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
               CivicCircle
             </span>
-            <span className="text-[10px] text-[#AD68F5] font-medium">
-              Encrypted & Local
+            <span className="block truncate text-[11px] leading-4 tracking-[0.3px] text-[var(--mute)]">
+              Local boards &amp; chat
             </span>
-          </div>
+          </span>
         </Link>
 
         {/* Primary Navigation */}
-        <nav className="space-y-1">
+        <nav className="space-y-1" aria-label="Primary">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive =
               pathname === href || (href !== "/home" && pathname.startsWith(href));
@@ -45,32 +45,31 @@ function SidebarContent() {
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all ${
+                aria-current={isActive ? "page" : undefined}
+                className={`flex items-center gap-2.5 rounded-[var(--radius-md)] border px-3 py-2 text-sm tracking-[0.2px] transition-colors ${
                   isActive
-                    ? "bg-[#F8DC47] text-[#171921] font-semibold shadow-lg"
-                    : "text-[#F2F0FA]/60 hover:text-[#FFFFFF] hover:bg-[#FFFFFF]/05"
+                    ? "border-[var(--hairline)] bg-[var(--surface-card)] font-medium text-[var(--on-dark)]"
+                    : "border-transparent text-[var(--body-text)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--ink)]"
                 }`}
               >
                 <Icon
-                  className={`h-4 w-4 transition-all ${isActive ? "text-[#171921]" : "text-[#F2F0FA]/60"}`}
-                  strokeWidth={isActive ? 2.2 : 1.8}
+                  className={`h-4 w-4 ${isActive ? "text-[var(--ink)]" : "text-[var(--mute)]"}`}
+                  strokeWidth={isActive ? 2 : 1.7}
                 />
-                <span className={isActive ? "text-[#171921]" : "text-[#F2F0FA]/60"}>
-                  {label}
-                </span>
+                <span>{label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* Topics Section */}
-        <div className="space-y-2 pt-2 border-t border-[#FFFFFF]/06">
-          <div className="flex items-center gap-1.5 px-3 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">
-            <span className="h-3 w-3 rounded-full bg-[#AD68F5]" />
+        <div className="space-y-2 border-t border-[var(--hairline)] pt-4">
+          <div className="flex items-center gap-2 px-2 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--ash)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--stone)]" />
             <span>Topics</span>
           </div>
 
-          <div className="space-y-0.5 max-h-[46vh] overflow-y-auto no-scrollbar pr-1">
+          <div className="no-scrollbar max-h-[46vh] space-y-0.5 overflow-y-auto pr-1">
             {CITIES.map((topic) => {
               const isTopicActive =
                 pathname === "/home" && currentTopic === topic.slug;
@@ -78,15 +77,16 @@ function SidebarContent() {
                 <Link
                   key={topic.slug}
                   href={`/home?topic=${topic.slug}`}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors ${
+                  aria-current={isTopicActive ? "page" : undefined}
+                  className={`flex items-center justify-between gap-2 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-[13px] transition-colors ${
                     isTopicActive
-                      ? "bg-[#F8DC47] text-[#171921] font-medium shadow-lg"
-                      : "text-[#F2F0FA]/60 hover:text-[#FFFFFF] hover:bg-[#FFFFFF]/05"
+                      ? "bg-[var(--surface-elevated)] font-medium text-[var(--on-dark)]"
+                      : "text-[var(--mute)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--ink)]"
                   }`}
                 >
                   <span className="truncate">{topic.name}</span>
                   {isTopicActive && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#171921]" />
+                    <span className="h-1 w-1 flex-none rounded-full bg-[var(--ink)]" />
                   )}
                 </Link>
               );
@@ -96,13 +96,13 @@ function SidebarContent() {
       </div>
 
       {/* Footer / Legal Links */}
-      <div className="pt-4 border-t border-[#FFFFFF]/06 flex items-center justify-between px-2 text-[11px] text-[#6B7280]">
+      <div className="mt-4 flex flex-col gap-2 border-t border-[var(--hairline)] px-2 pt-4 text-[11px] tracking-[0.3px] text-[var(--ash)]">
         <span>© CivicCircle</span>
         <div className="flex items-center gap-3">
-          <Link href="/privacy" className="hover:text-[#FFFFFF] transition-colors">
+          <Link href="/privacy" className="transition-colors hover:text-[var(--ink)]">
             Privacy
           </Link>
-          <Link href="/terms" className="hover:text-[#FFFFFF] transition-colors">
+          <Link href="/terms" className="transition-colors hover:text-[var(--ink)]">
             Terms
           </Link>
         </div>
@@ -113,7 +113,7 @@ function SidebarContent() {
 
 export function DesktopSidebar() {
   return (
-    <Suspense fallback={<div className="p-4 text-xs text-[#6B7280]">Loading sidebar...</div>}>
+    <Suspense fallback={<div className="p-4 text-xs text-[var(--ash)]">Loading sidebar...</div>}>
       <SidebarContent />
     </Suspense>
   );

@@ -586,19 +586,19 @@ export function AreaChat({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2">
-        <div role="tablist" aria-label="Area rooms" className="flex flex-1 gap-1">
+      <div className="flex items-center gap-2 border-b border-[var(--hairline)] pb-2">
+        <div
+          role="tablist"
+          aria-label="Area rooms"
+          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto no-scrollbar"
+        >
           {scopeTabs.map((tab) => (
             <button
               key={tab.value}
               type="button"
               role="tab"
               aria-selected={scope === tab.value}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
-                scope === tab.value
-                  ? "bg-[var(--yellow)] text-[#171921]"
-                  : "border border-[var(--border)] text-[var(--text)]"
-              }`}
+              className={`pill-tab flex-none ${scope === tab.value ? "pill-tab-active" : ""}`}
               onClick={() => {
                 setScope(tab.value);
                 setMenuFor(null);
@@ -611,7 +611,7 @@ export function AreaChat({
         </div>
         <button
           type="button"
-          className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text)] disabled:opacity-60"
+          className="btn btn-sm btn-tertiary flex-none"
           onClick={() => void toggleMute()}
           disabled={busyAction === "mute"}
           aria-pressed={room.muted}
@@ -620,14 +620,14 @@ export function AreaChat({
         </button>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] tracking-[0.3px] text-[var(--mute)]">
         <p aria-live="polite">{roomCountMessage(room.roomCount)}</p>
         {!showPresence ? (
           <p>
             Presence is off.{" "}
             <button
               type="button"
-              className="underline underline-offset-2"
+              className="text-[var(--body-text)] underline underline-offset-2 transition-colors hover:text-[var(--ink)]"
               onClick={() => void onPresenceChange(true)}
             >
               Turn it on
@@ -638,26 +638,26 @@ export function AreaChat({
       </div>
 
       {!online ? (
-        <p className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]" role="status">
+        <p className="mt-2 rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-2 text-[13px] text-[var(--body-text)]" role="status">
           You are offline. Messages cannot be sent until you reconnect.
         </p>
       ) : null}
       {room.notice ? (
-        <p className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]" role="status">
+        <p className="mt-2 rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-2 text-[13px] text-[var(--body-text)]" role="status">
           {room.notice}
         </p>
       ) : null}
       {room.rateLimitMessage ? (
-        <p className="mt-2 rounded-lg border border-[#5c3a3a] bg-[#2a1d1d] px-3 py-2 text-sm text-[#f3d6d6]" role="alert">
+        <p className="mt-2 rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] px-3 py-2 text-[13px] text-[var(--accent-red)]" role="alert">
           {room.rateLimitMessage}
         </p>
       ) : null}
       {room.error ? (
-        <div className="mt-2 rounded-lg border border-[#5c3a3a] bg-[#2a1d1d] px-3 py-2 text-sm text-[#f3d6d6]" role="alert">
+        <div className="mt-2 rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] px-3 py-2 text-[13px] text-[var(--accent-red)]" role="alert">
           <p>{room.error}</p>
           <button
             type="button"
-            className="mt-2 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--text)]"
+            className="btn btn-sm btn-tertiary mt-2"
             onClick={() => void fetchMessages(scope, null, "initial")}
           >
             Try again
@@ -668,7 +668,7 @@ export function AreaChat({
       {room.nextCursor ? (
         <button
           type="button"
-          className="mt-2 self-center rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text)] disabled:opacity-60"
+          className="btn btn-sm btn-secondary mt-2 self-center text-[var(--mute)]"
           onClick={() => void fetchMessages(scope, room.nextCursor, "older")}
           disabled={room.loadingOlder}
         >
@@ -678,113 +678,124 @@ export function AreaChat({
 
       <div
         ref={listRef}
-        className="mt-2 min-h-0 flex-1 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+        className="mt-2 min-h-0 flex-1 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3"
         onScroll={onListScroll}
         aria-live="polite"
       >
         {room.loading && !room.loaded ? (
-          <p className="text-sm text-[var(--text-muted)]">Loading messages...</p>
+          <p className="text-[13px] text-[var(--mute)]">Loading messages...</p>
         ) : null}
         {!room.loading && room.loaded && orderedMessages.length === 0 && room.pending.length === 0 ? (
-          <div className="text-sm text-[var(--text-muted)]">
+          <div className="px-1 py-6 text-center text-[13px] text-[var(--mute)]">
             <p>No messages in this room yet.</p>
             <p className="mt-1">Start the conversation for your area.</p>
           </div>
         ) : null}
 
-        <ul className="space-y-3">
+        <ul className="space-y-2.5">
           {orderedMessages.map((message) => {
             const mine = viewerId != null && message.authorId === viewerId;
             return (
-              <li key={message.id} className="text-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs text-[var(--text-muted)]">
-                      <span className="font-medium text-[var(--text)]">
-                        {message.authorHandle || "Ghost"}
-                      </span>
-                      {mine ? " (you)" : ""} · {formatTime(message.createdAt)}
-                    </p>
-                    <p className={`mt-0.5 whitespace-pre-wrap break-words ${message.deleted ? "italic text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
+              <li key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`flex max-w-[86%] flex-col ${mine ? "items-end" : "items-start"}`}>
+                  <p className="mb-1 flex items-center gap-1.5 px-1 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                    <span className="font-medium text-[var(--mute)]">
+                      {message.authorHandle || "Ghost"}
+                    </span>
+                    {mine ? <span>· you</span> : null}
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">{formatTime(message.createdAt)}</span>
+                  </p>
+                  <div className="flex items-start gap-1.5">
+                    <div
+                      className={`whitespace-pre-wrap break-words rounded-[var(--radius-lg)] px-3 py-2 text-[14px] leading-relaxed ${
+                        mine
+                          ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                          : "border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--body-text)]"
+                      } ${message.deleted ? "italic opacity-70" : ""}`}
+                    >
                       {message.deleted ? "Message removed." : message.body}
-                    </p>
-                  </div>
-                  {!mine && !message.deleted ? (
-                    <div className="relative shrink-0">
-                      <button
-                        type="button"
-                        className="rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-muted)]"
-                        aria-label="Message actions"
-                        onClick={() =>
-                          setMenuFor((current) => (current === message.id ? null : message.id))
-                        }
-                      >
-                        More
-                      </button>
-                      {menuFor === message.id ? (
-                        <div className="absolute right-0 z-10 mt-1 w-36 rounded-lg border border-[var(--border)] bg-[var(--charcoal)] p-1 shadow-lg">
-                          <button
-                            type="button"
-                            className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-[var(--text)] hover:bg-[var(--surface)]"
-                            onClick={() => {
-                              setReportTarget(message);
-                              setMenuFor(null);
-                            }}
-                          >
-                            Report message
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-[var(--text)] hover:bg-[var(--surface)] disabled:opacity-60"
-                            disabled={busyAction === `block:${message.authorId}`}
-                            onClick={() => void blockUser(message.authorId)}
-                          >
-                            Block person
-                          </button>
-                        </div>
-                      ) : null}
                     </div>
-                  ) : null}
+                    {!mine && !message.deleted ? (
+                      <div className="relative shrink-0 pt-1">
+                        <button
+                          type="button"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ash)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+                          aria-label="Message actions"
+                          onClick={() =>
+                            setMenuFor((current) => (current === message.id ? null : message.id))
+                          }
+                        >
+                          <span aria-hidden="true" className="text-[15px] leading-none">···</span>
+                        </button>
+                        {menuFor === message.id ? (
+                          <div className="absolute right-0 z-10 mt-1 w-40 overflow-hidden rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface)] p-1">
+                            <button
+                              type="button"
+                              className="block w-full rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-[13px] text-[var(--body-text)] transition-colors hover:bg-[var(--surface-card)] hover:text-[var(--ink)]"
+                              onClick={() => {
+                                setReportTarget(message);
+                                setMenuFor(null);
+                              }}
+                            >
+                              Report message
+                            </button>
+                            <button
+                              type="button"
+                              className="block w-full rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-[13px] text-[var(--body-text)] transition-colors hover:bg-[var(--surface-card)] hover:text-[var(--ink)] disabled:opacity-60"
+                              disabled={busyAction === `block:${message.authorId}`}
+                              onClick={() => void blockUser(message.authorId)}
+                            >
+                              Block person
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </li>
             );
           })}
 
           {room.pending.map((pending) => (
-            <li key={pending.clientId} className="text-sm">
-              <p className="text-xs text-[var(--text-muted)]">
-                <span className="font-medium text-[var(--text)]">You</span> ·{" "}
-                {pending.status === "sending" ? "Sending..." : "Not sent"}
-              </p>
-              <p className="mt-0.5 whitespace-pre-wrap break-words text-[var(--text)]">
-                {pending.body}
-              </p>
-              {pending.status === "failed" ? (
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-[#f3d6d6]" role="alert">
-                    {pending.error || "Could not send this message."}
-                  </span>
-                  <button
-                    type="button"
-                    className="rounded-md border border-[var(--border)] px-2 py-1 text-[var(--text)]"
-                    onClick={() => void sendMessage(pending.body, pending.clientId)}
-                  >
-                    Retry
-                  </button>
+            <li key={pending.clientId} className="flex justify-end">
+              <div className="flex max-w-[86%] flex-col items-end">
+                <p className="mb-1 flex items-center gap-1.5 px-1 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                  <span className="font-medium text-[var(--mute)]">You</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{pending.status === "sending" ? "Sending..." : "Not sent"}</span>
+                </p>
+                <div className="whitespace-pre-wrap break-words rounded-[var(--radius-lg)] bg-[var(--primary)] px-3 py-2 text-[14px] leading-relaxed text-[var(--on-primary)] opacity-80">
+                  {pending.body}
                 </div>
-              ) : null}
+                {pending.status === "failed" ? (
+                  <div className="mt-1.5 flex flex-wrap items-center justify-end gap-2 text-[11px]">
+                    <span className="text-[var(--accent-red)]" role="alert">
+                      {pending.error || "Could not send this message."}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-tertiary"
+                      onClick={() => void sendMessage(pending.body, pending.clientId)}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>
       </div>
 
       {room.muted ? (
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
+        <p className="mt-2 text-[12px] tracking-[0.3px] text-[var(--mute)]">
           This room is muted. Unmute it to send messages.
         </p>
       ) : (
         <form
-          className="mt-2 flex items-end gap-2"
+          className="mt-2 flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-1.5"
           onSubmit={(e) => {
             e.preventDefault();
             void sendMessage();
@@ -795,11 +806,11 @@ export function AreaChat({
           </label>
           <textarea
             id="area-chat-input"
-            className="min-h-[44px] max-h-28 flex-1 resize-y rounded-lg border border-[var(--border)] bg-[var(--charcoal)] px-3 py-2 text-sm text-[var(--text)]"
+            className="max-h-28 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--stone)] focus:outline-none"
             placeholder="Write a message for this room"
             value={draft}
             maxLength={500}
-            rows={2}
+            rows={1}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -811,16 +822,23 @@ export function AreaChat({
           />
           <button
             type="submit"
-            className="rounded-lg bg-[var(--yellow)] px-4 py-2 text-sm font-semibold text-[#171921] disabled:opacity-60"
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)]"
             disabled={!draft.trim() || !online}
+            aria-label="Send message"
           >
-            Send
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
           </button>
         </form>
       )}
 
-      <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]">
-        <button type="button" className="underline underline-offset-2" onClick={() => void onClearArea()}>
+      <div className="mt-2 flex flex-wrap gap-3 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+        <button
+          type="button"
+          className="underline underline-offset-2 transition-colors hover:text-[var(--ink)]"
+          onClick={() => void onClearArea()}
+        >
           Clear my area
         </button>
         <span>
@@ -830,20 +848,20 @@ export function AreaChat({
 
       {reportTarget ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Report message"
         >
-          <div className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--charcoal)] p-4">
-            <h3 className="text-base font-semibold text-[var(--text)]">Report message</h3>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <div className="w-full max-w-md rounded-t-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:rounded-[var(--radius-xl)]">
+            <h3 className="text-h3">Report message</h3>
+            <p className="mt-1 text-[13px] text-[var(--mute)]">
               Reports help keep area rooms safe. Only include details needed to review this message.
             </p>
-            <label className="mt-3 block text-sm text-[var(--text)]">
+            <label className="mt-3 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
               Reason
               <select
-                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
+                className="field mt-1"
                 value={reportReason}
                 onChange={(e) => setReportReason(e.target.value)}
               >
@@ -855,10 +873,10 @@ export function AreaChat({
                 <option value="other">Other</option>
               </select>
             </label>
-            <label className="mt-3 block text-sm text-[var(--text)]">
+            <label className="mt-3 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
               Details (optional)
               <textarea
-                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
+                className="field mt-1"
                 rows={3}
                 maxLength={500}
                 value={reportDetails}
@@ -868,7 +886,7 @@ export function AreaChat({
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text)]"
+                className="btn btn-secondary"
                 onClick={() => setReportTarget(null)}
                 disabled={busyAction === "report"}
               >
@@ -876,7 +894,7 @@ export function AreaChat({
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-[var(--yellow)] px-3 py-2 text-sm font-semibold text-[#171921] disabled:opacity-60"
+                className="btn btn-primary"
                 onClick={() => void submitReport()}
                 disabled={busyAction === "report"}
               >

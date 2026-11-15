@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 
-const jakarta = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
   display: "swap",
+  variable: "--font-inter",
 });
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#171921",
+  themeColor: "#07080a",
 };
 
 export const metadata: Metadata = {
@@ -64,8 +64,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={jakarta.className}>
-      <body className="antialiased selection:bg-[var(--yellow)] selection:text-[var(--charcoal)]">
+    <html lang="en" className={inter.variable}>
+      <body className="antialiased">
         <AuthBootstrap />
         {children}
       </body>

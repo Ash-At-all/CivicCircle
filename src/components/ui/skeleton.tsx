@@ -8,6 +8,10 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />
+    <div
+      className={`animate-[skeleton-pulse_1.6s_ease-in-out_infinite] rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-card)] ${
+        className ?? ""
+      }`}
+    />
   );
 }

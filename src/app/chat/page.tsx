@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, Users, SlidersHorizontal } from "lucide-react";
+import { MessageSquare, Users, SlidersHorizontal, ArrowLeft } from "lucide-react";
 import { CITIES } from "@/features/cities/cities";
 
 export default function ChatDiscoveryPage({
@@ -37,136 +37,138 @@ export default function ChatDiscoveryPage({
   };
 
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#F2F0FA] flex flex-col">
+    <div className="mobile-container">
       {/* Header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[#FFFFFF]/12 bg-[#F2F0FA]/95 px-3 py-3 backdrop-blur-md pt-[max(env(safe-area-inset-top),4px)]">
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF] p-1">
-            <svg className="h-5 w-5 text-[#AD68F5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+      <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/home"
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              aria-label="Back to feed"
+            >
+              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </Link>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+                Chat rooms
+              </span>
+              <span className="block truncate text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                City channels
+              </span>
+            </span>
           </div>
-          <h1 className="text-h2 text-[#171921]">Chat rooms</h1>
+          <span className="badge badge-success flex-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+            live
+          </span>
         </div>
-        <Link
-          href="/home"
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF] text-[#AD68F5] hover:bg-[#F2F0FA] transition-all"
-          aria-label="Back to feed"
-        >
-          <MessageSquare className="h-5 w-5" strokeWidth={1.75} />
-        </Link>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 px-4 py-5 sm:px-6">
         {/* Segmented control */}
         <section className="mb-4">
-          <div className="flex items-center rounded-[999px] border border-[#FFFFFF]/10 bg-[#FFFFFF] p-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.08)]">
+          <div className="inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] bg-[var(--surface)] p-1">
             <Link
               href={`/chat${setQuery("tab", "popular")}`}
-              className={`flex h-9 items-center justify-center rounded-[999px] px-4 py-1 transition-all ${
-                tab === "popular"
-                  ? "bg-[#F8DC47] text-[#171921] font-semibold text-[11px]"
-                  : "text-[#8B8FA3] font-medium text-[11px]"
-              }`}
+              className={`pill-tab ${tab === "popular" ? "pill-tab-active" : ""}`}
             >
-              POPULAR ROOMS
+              Popular rooms
             </Link>
             <Link
               href={`/chat${setQuery("tab", "new")}`}
-              className={`flex h-9 items-center justify-center rounded-[999px] px-4 py-1 transition-all ${
-                tab === "new"
-                  ? "bg-[#F8DC47] text-[#171921] font-semibold text-[11px]"
-                  : "text-[#8B8FA3] font-medium text-[11px]"
-              }`}
+              className={`pill-tab ${tab === "new" ? "pill-tab-active" : ""}`}
             >
-              NEW ROOMS
+              New rooms
             </Link>
           </div>
         </section>
 
-        {/* White lower sheet with notch */}
-        <div className="relative z-10">
-          <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 w-9 h-[5px] rounded-full bg-[#FFFFFF] z-20" />
-          <section className="rounded-t-[36px] rounded-b-[36px] border border-[#FFFFFF]/12 bg-[#FFFFFF] p-4 shadow-[0_6px_20px_rgba(0,0,0,0.08)]">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[#171921] text-sm font-semibold">All Chat Rooms</h2>
-              <button
-                type="button"
-                aria-label="Filters"
-                className="flex h-9 w-9 items-center justify-center rounded-[20px] bg-[#171921]/05 text-[#AD68F5] hover:bg-[#FFFFFF]/10 transition-all"
-              >
-                <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} />
-              </button>
+        <section className="card">
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--hairline)] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
+              <h2 className="text-[13px] font-medium tracking-[0.2px] text-[var(--ink)]">
+                All chat rooms
+              </h2>
             </div>
+            <button
+              type="button"
+              aria-label="Filters"
+              className="btn btn-icon btn-secondary h-8 w-8 min-h-0 text-[var(--mute)]"
+            >
+              <SlidersHorizontal className="h-4 w-4" strokeWidth={1.8} />
+            </button>
+          </div>
 
-            {/* Filter pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 mb-3">
+          {/* Filter pills */}
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-[var(--hairline)] px-3 py-2.5">
+            <Link
+              href={`/chat${setQuery("filter", "all")}`}
+              className={`pill-tab flex-none ${filter === "all" ? "pill-tab-active" : ""}`}
+            >
+              All
+            </Link>
+            {CITIES.map((city) => (
               <Link
-                href={`/chat${setQuery("filter", "all")}`}
-                className={`flex items-center gap-1.5 rounded-[999px] px-3 py-1.5 text-[10px] font-semibold transition-all ${
-                  filter === "all"
-                    ? "bg-[#171921] text-[#FFFFFF]"
-                    : "bg-[#FFF3B8] text-[#171921]/70 hover:bg-[#FFF3B8]/80"
-                }`}
+                key={city.slug}
+                href={`/chat${setQuery("filter", city.slug)}`}
+                className={`pill-tab flex-none ${filter === city.slug ? "pill-tab-active" : ""}`}
               >
-                ALL
+                {city.name}
               </Link>
-              {CITIES.map((city) => (
-                <Link
-                  key={city.slug}
-                  href={`/chat${setQuery("filter", city.slug)}`}
-                  className={`flex items-center gap-1.5 rounded-[999px] px-3 py-1.5 text-[10px] font-medium transition-all ${
-                    filter === city.slug
-                      ? "bg-[#FFF3B8] text-[#171921]"
-                      : "bg-[#FFF3B8] text-[#171921]/60 hover:bg-[#FFF3B8]/80 hover:text-[#171921]"
-                  }`}
-                >
-                  {city.name}
-                </Link>
-              ))}
-            </div>
+            ))}
+          </div>
 
-            {/* Room list */}
-            <div className="space-y-3">
-              {activeRooms.length === 0 ? (
-                <div className="rounded-[20px] border border-[#FFFFFF]/12 bg-[#FFFFFF]/40 p-8 text-center">
-                  <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#171921]/10 mx-auto mb-3 text-[#AD68F5]">
-                    <Users className="h-5 w-5" strokeWidth={1.75} />
-                  </div>
-                  <p className="text-[#171921] font-semibold text-sm">No rooms found</p>
-                  <p className="text-[11px] text-[#8B8FA3]">Try a different filter.</p>
-                </div>
-              ) : (
-                activeRooms.map((room) => (
-                  <Link
-                    key={room.id}
-                    href={room.href}
-                    className="flex items-center justify-between rounded-[20px] border border-[#FFFFFF]/12 bg-[#FFFFFF] p-3 hover:bg-[#FFFFFF]/30 transition-all press-active"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#171921]">
-                        <Users className="h-5 w-5 text-[#FFFFFF]" strokeWidth={1.75} />
-                      </div>
-                      <div>
-                        <h3 className="text-[#171921] text-sm font-semibold">{room.name}</h3>
-                        <p className="text-[11px] text-[#8B8FA3]">{room.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1 text-[11px] text-[#3DDC84]">
-                        <span className="h-2 w-2 rounded-full bg-[#3DDC84] animate-pulse" />
-                        <span>Online</span>
+          {/* Room list */}
+          <div className="p-2">
+            {activeRooms.length === 0 ? (
+              <div className="flex flex-col items-center px-4 py-12 text-center">
+                <span className="app-tile mb-3 h-11 w-11 text-[var(--mute)]">
+                  <Users className="h-5 w-5" strokeWidth={1.8} />
+                </span>
+                <p className="text-[15px] font-medium text-[var(--ink)]">No rooms found</p>
+                <p className="mt-1 text-[12px] text-[var(--mute)]">Try a different filter.</p>
+              </div>
+            ) : (
+              <ul className="space-y-0.5">
+                {activeRooms.map((room) => (
+                  <li key={room.id}>
+                    <Link
+                      href={room.href}
+                      className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 transition-colors hover:bg-[var(--surface-card)]"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className="app-tile h-10 w-10 min-h-0 rounded-[var(--radius-md)] text-[var(--mute)]">
+                          <Users className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[14px] font-medium tracking-[0.1px] text-[var(--ink)]">
+                            {room.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] tracking-[0.3px] text-[var(--mute)]">
+                            {room.description}
+                          </span>
+                        </span>
                       </span>
-                      <div className="flex h-[40px] w-[40px] items-center justify-center rounded-full bg-[#F5B5ED] shadow-[0_3px_10px_rgba(245,181,237,0.5)] hover:bg-[#FFE7BE] transition-all press-active" aria-label={`Join ${room.name}`}>
-                        <span className="text-[10px] font-medium text-[#171921]">Join</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
+                      <span className="flex flex-none items-center gap-2.5">
+                        <span className="hidden items-center gap-1.5 text-[11px] tracking-[0.3px] text-[var(--mute)] sm:inline-flex">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+                          Online
+                        </span>
+                        <span className="keycap text-[11px]">↵</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <p className="mt-4 text-[11px] leading-relaxed tracking-[0.2px] text-[var(--ash)]">
+          Rooms are public to everyone in the city. Keep it civil — reports go to moderators.
+        </p>
       </div>
     </div>
   );

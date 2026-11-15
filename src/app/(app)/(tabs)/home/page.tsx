@@ -4,8 +4,20 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Flame, MessageSquare, ThumbsUp, Plus, Image as ImageIcon, Bell, X, Menu, Lock } from "lucide-react";
-import { CITIES, type City } from "@/features/cities/cities";
+import {
+  Flame,
+  MessageSquare,
+  ThumbsUp,
+  Plus,
+  Image as ImageIcon,
+  Bell,
+  X,
+  Menu,
+  Lock,
+  MapPin,
+  Store,
+} from "lucide-react";
+import { CITIES } from "@/features/cities/cities";
 import { POST_TAGS, type PostTag } from "@/features/posts/schema";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
 import { processImage } from "@/lib/client-image";
@@ -25,6 +37,7 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlTopic = searchParams.get("topic") as CitySlug | null;
+  const composeParam = searchParams.get("compose");
 
   const [activeTopic, setActiveTopic] = useState<CitySlug>(() => {
     const t = urlTopic as CitySlug | null;
@@ -64,6 +77,18 @@ function HomeContent() {
     }, 0);
     return () => window.clearTimeout(id);
   }, [urlTopic]);
+
+  // Bottom-nav create button deep-links here with ?compose=1.
+  useEffect(() => {
+    if (composeParam !== "1") return;
+    // Defer the state update so the effect body stays free of synchronous
+    // cascading renders (same pattern as the topic-sync effect above).
+    window.setTimeout(() => setCreatePostOpen(true), 0);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("compose");
+    const qs = params.toString();
+    router.replace(qs ? `/home?${qs}` : "/home", { scroll: false });
+  }, [composeParam, router, searchParams]);
 
   useEffect(() => {
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("civiccircle-onboarded") : null;
@@ -184,143 +209,256 @@ function HomeContent() {
     }
   }
 
-  return (
-    <div className="mobile-container min-h-[100dvh] bg-[#0B1530] flex flex-col">
-      {/* Blue glow blobs behind content */}
-      <div className="blue-glow">
-        <div className="blue-glow__blob blue-glow__blob--blue" />
-        <div className="blue-glow__blob blue-glow__blob--purple" />
-      </div>
+  const activeTopicName = CITIES.find((c) => c.slug === activeTopic)?.name ?? "General";
 
-      {/* Header — blue family */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[rgba(120,150,255,0.16)] bg-[rgba(11,21,48,0.85)] px-3 py-3 backdrop-blur-12 pt-[max(env(safe-area-inset-top),4px)]">
-        <button
-          type="button"
-          aria-label="Menu"
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1F4FF]/06 text-[#F1F4FF] hover:bg-[#F1F4FF]/10 transition-all"
-        >
-          <Menu className="h-5 w-5" strokeWidth={1.75} />
-        </button>
-        <Link
-          href="/home"
-          className="flex items-center gap-2"
-          aria-label="CivicCircle"
-        >
-          <Image
-            src="/brand/logo.png"
-            alt="CivicCircle Logo"
-            width={24}
-            height={24}
-            className="drop-shadow-[0_0_10px_rgba(79,124,255,0.5)]"
-            priority
-          />
-          <span className="text-h2 text-[#F1F4FF]">CivicCircle</span>
-        </Link>
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1F4FF]/06 text-[#F1F4FF] hover:bg-[#F1F4FF]/10 transition-all"
-        >
-          <Bell className="h-5 w-5" strokeWidth={1.75} />
-        </button>
+  return (
+    <div className="flex min-h-[100dvh] w-full min-w-0 flex-col bg-[var(--canvas)]">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label="Menu"
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
+            >
+              <Menu className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </button>
+            <Link href="/home" className="flex min-w-0 items-center gap-2" aria-label="CivicCircle">
+              <Image
+                src="/brand/logo.png"
+                alt=""
+                width={24}
+                height={24}
+                className="h-6 w-6 rounded-[var(--radius-sm)] border border-[var(--hairline)]"
+                priority
+              />
+              <span className="truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+                CivicCircle
+              </span>
+            </Link>
+          </div>
+
+          <div className="flex flex-none items-center gap-1">
+            <button
+              type="button"
+              aria-label="Search posts"
+              onClick={() => setSearchOpen((v) => !v)}
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
+            >
+              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label="Notifications"
+              className="btn btn-icon btn-secondary relative text-[var(--mute)]"
+            >
+              <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[var(--ink)]" />
+            </button>
+          </div>
+        </div>
+
+        {searchOpen && (
+          <div className="border-t border-[var(--hairline)] px-3 pb-3 pt-2.5 sm:px-5">
+            <label className="sr-only" htmlFor="post-search">
+              Search posts
+            </label>
+            <input
+              id="post-search"
+              type="search"
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search this board…"
+              className="field field-lg"
+            />
+          </div>
+        )}
       </header>
 
-      {/* Main content — deep blue base */}
-      <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-[#0F1D45] to-[#0B1530]">
-        <div className="relative z-0 flex flex-col h-full">
-          {/* Grain overlay */}
-          <div className="grain" />
+      <div className="flex-1">
+        {/* Hero band — the single striped moment on the page */}
+        <section className="hero-band">
+          <div className="hero-stripes" aria-hidden="true" />
+          <div className="px-4 pb-10 pt-9 sm:px-6 sm:pb-14 sm:pt-12">
+            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+              <div className="min-w-0">
+                <p className="mb-3 inline-flex items-center gap-2 rounded-[var(--radius-xs)] border border-[var(--hairline)] bg-[var(--surface)] px-2 py-1 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--mute)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+                  {activeTopic === "general" ? "Your city, right now" : activeTopicName}
+                </p>
 
-          {/* Hero Banner — dark blue */}
-          <section className="mx-4 mt-6 rounded-[28px] border border-[rgba(120,150,255,0.16)] bg-[#0B1530] p-5 relative overflow-hidden min-h-[168px]">
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_40%_at_80%_20%,rgba(79,124,255,0.28)_0%,transparent_55%)] pointer-events-none" />
-            <div className="flex flex-col lg:flex-row gap-5 items-start lg:items-center">
-              <div className="flex-1">
-                <h1 className="text-[#F1F4FF] text-h1 leading-tight max-w-[320px]">
-                  Your Area. Your People. Your Vibe.
+                <h1 className="text-display max-w-[18ch] text-balance">
+                  Your area. Your people. Your city.
                 </h1>
-                <Link
-                  href="/home"
-                  className="inline-flex items-center gap-2 mt-4 rounded-[16px] bg-[#F5B5ED] px-4 py-2 text-[#0B1530] text-label font-semibold hover:bg-[#FFE7BE] transition-all"
-                >
-                  <span>JOIN YOUR CITY</span>
-                </Link>
+
+                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
+                  Post anonymously, follow the boards that matter, and drop into the room for your
+                  locality — no account required.
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                  <Link href="/home" className="btn btn-primary btn-lg">
+                    Join your city
+                  </Link>
+                  <Link href="/nearby" className="btn btn-tertiary btn-lg">
+                    <MapPin className="h-4 w-4" strokeWidth={1.8} />
+                    Open nearby
+                  </Link>
+                </div>
+
+                <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-[0.3px] text-[var(--ash)]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    No account needed
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>Approximate area only</span>
+                </p>
               </div>
-              <div className="relative flex h-[128px] w-[128px] items-center justify-center shrink-0">
-                <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-[#AD68F5] to-[#7C3AED] p-0.5 drop-shadow-[0_6px_20px_rgba(0,0,0,0.25)]">
-                  <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#0B1530]">
-                    <Image
-                      src="/brand/logo.png"
-                      alt="Owl mascot"
-                      width={100}
-                      height={100}
-                      className="drop-shadow-[0_0_16px_rgba(79,124,255,0.6)]"
-                      priority
-                    />
+
+              {/* Command-palette mockup — the hero's load-bearing visual */}
+              <div className="min-w-0">
+                <div className="palette-card mx-auto w-full max-w-md">
+                  <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5">
+                    <span className="flex gap-1.5" aria-hidden="true">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
+                    </span>
+                    <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-2 py-1.5">
+                      <svg className="h-3.5 w-3.5 flex-none text-[var(--stone)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m20 20-3.5-3.5" />
+                      </svg>
+                      <span className="truncate text-[13px] text-[var(--stone)]">
+                        Search your city…
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 p-2">
+                    <div className="palette-row palette-row-active">
+                      <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
+                        <Store className="h-4 w-4" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] text-[var(--ink)]">
+                          Nearby shops
+                        </span>
+                        <span className="block truncate text-[11px] text-[var(--mute)]">
+                          Grocery, pharmacy, repair…
+                        </span>
+                      </span>
+                      <span className="keycap">↵</span>
+                    </div>
+
+                    <div className="palette-row">
+                      <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
+                        <MessageSquare className="h-4 w-4" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] text-[var(--ink)]">
+                          Locality room
+                        </span>
+                        <span className="block truncate text-[11px] text-[var(--mute)]">
+                          Ward and city rooms
+                        </span>
+                      </span>
+                      <span className="keycap">⌘</span>
+                      <span className="keycap">K</span>
+                    </div>
+
+                    <div className="palette-row">
+                      <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]">
+                        <Plus className="h-4 w-4" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] text-[var(--ink)]">
+                          Create a post
+                        </span>
+                        <span className="block truncate text-[11px] text-[var(--mute)]">
+                          Text, tags and up to 4 images
+                        </span>
+                      </span>
+                      <span className="keycap">N</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[var(--hairline)] px-3 py-2 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                    <span>{activeTopicName}</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+                      live
+                    </span>
                   </div>
                 </div>
-                <div className="absolute -top-2 -right-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#7C83F5] p-1 drop-shadow-[0_3px_10px_rgba(124,131,245,0.5)] animate-[float_4s_ease-in-out_infinite]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F1F4FF] text-[#7C83F5] text-[10px] font-bold">
-                    ...
-                  </div>
-                </div>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Feature Cards — raised blue */}
-          <section className="mx-4 mt-4 grid grid-cols-3 gap-3">
-            <div className="rounded-[20px] border border-[rgba(120,150,255,0.16)] bg-[#111F44] p-3 flex flex-col items-center gap-2 text-center">
-              <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#0B1530]">
-                <Flame className="h-6 w-6 text-[#F1F4FF]" strokeWidth={1.75} />
-              </div>
-              <span className="text-[#F1F4FF] text-label leading-tight">Local Posts</span>
+        {/* Feature strip */}
+        <section className="grid grid-cols-1 gap-3 px-4 py-8 sm:grid-cols-3 sm:px-6">
+          {[
+            {
+              icon: Flame,
+              title: "Local posts",
+              copy: "City boards with tags, images and votes.",
+            },
+            {
+              icon: Lock,
+              title: "Anonymous by default",
+              copy: "A nickname is enough — no signup, no profile photo.",
+            },
+            {
+              icon: MapPin,
+              title: "Area rooms",
+              copy: "Locality, ward and city chat around your area.",
+            },
+          ].map(({ icon: Icon, title, copy }) => (
+            <div key={title} className="card p-4 sm:p-5">
+              <span className="app-tile mb-3 h-9 w-9 min-h-0 text-[var(--ink)]">
+                <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              </span>
+              <h2 className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
+                {title}
+              </h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--mute)]">{copy}</p>
             </div>
-            <div className="rounded-[20px] border border-[rgba(120,150,255,0.16)] bg-[#111F44] p-3 flex flex-col items-center gap-2 text-center">
-              <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#0B1530]">
-                <Lock className="h-6 w-6 text-[#F1F4FF]" strokeWidth={1.75} />
-              </div>
-              <span className="text-[#F1F4FF] text-label leading-tight">Encrypted Chat</span>
-            </div>
-            <div className="rounded-[20px] border border-[rgba(120,150,255,0.16)] bg-[#111F44] p-3 flex flex-col items-center gap-2 text-center">
-              <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#0B1530]">
-                <Plus className="h-6 w-6 text-[#F1F4FF]" strokeWidth={1.75} />
-              </div>
-              <span className="text-[#F1F4FF] text-label leading-tight">Anonymous Posting</span>
-            </div>
-          </section>
+          ))}
+        </section>
 
-          {/* Divider Label */}
-          <section className="mx-4 mt-6 mb-2">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-[1px] bg-[#F1F4FF]/08" />
-              <span className="text-label text-[#9AA8CF]">Explore your city</span>
-              <div className="flex-1 h-[1px] bg-[#F1F4FF]/08" />
-            </div>
-          </section>
+        <div className="hairline-divider" />
 
-          {/* Segmented Control */}
-          <section className="mx-4 mt-2 mb-3">
-            <div className="flex items-center rounded-[999px] border border-[#F1F4FF]/10 bg-[#111F44] p-[4px]">
-              <button
-                type="button"
-                onClick={() => {}}
-                className="flex h-9 items-center justify-center rounded-[999px] bg-[#F8DC47] px-4 py-1 text-[#0B1530] text-[11px] font-semibold transition-all"
-              >
-                TRENDING
+        {/* Board controls */}
+        <section className="px-4 pb-2 pt-7 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-label">Explore your city</p>
+              <h2 className="mt-1 text-h2">{activeTopicName}</h2>
+            </div>
+
+            <div
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] bg-[var(--surface)] p-1"
+              role="tablist"
+              aria-label="Feed order"
+            >
+              <button type="button" role="tab" aria-selected="true" className="pill-tab pill-tab-active">
+                Trending
               </button>
-              <button
-                type="button"
-                onClick={() => {}}
-                className="flex h-9 items-center justify-center rounded-[999px] px-4 py-1 text-[#9AA8CF] text-[11px] font-medium hover:text-[#F1F4FF] transition-all"
-              >
-                NEW POSTS
+              <button type="button" role="tab" aria-selected="false" className="pill-tab">
+                New posts
               </button>
             </div>
-          </section>
+          </div>
 
-          {/* Topic Chips — visible on blue */}
-          <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 no-scrollbar md:flex-wrap">
+          {/* Topic chips — wrap on every breakpoint so nothing overflows */}
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
             {CITIES.map((topic) => {
               const isActive = activeTopic === topic.slug;
               return (
@@ -328,195 +466,180 @@ function HomeContent() {
                   key={topic.slug}
                   type="button"
                   onClick={() => setActiveTopic(topic.slug)}
-                  className={`topic-chip transition-all ${
-                    isActive
-                      ? "topic-chip--active shadow-[0_6px_20px_rgba(0,0,0,0.08)]"
-                      : "topic-chip--inactive"
-                  }`}
+                  aria-pressed={isActive}
+                  className={`topic-chip ${isActive ? "topic-chip--active" : "topic-chip--inactive"}`}
                 >
                   {topic.name}
                 </button>
               );
             })}
           </div>
+        </section>
 
-          {/* Post Feed — Reddit-style full-width vertical list */}
-          <div className="flex-1 px-4 py-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-label text-[#9AA8CF]">
-                <Flame className="h-3.5 w-3.5 text-[#AD68F5]" />
-                <span>Community Feed</span>
-              </div>
-              <span className="text-[11px] text-[#9AA8CF] tabular-nums">{filteredPosts.length} posts</span>
+        {/* Post feed */}
+        <section className="px-4 pb-10 pt-4 sm:px-6">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--mute)]">
+              <Flame className="h-3.5 w-3.5 text-[var(--stone)]" strokeWidth={1.8} />
+              Community feed
+            </span>
+            <span className="text-[12px] tabular-nums tracking-[0.3px] text-[var(--ash)]">
+              {filteredPosts.length} {filteredPosts.length === 1 ? "post" : "posts"}
+            </span>
+          </div>
+
+          {loading && filteredPosts.length === 0 ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="feed-card animate-[skeleton-pulse_1.6s_ease-in-out_infinite] space-y-3 p-4">
+                  <div className="h-3 w-24 rounded bg-[rgba(255,255,255,0.07)]" />
+                  <div className="h-4 w-3/4 rounded bg-[rgba(255,255,255,0.09)]" />
+                  <div className="h-3 w-full rounded bg-[rgba(255,255,255,0.07)]" />
+                  <div className="h-3 w-1/2 rounded bg-[rgba(255,255,255,0.07)]" />
+                </div>
+              ))}
             </div>
-
-            {loading && filteredPosts.length === 0 ? (
-              <div className="feed-card p-8 text-center space-y-2 mt-4">
-                <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#0B1530] mx-auto mb-3">
-                  <svg className="h-6 w-6 text-[#F1F4FF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </div>
-                <p className="text-[#F1F4FF] font-semibold">No posts here yet</p>
-                <p className="text-[11px] text-[#9AA8CF]">Be the first to post in this topic</p>
-                <button
-                  onClick={() => setCreatePostOpen(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-[16px] bg-[#F8DC47] px-4 py-2 text-[#0B1530] font-semibold text-[11px] shadow-lg transition-all press-active"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create post</span>
-                </button>
-              </div>
-            ) : loading ? (
-              <div className="space-y-3 pt-2">
-                {[1, 2].map((i) => (
-                  <div key={i} className="feed-card p-4 animate-pulse space-y-3">
-                    <div className="h-4 w-1/3 bg-[#F1F4FF]/06 rounded" />
-                    <div className="h-3 w-3/4 bg-[#F1F4FF]/04 rounded" />
-                    <div className="h-3 w-1/2 bg-[#F1F4FF]/04 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredPosts.length === 0 ? (
-              <div className="feed-card p-8 text-center space-y-2 mt-4">
-                <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#0B1530] mx-auto mb-3">
-                  <svg className="h-6 w-6 text-[#F1F4FF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </div>
-                <p className="text-[#F1F4FF] font-semibold">No posts here yet</p>
-                <p className="text-[11px] text-[#9AA8CF]">Be the first to post in this topic</p>
-                <button
-                  onClick={() => setCreatePostOpen(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-[16px] bg-[#F8DC47] px-4 py-2 text-[#0B1530] font-semibold text-[11px] shadow-lg transition-all press-active"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create post</span>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredPosts.map((post) => (
-                  <article
-                    key={post.id}
-                    className="feed-card"
-                  >
-                    <div className="p-4">
-                      {/* Meta row */}
-                      <div className="flex items-center gap-2 pb-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0B1530]">
-                          <svg className="h-4 w-4 text-[#F1F4FF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                        </div>
-                        <span className="text-[#F1F4FF] text-sm font-semibold">Anonymous</span>
-                        <span className="h-[1px] w-[4px] bg-[#F1F4FF]/20" />
-                        <button
-                          type="button"
-                          className="topic-chip--inactive text-[10px] px-2 py-0.5"
-                          disabled
-                          aria-label={topicLabel(activeTopic)}
-                        >
-                          {activeTopic.replace("-", " ")}
-                        </button>
-                        <span className="h-[1px] w-[4px] bg-[#F1F4FF]/20" />
-                        <span className="text-[11px] text-[#9AA8CF]">{relativeTime(post.created_at)}</span>
-                        <div className="ml-auto flex items-center gap-1 text-[#9AA8CF]">
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-                            <path d="M12 5v14M5 12h14" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Title */}
-                      <h2
-                        className="text-[#F1F4FF] text-[18px] font-bold leading-[1.3] text-balance line-clamp-3"
-                        style={{ WebkitLineClamp: 3 }}
-                      >
-                        {post.title}
-                      </h2>
-
-                      {/* Body preview */}
-                      {post.body && (
-                        <p className="mt-2 text-[#9AA8CF] text-sm leading-[1.5] line-clamp-3">
-                          {post.body}
-                        </p>
-                      )}
-
-                      {/* Post Image — inside card */}
-                      {post.image_paths && post.image_paths.length > 0 && (
-                        <div className="mt-4 rounded-[12px] overflow-hidden border border-[#F1F4FF]/08">
-                          <img
-                            src={normalizeImageUrl(post.image_paths[0])}
-                            alt={post.title || "Post attachment"}
-                            className="w-full aspect-[16/10] object-cover max-h-[420px]"
-                            loading="lazy"
-                            onError={(e) => { e.currentTarget.style.display = "none"; }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action bar */}
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-[#F1F4FF]/06">
-                      <button
-                        type="button"
-                        onClick={(e) => handleUpvote(post.id, e)}
-                        className="action-pill action-pill--flex"
-                        aria-label="Like post"
-                        aria-pressed={false}
-                      >
-                        <ThumbsUp className="h-4 w-4" strokeWidth={1.75} />
-                        <span className="tabular-nums">{votes[post.id] ?? post.votes ?? 0}</span>
-                      </button>
-
-                      <Link
-                        href={`/chat/${activeTopic}`}
-                        className="action-pill action-pill--flex"
-                        aria-label="Discuss post"
-                      >
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+          ) : filteredPosts.length === 0 ? (
+            <div className="feed-card px-5 py-10 text-center">
+              <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--mute)]">
+                <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <p className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
+                {searchQuery ? "No posts match that search" : "No posts here yet"}
+              </p>
+              <p className="mt-1 text-[13px] text-[var(--mute)]">
+                {searchQuery
+                  ? "Try a different word or clear the search."
+                  : "Be the first to post in this board."}
+              </p>
+              <button
+                onClick={() => setCreatePostOpen(true)}
+                className="btn btn-primary mx-auto mt-5"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2} />
+                Create post
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredPosts.map((post) => (
+                <article key={post.id} className="feed-card">
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 pb-2.5">
+                      <span className="app-tile h-7 w-7 min-h-0 rounded-[var(--radius-sm)] text-[var(--mute)]">
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
-                        <span>Discuss</span>
-                      </Link>
+                      </span>
+                      <span className="text-[13px] font-medium tracking-[0.2px] text-[var(--ink)]">
+                        Anonymous
+                      </span>
+                      <span className="h-3 w-px bg-[var(--hairline)]" aria-hidden="true" />
+                      <span className="tag-chip">{post.tag || activeTopic.replace("-", " ")}</span>
+                      <span className="ml-auto text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                        {relativeTime(post.created_at)}
+                      </span>
                     </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+
+                    <h3 className="line-clamp-3 text-balance text-[17px] font-medium leading-snug tracking-[0.1px] text-[var(--ink)]">
+                      {post.title}
+                    </h3>
+
+                    {post.body && (
+                      <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-[var(--mute)]">
+                        {post.body}
+                      </p>
+                    )}
+
+                    {post.image_paths && post.image_paths.length > 0 && (
+                      <div className="mt-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--hairline)]">
+                        <img
+                          src={normalizeImageUrl(post.image_paths[0])}
+                          alt={post.title || "Post attachment"}
+                          className="max-h-[420px] w-full object-cover"
+                          loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 border-t border-[var(--hairline)] px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={(e) => handleUpvote(post.id, e)}
+                      className="action-pill"
+                      aria-label="Like post"
+                      aria-pressed={false}
+                    >
+                      <ThumbsUp className="h-4 w-4" strokeWidth={1.8} />
+                      <span className="tabular-nums">{votes[post.id] ?? post.votes ?? 0}</span>
+                    </button>
+
+                    <Link
+                      href={`/chat/${activeTopic}`}
+                      className="action-pill"
+                      aria-label="Discuss post"
+                    >
+                      <MessageSquare className="h-4 w-4" strokeWidth={1.8} />
+                      <span>Discuss</span>
+                    </Link>
+
+                    <Link
+                      href={`/home?topic=${activeTopic}`}
+                      className="action-pill ml-auto"
+                      aria-label={`Open ${activeTopicName} board`}
+                    >
+                      <span className="text-[11px] uppercase tracking-[0.4px]">Board</span>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Create Post Modal — blue theme */}
+      {/* Create Post sheet */}
       {createPostOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0B1530]/80 backdrop-blur-md p-0 sm:p-4">
-          <div className="w-full max-w-lg rounded-[36px] border border-[#F1F4FF]/10 bg-[#111F44] p-5 sm:p-6 space-y-4 max-h-[90dvh] overflow-y-auto shadow-[0_6px_20px_rgba(0,0,0,0.08)]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[#F1F4FF] text-lg font-semibold">Create a Post</h2>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="sheet-enter max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:rounded-[var(--radius-xl)] sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-h2">Create a post</h2>
+                <p className="mt-1 text-[13px] text-[var(--mute)]">
+                  Posting to <span className="text-[var(--body-text)]">{activeTopicName}</span>
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setCreatePostOpen(false)}
-                className="rounded-full p-1.5 text-[#9AA8CF] hover:text-[#F1F4FF] transition-all"
+                aria-label="Close"
+                className="btn btn-icon btn-secondary -mr-1 -mt-1 text-[var(--mute)]"
               >
-                <X className="h-5 w-5" strokeWidth={1.75} />
+                <X className="h-4 w-4" strokeWidth={1.8} />
               </button>
             </div>
 
             {errorMsg && (
-              <div className="rounded-[20px] border border-[#F5B5ED]/20 bg-[#F5B5ED]/10 p-3 text-xs text-[#0B1530] font-medium">
+              <div
+                className="mt-4 rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] p-3 text-[13px] text-[var(--accent-red)]"
+                role="alert"
+              >
                 {errorMsg}
               </div>
             )}
 
-            <form onSubmit={handleCreatePost} className="space-y-3.5">
-              <div>
-                <label className="text-label text-[#9AA8CF] block">Category Tag</label>
+            <form onSubmit={handleCreatePost} className="mt-5 space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="post-tag" className="text-label block">
+                  Category tag
+                </label>
                 <select
+                  id="post-tag"
                   value={selectedTag}
                   onChange={(e) => setSelectedTag(e.target.value as PostTag)}
-                  className="mt-1 w-full rounded-[20px] border border-[#F1F4FF]/10 bg-[#0B1530]/05 px-3 py-2 text-xs text-[#F1F4FF] outline-none focus:border-[#AD68F5]"
+                  className="field"
                 >
                   {POST_TAGS.map((t) => (
                     <option key={t} value={t}>
@@ -526,52 +649,66 @@ function HomeContent() {
                 </select>
               </div>
 
-              <div>
-                <label className="text-label text-[#9AA8CF] block">Title</label>
+              <div className="space-y-1.5">
+                <label htmlFor="post-title" className="text-label block">
+                  Title
+                </label>
                 <input
+                  id="post-title"
                   type="text"
                   value={postTitle}
                   onChange={(e) => setPostTitle(e.target.value)}
                   placeholder="What's on your mind?"
                   maxLength={120}
                   required
-                  className="mt-1 w-full rounded-[20px] border border-[#F1F4FF]/10 bg-[#0B1530]/05 px-3.5 py-2.5 text-sm text-[#F1F4FF] placeholder-[#9AA8CF] outline-none focus:border-[#AD68F5]"
+                  className="field"
                 />
               </div>
 
-              <div>
-                <label className="text-label text-[#9AA8CF] block">Body</label>
+              <div className="space-y-1.5">
+                <label htmlFor="post-body" className="text-label block">
+                  Body
+                </label>
                 <textarea
+                  id="post-body"
                   value={postBody}
                   onChange={(e) => setPostBody(e.target.value)}
-                  placeholder="Share details, context, or ask a question..."
+                  placeholder="Share details, context, or ask a question…"
                   rows={4}
                   required
-                  className="mt-1 w-full rounded-[20px] border border-[#F1F4FF]/10 bg-[#0B1530]/05 px-3.5 py-2.5 text-sm text-[#F1F4FF] placeholder-[#9AA8CF] outline-none focus:border-[#AD68F5] resize-none"
+                  className="field"
                 />
               </div>
 
               {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-4 gap-2 pt-1">
+                <div className="grid grid-cols-4 gap-2">
                   {imagePreviews.map((url, index) => (
-                    <div key={index} className="relative aspect-square rounded-[20px] overflow-hidden border border-[#F1F4FF]/10">
-                      <img src={url} alt="Attached" className="h-full w-full object-cover" />
+                    <div
+                      key={index}
+                      className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] border border-[var(--hairline)]"
+                    >
+                      <img src={url} alt="Attached preview" className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 rounded-full bg-[#0B1530]/80 p-1 text-[#F1F4FF] hover:bg-[#AD68F5] transition-all"
+                        aria-label="Remove image"
+                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur"
                       >
-                        <X className="h-3 w-3" strokeWidth={1.75} />
+                        <X className="h-3 w-3" strokeWidth={2} />
                       </button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1">
-                <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-[20px] border border-[#F1F4FF]/10 bg-[#F1F4FF]/04 px-3 py-2 text-xs font-medium text-[#AD68F5] hover:text-[#F1F4FF] transition-all">
-                  <ImageIcon className="h-4 w-4 text-[#F8DC47]" strokeWidth={1.75} />
-                  <span>Add Images ({selectedImages.length}/4)</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--hairline)] pt-4">
+                <label
+                  className={`btn btn-outline cursor-pointer text-[13px] ${
+                    selectedImages.length >= 4 ? "pointer-events-none opacity-50" : ""
+                  }`}
+                >
+                  <ImageIcon className="h-4 w-4" strokeWidth={1.8} />
+                  <span>Add images ({selectedImages.length}/4)</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -581,15 +718,15 @@ function HomeContent() {
                     className="hidden"
                   />
                 </label>
-              </div>
 
-              <button
-                type="submit"
-                disabled={posting || !postTitle.trim() || !postBody.trim()}
-                className="flex w-full min-h-[44px] items-center justify-center rounded-[16px] bg-[#F8DC47] px-4 py-2 font-semibold text-[#0B1530] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all press-active"
-              >
-                {posting ? "Publishing..." : "Publish Post"}
-              </button>
+                <button
+                  type="submit"
+                  disabled={posting || !postTitle.trim() || !postBody.trim()}
+                  className="btn btn-primary min-w-[132px]"
+                >
+                  {posting ? "Publishing…" : "Publish post"}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -598,17 +735,15 @@ function HomeContent() {
   );
 }
 
-function topicLabel(slug: string) {
-  return slug;
-}
-
 export default function HomePage() {
   return (
-    <Suspense fallback={
-      <div className="flex-1 flex items-center justify-center min-h-[50vh] bg-[#0B1530]">
-        <div className="h-8 w-8 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[#AD68F5] border-t-transparent" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] flex-1 items-center justify-center bg-[var(--canvas)]">
+          <div className="h-7 w-7 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[var(--hairline-strong)] border-t-[var(--ink)]" />
+        </div>
+      }
+    >
       <HomeContent />
     </Suspense>
   );

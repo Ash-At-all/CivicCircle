@@ -42,10 +42,10 @@ export function ShopsList({
   return (
     <section aria-label="Nearby shops">
       <div className="grid gap-2 sm:grid-cols-3">
-        <label className="block text-sm text-[var(--text-muted)]">
+        <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
           Category
           <select
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--charcoal)] px-3 py-2 text-sm text-[var(--text)]"
+            className="field mt-1"
             value={category}
             onChange={(e) => setCategory(e.target.value as ShopCategory | "all")}
           >
@@ -57,10 +57,10 @@ export function ShopsList({
             ))}
           </select>
         </label>
-        <label className="block text-sm text-[var(--text-muted)]">
+        <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
           Sort
           <select
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--charcoal)] px-3 py-2 text-sm text-[var(--text)]"
+            className="field mt-1"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortMode)}
           >
@@ -68,11 +68,11 @@ export function ShopsList({
             <option value="name">Name A to Z</option>
           </select>
         </label>
-        <label className="block text-sm text-[var(--text-muted)]">
+        <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
           Search
           <input
             type="search"
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--charcoal)] px-3 py-2 text-sm text-[var(--text)]"
+            className="field mt-1"
             placeholder="Search name or address"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -80,20 +80,20 @@ export function ShopsList({
         </label>
       </div>
 
-      <p className="mt-3 text-sm text-[var(--text-muted)]" aria-live="polite">
+      <p className="mt-3 text-[12px] tracking-[0.3px] text-[var(--mute)]" aria-live="polite">
         {filtered.length} of {shops.length} shop{shops.length === 1 ? "" : "s"} shown
       </p>
 
       {shops.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+        <p className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-[13px] text-[var(--mute)]">
           No shops are listed within 50 km yet.
         </p>
       ) : filtered.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+        <p className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-[13px] text-[var(--mute)]">
           No shops match these filters.
         </p>
       ) : (
-        <div className="mt-4 grid gap-3">
+        <div className="mt-3 grid gap-2.5">
           {filtered.map((shop) => (
             <ShopCard
               key={shop.id}

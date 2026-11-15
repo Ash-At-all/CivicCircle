@@ -1,7 +1,7 @@
 export default function Loading() {
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#171921] flex flex-col items-center justify-center p-4">
-      <div className="h-8 w-8 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[#AD68F5] border-t-transparent" />
+    <div className="mobile-container items-center justify-center">
+      <div className="h-7 w-7 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[var(--hairline-strong)] border-t-[var(--ink)]" />
     </div>
   );
 }

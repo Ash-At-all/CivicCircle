@@ -4,109 +4,78 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, Plus, MessageSquare, User } from "lucide-react";
 
+const ITEMS = [
+  { href: "/home", label: "Home", icon: Home },
+  { href: "/discovery", label: "Explore", icon: Compass },
+  { href: "/chat/general", label: "Chats", icon: MessageSquare },
+  { href: "/profile", label: "Profile", icon: User },
+] as const;
+
 export function BottomNav() {
   const pathname = usePathname();
 
-  const isHome = pathname === "/home";
-  const isProfile = pathname === "/profile";
-  const isChats = pathname.startsWith("/chat");
+  const isActive = (href: string) =>
+    href === "/home" ? pathname === "/home" : pathname.startsWith(href.split("?")[0]);
 
-  const activeItem = {
-    container: "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-full bg-[#F8DC47] shadow-lg",
-    text: "text-[#171921]",
-    iconStroke: 2.5,
-  } as const;
-
-  const inactiveItem = {
-    container: "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-full text-[#F2F0FA]/60 hover:text-[#FFFFFF] hover:bg-[#FFFFFF]/05",
-    text: "text-[#F2F0FA]/60",
-    iconStroke: 1.75,
-  } as const;
+  const left = ITEMS.slice(0, 2);
+  const right = ITEMS.slice(2);
 
   return (
     <nav
       aria-label="Bottom Navigation"
-      className="relative fixed bottom-[16px] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-40px)] w-full md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 md:hidden"
     >
-      {/* Floating black pill */}
-      <div className="rounded-[999px] border border-[#FFFFFF]/08 bg-[#171921]/95 backdrop-blur-xl p-1.5 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_6px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between px-3 h-16">
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/home"
-              aria-label="Home"
-              aria-current={isHome ? "page" : undefined}
-              className={`${isHome ? activeItem.container : inactiveItem.container} transition-all`}
-            >
-              <Home
-                className={`h-5 w-5 transition-all`}
-                strokeWidth={isHome ? activeItem.iconStroke : inactiveItem.iconStroke}
-              />
-              <span
-                className={`text-[10px] mt-0.5 font-medium transition-all ${isHome ? activeItem.text : inactiveItem.text}`}
+      <div className="mx-auto w-full max-w-md px-3 pb-[max(env(safe-area-inset-bottom),10px)]">
+        <div className="flex items-center justify-between gap-1 rounded-full border border-[var(--hairline)] bg-[rgba(13,13,13,0.92)] p-1.5 shadow-[0_0_0_1px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+          {left.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium tracking-[0.2px] transition-colors ${
+                  active
+                    ? "bg-[var(--surface-card)] text-[var(--on-dark)]"
+                    : "text-[var(--mute)] hover:text-[var(--ink)]"
+                }`}
               >
-                Home
-              </span>
-            </Link>
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.7} />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
 
-            <Link
-              href="/discovery"
-              aria-label="Explore"
-              className={`${inactiveItem.container} transition-all`}
-            >
-              <Compass className={`h-5 w-5 transition-all`} strokeWidth={inactiveItem.iconStroke} />
-              <span className={`text-[10px] mt-0.5 font-medium transition-all ${inactiveItem.text}`}>
-                Explore
-              </span>
-            </Link>
-          </div>
+          <Link
+            href="/home?compose=1"
+            aria-label="Create post"
+            className="mx-0.5 flex h-11 w-11 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] transition-colors active:bg-[var(--primary-pressed)]"
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.4} />
+          </Link>
 
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/chat/general"
-              aria-label="Chats"
-              aria-current={isChats ? "page" : undefined}
-              className={`${isChats ? activeItem.container : inactiveItem.container} transition-all`}
-            >
-              <MessageSquare
-                className={`h-5 w-5 transition-all`}
-                strokeWidth={isChats ? activeItem.iconStroke : inactiveItem.iconStroke}
-              />
-              <span
-                className={`text-[10px] mt-0.5 font-medium transition-all ${isChats ? activeItem.text : inactiveItem.text}`}
+          {right.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium tracking-[0.2px] transition-colors ${
+                  active
+                    ? "bg-[var(--surface-card)] text-[var(--on-dark)]"
+                    : "text-[var(--mute)] hover:text-[var(--ink)]"
+                }`}
               >
-                Chats
-              </span>
-            </Link>
-
-            <Link
-              href="/profile"
-              aria-label="Profile"
-              aria-current={isProfile ? "page" : undefined}
-              className={`${isProfile ? activeItem.container : inactiveItem.container} transition-all`}
-            >
-              <User
-                className={`h-5 w-5 transition-all`}
-                strokeWidth={isProfile ? activeItem.iconStroke : inactiveItem.iconStroke}
-              />
-              <span
-                className={`text-[10px] mt-0.5 font-medium transition-all ${isProfile ? activeItem.text : inactiveItem.text}`}
-              >
-                Profile
-              </span>
-            </Link>
-          </div>
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.7} />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
-
-      {/* Center floating purple + button (56px, slightly above nav) */}
-      <Link
-        href="#"
-        aria-label="Create Post"
-        className="absolute bottom-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-[56px] w-[56px] items-center justify-center rounded-full bg-[#AD68F5] text-[#FFFFFF] shadow-[0_6px_20px_rgba(0,0,0,0.08)] hover:bg-[#F5B5ED] transition-all active:scale-[0.97] z-50"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </Link>
     </nav>
   );
 }

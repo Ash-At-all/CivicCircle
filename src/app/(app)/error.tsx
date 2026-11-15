@@ -4,15 +4,17 @@ import React from "react";
 
 export default function Error({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#171921] text-[#F2F0FA] flex flex-col items-center justify-center p-4">
-      <h2 className="text-white font-semibold">Something went wrong</h2>
-      <p className="mt-1 text-sm text-[#8B8FA3]">{error.message}</p>
-      <button
-        onClick={reset}
-        className="mt-6 inline-flex items-center rounded-button px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple to-[#9B5CF6] shadow-lg"
-      >
-        Try again
-      </button>
+    <div className="mobile-container items-center justify-center px-4 py-16">
+      <div className="card w-full max-w-md p-6 text-center">
+        <span className="app-tile mx-auto mb-4 h-12 w-12 border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]">
+          <span className="text-sm font-semibold">!</span>
+        </span>
+        <h2 className="text-h3">Something went wrong</h2>
+        <p className="mt-1.5 text-[13px] text-[var(--mute)]">{error.message}</p>
+        <button onClick={reset} className="btn btn-primary mt-6">
+          Try again
+        </button>
+      </div>
     </div>
   );
 }

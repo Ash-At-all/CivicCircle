@@ -4,24 +4,27 @@ import * as React from "react";
 
 const buttonVariants = (props: { variant?: string; size?: string; className?: string } = {}) => {
   const { variant = "default", size = "default", className } = props;
-  const base = "inline-flex items-center justify-center rounded-button px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+  const base = "btn";
   const variants: Record<string, string> = {
-    default: "bg-gradient-to-r from-purple to-[#9B5CF6] text-white shadow-lg",
-    yellow: "bg-yellow text-black hover:opacity-95",
-    ghost: "bg-white/05 text-white hover:bg-white/10",
-    danger: "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20",
+    default: "btn-primary",
+    primary: "btn-primary",
+    yellow: "btn-primary",
+    ghost: "btn-secondary",
+    secondary: "btn-tertiary",
+    outline: "btn-outline",
+    danger: "btn-danger",
   };
   const sizes: Record<string, string> = {
-    default: "h-10 px-4",
-    sm: "h-9 px-3",
-    lg: "h-11 px-6",
-    icon: "h-10 w-10",
+    default: "",
+    sm: "btn-sm",
+    lg: "btn-lg",
+    icon: "btn-icon",
   };
   return [base, variants[variant], sizes[size], className].filter(Boolean).join(" ");
 };
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "yellow" | "ghost" | "danger";
+  variant?: "default" | "primary" | "yellow" | "ghost" | "secondary" | "outline" | "danger";
   size?: "default" | "sm" | "lg" | "icon";
 }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Compass, TrendingUp, MapPin, Flame, Users } from "lucide-react";
+import { Compass, TrendingUp, MapPin, Flame, Users, ArrowLeft } from "lucide-react";
 import { CITIES } from "@/features/cities/cities";
 import { Suspense } from "react";
 
@@ -32,29 +32,40 @@ function DiscoveryContent() {
   );
 
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#171921] text-[#F2F0FA] flex flex-col px-4">
-      <header className="pt-6 flex items-center justify-between pt-[max(env(safe-area-inset-top),6px)]">
-        <Link
-          href="/home"
-          aria-label="Back to Home"
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF]/06 text-[#F2F0FA] hover:bg-[#FFFFFF]/10 transition-all"
-        >
-          <Compass className="h-5 w-5" strokeWidth={1.75} />
-        </Link>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF]/06 text-[#F2F0FA]" />
+    <div className="mobile-container">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+          <Link
+            href="/home"
+            aria-label="Back to Home"
+            className="btn btn-icon btn-secondary text-[var(--mute)]"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </Link>
+          <span className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">Explore</span>
+          <div className="w-9" aria-hidden="true" />
+        </div>
       </header>
 
-      <div className="flex-1 flex flex-col">
-        <div className="px-4 mt-6 mb-4">
-          <h1 className="text-h1 text-[#FFFFFF] mb-2">Explore your city</h1>
-          <p className="text-[#8B8FA3] text-sm">
-            Discover conversations happening near you.
+      <div className="flex-1 px-4 pb-10 pt-6 sm:px-6">
+        <div className="max-w-2xl">
+          <p className="text-label">Discovery</p>
+          <h1 className="mt-1 text-display max-w-[16ch] text-balance">Explore your city</h1>
+          <p className="mt-3 max-w-md text-body-sm text-[var(--mute)]">
+            Discover conversations happening near you. Every board is open and anonymous by
+            default.
           </p>
         </div>
 
-        <div className="px-4 mb-4">
+        <div className="mt-5 max-w-2xl">
+          <label className="sr-only" htmlFor="city-search">Search cities &amp; topics</label>
           <div className="relative">
+            <Compass
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ash)]"
+              strokeWidth={1.8}
+            />
             <input
+              id="city-search"
               type="text"
               placeholder="Search cities & topics…"
               value={searchQuery}
@@ -67,46 +78,52 @@ function DiscoveryContent() {
                 }
                 router.push(`/discovery?${params.toString()}`);
               }}
-              className="w-full rounded-[20px] border border-[#FFFFFF]/10 bg-[#FFFFFF]/05 px-4 py-3.5 pl-10 pr-4 text-sm text-[#F2F0FA] placeholder-[#8B8FA3] outline-none transition-all focus:border-[#AD68F5] focus:ring-1 focus:ring-[#AD68F5]"
+              className="field field-lg pl-9"
             />
-            <Compass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8B8FA3]" strokeWidth={1.75} />
           </div>
         </div>
 
-        <div className="px-4 flex-1 overflow-y-auto">
+        <div className="mt-6 max-w-2xl">
           {filteredCities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FFFFFF]/05 mb-4">
-                <Compass className="h-6 w-6 text-[#8B8FA3]" strokeWidth={1.75} />
-              </div>
-              <p className="text-[#FFFFFF] font-semibold">No results found</p>
-              <p className="text-[#8B8FA3] text-sm mt-1">Try a different search</p>
+            <div className="card flex flex-col items-center px-4 py-16 text-center">
+              <span className="app-tile mb-4 h-12 w-12 text-[var(--mute)]">
+                <Compass className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <p className="text-[15px] font-medium text-[var(--ink)]">No results found</p>
+              <p className="mt-1 text-[13px] text-[var(--mute)]">Try a different search</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <ul className="space-y-2">
               {filteredCities.map((city) => {
                 const Icon = CATEGORY_ICONS[city.slug] || Users;
                 return (
-                  <Link
-                    key={city.slug}
-                    href={`/home?topic=${city.slug}`}
-                    aria-label={`Join ${city.name}`}
-                    className="flex items-center justify-between rounded-[16px] border border-[#FFFFFF]/10 bg-[#FFFFFF]/05 px-4 py-4 hover:bg-[#FFFFFF]/08 hover:border-[#FFFFFF]/16 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AD68F5]/10 text-[#AD68F5]">
-                        <Icon className="h-5 w-5" strokeWidth={1.75} />
-                      </div>
-                      <div>
-                        <h3 className="text-[#FFFFFF] font-semibold">{city.name}</h3>
-                        <p className="text-[#8B8FA3] text-sm">{city.region}</p>
-                      </div>
-                    </div>
-                    <span className="text-[#8B8FA3] text-sm">Join</span>
-                  </Link>
+                  <li key={city.slug}>
+                    <Link
+                      href={`/home?topic=${city.slug}`}
+                      aria-label={`Join ${city.name}`}
+                      className="group flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3.5 transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-card)]"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className="app-tile h-10 w-10 min-h-0 rounded-[var(--radius-md)] text-[var(--mute)] group-hover:text-[var(--ink)]">
+                          <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[14px] font-medium tracking-[0.1px] text-[var(--ink)]">
+                            {city.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[12px] tracking-[0.2px] text-[var(--mute)]">
+                            {city.region}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="keycap flex-none text-[11px] opacity-60 transition-opacity group-hover:opacity-100">
+                        Join
+                      </span>
+                    </Link>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
       </div>
@@ -117,8 +134,8 @@ function DiscoveryContent() {
 export default function DiscoveryPage() {
   return (
     <Suspense fallback={
-      <div className="flex-1 flex items-center justify-center min-h-[50vh] bg-[#171921]">
-        <div className="h-8 w-8 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[#AD68F5] border-t-transparent" />
+      <div className="mobile-container items-center justify-center">
+        <div className="h-7 w-7 animate-[spin_1s_linear_infinite] rounded-full border-2 border-[var(--hairline-strong)] border-t-[var(--ink)]" />
       </div>
     }>
       <DiscoveryContent />

@@ -2,25 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, ArrowRight, ChevronLeft } from "lucide-react";
+import { Lock, ArrowRight, ChevronLeft, ShieldCheck } from "lucide-react";
 import { CITIES } from "@/features/cities/cities";
 
-const TOPIC_ICONS: Record<string, string> = {
-  general: "GENERAL",
-  "ask-civiccircle": "ASK CIVICCIRCLE",
-  "food-dining": "FOOD & DINING",
-  "jobs-careers": "JOBS & CAREERS",
-  "housing-rent": "HOUSING & RENT",
-  events: "EVENTS",
-  marketplace: "MARKETPLACE",
-  recommendations: "RECOMMENDATIONS",
-  "tech-startups": "TECH & STARTUPS",
-  "fitness-health": "FITNESS & HEALTH",
-  travel: "TRAVEL",
-  "local-news": "LOCAL NEWS",
+const TOPIC_LABELS: Record<string, string> = {
+  general: "General",
+  "ask-civiccircle": "Ask CivicCircle",
+  "food-dining": "Food & Dining",
+  "jobs-careers": "Jobs & Careers",
+  "housing-rent": "Housing & Rent",
+  events: "Events",
+  marketplace: "Marketplace",
+  recommendations: "Recommendations",
+  "tech-startups": "Tech & Startups",
+  "fitness-health": "Fitness & Health",
+  travel: "Travel",
+  "local-news": "Local News",
 };
-
-const TOPIC_COLORS = ["#AD68F5", "#F5B5ED", "#FFE7BE", "#FFFFFF"] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -75,152 +73,135 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="mobile-container min-h-[100dvh] bg-[#171921] text-[#F2F0FA] flex flex-col justify-between px-4">
+    <div className="mobile-container">
       {/* Top bar */}
-      <header className="pt-6 flex items-center justify-between pt-[max(env(safe-area-inset-top),6px)]">
+      <header className="flex items-center justify-between px-4 pb-2 pt-[max(env(safe-area-inset-top),16px)] sm:px-6">
         <button
           type="button"
           aria-label="Back"
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF]/06 text-[#F2F0FA] hover:bg-[#FFFFFF]/10 transition-all"
+          onClick={() => router.back()}
+          className="btn btn-icon btn-secondary text-[var(--mute)]"
         >
-          <ChevronLeft className="h-5 w-5" strokeWidth={1.75} />
+          <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFFFF]/06 text-[#F2F0FA]" />
+        <span className="text-[11px] uppercase tracking-[0.4px] text-[var(--ash)]">CivicCircle</span>
+        <div className="w-9" aria-hidden="true" />
       </header>
 
       {!ageVerified ? (
-        <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#F8DC47]/20 border border-[#F8DC47]/40 mb-6">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              className="text-[#171921]"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2" />
-              <path d="M12 12h.01" />
-            </svg>
-          </div>
-          <h2 className="text-h1 text-[#FFFFFF] mb-2">Are you 18 or older?</h2>
-          <p className="text-[#8B8FA3] max-w-[280px] mx-auto mb-8 leading-relaxed">
-            CivicCircle is intended for adults aged 18 and over. By continuing, you confirm you are 18 or older.
+        <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center sm:px-6">
+          <span className="app-tile app-tile-lg mb-6 text-[var(--ink)]">
+            <ShieldCheck className="h-7 w-7" strokeWidth={1.6} />
+          </span>
+          <h2 className="max-w-[22ch] text-display text-balance">Are you 18 or older?</h2>
+          <p className="mx-auto mt-3 max-w-[34ch] text-body-sm leading-relaxed text-[var(--mute)]">
+            CivicCircle is intended for adults aged 18 and over. By continuing, you confirm you
+            are 18 or older.
           </p>
-          <div className="flex flex-col gap-3 w-full">
+          <div className="mt-8 flex w-full max-w-sm flex-col gap-2.5">
             <button
               type="button"
               onClick={confirmAge}
-              className="w-full rounded-[16px] bg-[#F8DC47] text-[#171921] font-semibold text-base py-3.5 transition-all press-active"
+              className="btn btn-primary btn-lg w-full"
             >
               Yes, I am 18 or older
             </button>
             <button
               type="button"
               onClick={() => router.replace("/")}
-              className="w-full rounded-[16px] border border-[#FFFFFF]/10 bg-transparent text-[#F2F0FA] font-semibold text-base py-3.5 transition-all hover:bg-[#FFFFFF]/05 press-active"
+              className="btn btn-secondary btn-lg w-full"
             >
               No, take me back
             </button>
           </div>
         </div>
       ) : (
-        <>
+        <div className="flex flex-1 flex-col px-4 pb-6 sm:px-6">
           {/* Heading */}
-          <div className="text-center mt-8 px-4">
-            <h1 className="text-h1 text-[#FFFFFF]">Choose your topics</h1>
-            <p className="mt-2 text-[11px] text-[#8B8FA3] max-w-[280px] mx-auto">
+          <div className="mx-auto mt-4 w-full max-w-xl">
+            <p className="text-label">Getting started</p>
+            <h1 className="mt-1 text-h1">Choose your topics</h1>
+            <p className="mt-1.5 text-body-sm text-[var(--mute)]">
               Pick what you care about in your city. You can change this later.
             </p>
           </div>
 
           {/* Progress segments */}
-          <div className="px-4 mt-6">
-            <div className="flex w-full gap-1.5 h-[3px]">
-              <div className="flex-1 h-full rounded-full bg-[#FFF3B8]" />
-              <div className="flex-1 h-full rounded-full bg-[#FFF3B8]" />
-              <div className="flex-1 h-full rounded-full bg-[#FFFFFF]/10" />
-              <div className="flex-1 h-full rounded-full bg-[#FFFFFF]/10" />
+          <div className="mx-auto mt-5 w-full max-w-xl">
+            <div className="flex h-[3px] w-full gap-1.5">
+              <div className="h-full flex-1 rounded-full bg-[var(--primary)]" />
+              <div className="h-full flex-1 rounded-full bg-[var(--primary)]" />
+              <div className="h-full flex-1 rounded-full bg-[var(--hairline)]" />
+              <div className="h-full flex-1 rounded-full bg-[var(--hairline)]" />
             </div>
           </div>
 
-          {/* Scattered rotated topic tags */}
-      <div className="flex-1 px-4 pt-6">
-        <div className="relative h-[260px] w-full">
-          {CITIES.map((topic, i) => {
-            const color = TOPIC_COLORS[i % TOPIC_COLORS.length];
-            const isSelected = selectedTopics.has(topic.slug);
-            const rotate = -40 + (i * 13) % 105;
-            const top = 20 + (i * 11) % 140;
-            const left = 10 + (i * 17) % 160;
-            let baseClass = "";
-            if (color === "#FFFFFF") baseClass = "text-[#F2F0FA]";
-            else if (color === "#AD68F5") baseClass = "text-[#AD68F5]";
-            else if (color === "#F5B5ED") baseClass = "text-[#F5B5ED]";
-            else baseClass = "text-[#171921]";
-            const buttonClass = isSelected
-              ? "absolute rounded-[999px] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-tight transition-all duration-200 bg-[#F8DC47] text-[#171921] ring-2 ring-[#FFFFFF] shadow-lg"
-              : `absolute rounded-[999px] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-tight transition-all duration-200 bg-[#FFFFFF]/10 border border-[#FFFFFF]/20 ${baseClass}`;
-            return (
-              <button
-                key={topic.slug}
-                type="button"
-                onClick={() => toggleTopic(topic.slug)}
-                className={buttonClass}
-                style={{ transform: `rotate(${rotate}deg)`, top, left }}
-                aria-pressed={isSelected}
-              >
-                {TOPIC_ICONS[topic.slug] || topic.name.toUpperCase()}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+          {/* Topic chips */}
+          <div className="mx-auto mt-6 w-full max-w-xl">
+            <div className="card p-4">
+              <div className="flex flex-wrap gap-1.5">
+                {CITIES.map((topic) => {
+                  const isSelected = selectedTopics.has(topic.slug);
+                  return (
+                    <button
+                      key={topic.slug}
+                      type="button"
+                      onClick={() => toggleTopic(topic.slug)}
+                      className={`topic-chip ${isSelected ? "topic-chip--active" : "topic-chip--inactive"}`}
+                      aria-pressed={isSelected}
+                    >
+                      {TOPIC_LABELS[topic.slug] || topic.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                {selectedTopics.size === 0
+                  ? "Optional — skip if you like."
+                  : `${selectedTopics.size} selected`}
+              </p>
+            </div>
+          </div>
 
-      {/* Nickname input */}
-      <form onSubmit={handleContinue} className="px-4 space-y-3">
-        <div className="space-y-1.5">
-          <label htmlFor="nickname" className="text-label text-[#8B8FA3] ml-1">
-            Your nickname
-          </label>
-          <input
-            id="nickname"
-            type="text"
-            value={nickname}
-            onChange={(e) => setNicknameInput(e.target.value)}
-            placeholder="e.g. CyberVibe"
-            maxLength={24}
-            required
-            className="w-full rounded-[20px] border border-[#FFFFFF]/10 bg-[#FFFFFF]/05 px-4 py-3.5 text-sm text-[#F2F0FA] placeholder-[#8B8FA3] outline-none transition-all focus:border-[#AD68F5] focus:ring-1 focus:ring-[#AD68F5]"
-          />
-          <p className="text-[10px] text-[#8B8FA3] ml-1">
-            You can change this anytime in profile settings.
-          </p>
-        </div>
+          {/* Nickname input */}
+          <form onSubmit={handleContinue} className="mx-auto mt-5 w-full max-w-xl space-y-3">
+            <div className="space-y-1.5">
+              <label htmlFor="nickname" className="text-label ml-0.5 block">
+                Your nickname
+              </label>
+              <input
+                id="nickname"
+                type="text"
+                value={nickname}
+                onChange={(e) => setNicknameInput(e.target.value)}
+                placeholder="e.g. CyberVibe"
+                maxLength={24}
+                required
+                className="field field-lg"
+              />
+              <p className="ml-0.5 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                You can change this anytime in profile settings.
+              </p>
+            </div>
 
-        <button
-          type="submit"
-          disabled={loading || !nickname.trim()}
-          className="w-full rounded-[16px] bg-[#F8DC47] text-[#171921] font-semibold text-base py-3.5 transition-all press-active disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <span>{loading ? "Setting up..." : "Continue"}</span>
-          <ArrowRight className="h-5 w-5 ml-2" />
-        </button>
-      </form>
+            <button
+              type="submit"
+              disabled={loading || !nickname.trim()}
+              className="btn btn-primary btn-lg w-full"
+            >
+              <span>{loading ? "Setting up..." : "Continue"}</span>
+              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+            </button>
+          </form>
 
-      {/* Footer reassurance */}
-      <div className="pb-6 px-4 text-center">
-        <div className="inline-flex items-center justify-center gap-1.5 text-[11px] text-[#8B8FA3]">
-          <Lock className="h-3.5 w-3.5 text-[#AD68F5]" />
-          <span>No account needed. Join your city and start talking.</span>
+          {/* Footer reassurance */}
+          <div className="mx-auto mt-auto w-full max-w-xl pt-6 text-center">
+            <div className="inline-flex items-center justify-center gap-1.5 text-[11px] tracking-[0.3px] text-[var(--mute)]">
+              <Lock className="h-3.5 w-3.5 text-[var(--ash)]" strokeWidth={1.8} />
+              <span>No account needed. Join your city and start talking.</span>
+            </div>
+          </div>
         </div>
-      </div>
-      </>
       )}
     </div>
   );
