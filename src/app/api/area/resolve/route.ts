@@ -45,6 +45,21 @@ export async function POST(request: Request) {
 
     const admin = getSupabaseAdminClient();
 
+    // TEMPORARY production diagnostic. Remove after the RPC role is confirmed.
+    const { data: identityData, error: identityError } =
+      await admin.rpc("debug_rpc_identity");
+
+    console.log("[AREA RESOLVE DEBUG] RPC identity:", identityData);
+
+    if (identityError) {
+      console.error("[AREA RESOLVE DEBUG] RPC identity error:", {
+        code: identityError.code,
+        message: identityError.message,
+        details: identityError.details,
+        hint: identityError.hint,
+      });
+    }
+
     const city = await admin.rpc("ensure_area", {
       p_kind: "city",
       p_h3: h3r5,
