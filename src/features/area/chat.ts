@@ -12,6 +12,8 @@ export type AreaChatMessage = {
   authorHandle: string;
   createdAt: string;
   deleted: boolean;
+  photoUrl: string | null;
+  photoPending?: boolean;
 };
 
 export type AreaMessagesPage = {
@@ -115,10 +117,19 @@ export type AreaMessageCheck =
       message: string;
     };
 
-export function inspectAreaMessage(raw: string): AreaMessageCheck {
+export function hasBlockedLanguage(value: string) {
+  const normalized = normalizeForFilter(value);
+  return BLOCKED_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function inspectAreaMessage(
+  raw: string,
+  options?: { allowEmpty?: boolean },
+): AreaMessageCheck {
   const body = raw.trim();
 
   if (!body) {
+    if (options?.allowEmpty) return { ok: true, body: "" };
     return { ok: false, reason: "empty", message: "Write a message before sending." };
   }
   if (body.length > MAX_AREA_MESSAGE_LENGTH) {
@@ -138,8 +149,7 @@ export function inspectAreaMessage(raw: string): AreaMessageCheck {
     };
   }
 
-  const normalized = normalizeForFilter(body);
-  if (BLOCKED_PATTERNS.some((pattern) => pattern.test(normalized))) {
+  if (hasBlockedLanguage(body)) {
     return {
       ok: false,
       reason: "blocked_language",

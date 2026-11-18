@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AreaConsent, PresenceOptIn } from "@/components/area/area-consent";
 import { AreaPicker } from "@/components/area/area-picker";
 import { AreaChat } from "@/components/area/area-chat";
+import { AreaRating } from "@/components/area/area-rating";
+import { AreaReviews } from "@/components/area/area-reviews";
 import { ShopsList } from "@/components/shops/ShopsList";
 import type { MapLanguage } from "@/components/map/NearbyMap";
 import {
@@ -40,7 +42,7 @@ export default function NearbyPage() {
   const [language, setLanguage] = useState<MapLanguage>("en");
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"shops" | "chat">("shops");
+  const [tab, setTab] = useState<"shops" | "chat" | "reviews">("shops");
 
   const loadNearby = useCallback(async () => {
     const res = await fetch("/api/area/nearby");
@@ -354,6 +356,18 @@ export default function NearbyPage() {
             >
               Chat
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "reviews"}
+              className={`pill-tab ${tab === "reviews" ? "pill-tab-active" : ""}`}
+              onClick={() => {
+                setTab("reviews");
+                setSheetExpanded(true);
+              }}
+            >
+              Reviews
+            </button>
           </div>
         </div>
 
@@ -365,6 +379,9 @@ export default function NearbyPage() {
         >
           {tab === "shops" ? (
             <>
+              <div className="mt-3">
+                <AreaRating />
+              </div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[13px] text-[var(--body-text)]">
                   {shopResult ? shopRadiusMessage(shopResult) : "Loading shops..."}
@@ -412,6 +429,13 @@ export default function NearbyPage() {
                   selectedShopId={selectedShopId}
                 />
               </div>
+            </>
+          ) : tab === "reviews" ? (
+            <>
+              <div className="mt-3">
+                <AreaRating />
+              </div>
+              <AreaReviews localityName={data.localityName || "Your area"} />
             </>
           ) : data.areaIds ? (
             <div className="mt-3 h-full min-h-0 pb-2">

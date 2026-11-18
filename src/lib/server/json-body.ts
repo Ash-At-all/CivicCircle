@@ -5,7 +5,7 @@ type JsonBodyResult =
 export async function readJsonBody(request: Request, maxBytes: number): Promise<JsonBodyResult> {
   const declaredLength = request.headers.get("content-length");
   if (declaredLength && Number(declaredLength) > maxBytes) {
-    return { ok: false, status: 413, error: "Post request is too large." };
+    return { ok: false, status: 413, error: "Request body is too large." };
   }
 
   const reader = request.body?.getReader();
@@ -20,7 +20,7 @@ export async function readJsonBody(request: Request, maxBytes: number): Promise<
       totalBytes += value.byteLength;
       if (totalBytes > maxBytes) {
         await reader.cancel();
-        return { ok: false, status: 413, error: "Post request is too large." };
+        return { ok: false, status: 413, error: "Request body is too large." };
       }
       chunks.push(value);
     }

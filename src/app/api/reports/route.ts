@@ -8,7 +8,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 4 * 1024;
 const reportSchema = z.object({
-  type: z.enum(["post", "comment", "message"]),
+  type: z.enum(["post", "comment", "message", "review"]),
   targetId: z.string().uuid(),
   reason: z.enum(["harassment", "hate", "spam", "personal-information", "violence", "other"]),
   details: z.string().trim().max(500).default(""),
@@ -28,7 +28,7 @@ export async function GET() {
     const isModerator = ["moderator", "admin"].includes(String(userResult.user.app_metadata?.role ?? ""));
     const { data, error } = await supabase
       .from("reports")
-      .select("id, post_id, comment_id, message_id, reason, details, status, created_at")
+      .select("id, post_id, comment_id, message_id, review_id, reason, details, status, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) {
@@ -41,8 +41,16 @@ export async function GET() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (r: any) => ({
         id: r.id,
-        type: r.post_id ? "post" : r.comment_id ? "comment" : r.message_id ? "message" : "post",
-        targetId: r.post_id ?? r.comment_id ?? r.message_id,
+        type: r.post_id
+          ? "post"
+          : r.comment_id
+            ? "comment"
+            : r.message_id
+              ? "message"
+              : r.review_id
+                ? "review"
+                : "post",
+        targetId: r.post_id ?? r.comment_id ?? r.message_id ?? r.review_id,
         targetContent: "",
         reason: r.reason,
         details: r.details,
@@ -72,7 +80,9 @@ export async function POST(request: Request) {
 
     const rateLimitResponse = await enforceRateLimit(
       supabase,
-      parsed.data.type === "message" ? "areaReport" : "reports",
+      parsed.data.type === "message" || parsed.data.type === "review"
+        ? "areaReport"
+        : "reports",
     );
     if (rateLimitResponse) return rateLimitResponse;
 
@@ -100,6 +110,35 @@ export async function POST(request: Request) {
       }
     }
 
+    if (parsed.data.type === "review") {
+      const ownArea = await loadOwnAreas(supabase, userResult.user.id);
+      if (!ownArea.ok) return ownArea.response;
+
+      const { data: review, error: reviewError } = await supabase
+        .from("area_reviews")
+        .select("id, user_id")
+        .eq("id", parsed.data.targetId)
+        .in("area_id", [
+          ownArea.areaIds.locality,
+          ownArea.areaIds.ward,
+          ownArea.areaIds.city,
+        ])
+        .maybeSingle();
+
+      if (reviewError) {
+        return NextResponse.json({ error: "Could not submit your report. Please try again." }, { status: 502 });
+      }
+      if (!review) {
+        return NextResponse.json({ error: "That review is not available to report." }, { status: 404 });
+      }
+      if ((review as { user_id: string }).user_id === userResult.user.id) {
+        return NextResponse.json(
+          { error: "You cannot report your own review.", code: "forbidden" },
+          { status: 403 },
+        );
+      }
+    }
+
     const insert: Record<string, unknown> = {
       reporter_id: userResult.user.id,
       reason: parsed.data.reason,
@@ -107,6 +146,7 @@ export async function POST(request: Request) {
       post_id: parsed.data.type === "post" ? parsed.data.targetId : null,
       comment_id: parsed.data.type === "comment" ? parsed.data.targetId : null,
       message_id: parsed.data.type === "message" ? parsed.data.targetId : null,
+      review_id: parsed.data.type === "review" ? parsed.data.targetId : null,
     };
 
     const { data, error } = await supabase.from("reports").insert(insert).select("id, reason, details, status").single();

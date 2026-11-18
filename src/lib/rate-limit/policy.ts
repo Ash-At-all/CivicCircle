@@ -14,6 +14,8 @@ export type RateLimitAction =
   | "areaNearby"
   | "areaMessagesRead"
   | "areaMessageSend"
+  | "areaRating"
+  | "areaReview"
   | "presenceHeartbeat"
   | "presenceStop"
   | "areaReport"
@@ -55,6 +57,8 @@ export const RATE_LIMIT_POLICIES: Record<RateLimitAction, Policy> = {
   areaNearby: { action: "area-nearby", limit: 240, windowSeconds: 3600, label: "loading nearby places" },
   areaMessagesRead: { action: "area-messages-read", limit: 600, windowSeconds: 3600, label: "loading messages" },
   areaMessageSend: { action: "area-message-send", limit: 30, windowSeconds: 60, label: "sending messages" },
+  areaRating: { action: "area-rating", limit: 10, windowSeconds: 3600, label: "rating areas" },
+  areaReview: { action: "area-review", limit: 5, windowSeconds: 3600, label: "reviewing areas" },
   presenceHeartbeat: { action: "presence-heartbeat", limit: 4, windowSeconds: 60, label: "presence updates" },
   presenceStop: { action: "presence-stop", limit: 10, windowSeconds: 3600, label: "updating presence" },
   areaReport: { action: "area-report", limit: 10, windowSeconds: 3600, label: "reporting" },
