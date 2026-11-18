@@ -8,9 +8,9 @@ export function SiteBrand() {
       <Image
         src="/brand/logo.png"
         alt={`${siteConfig.name} logo`}
-        width={30}
-        height={30}
-        className="brand-logo"
+        width={32}
+        height={20}
+        className="brand-logo h-5 w-auto"
         priority
       />
       <span>{siteConfig.name}</span>

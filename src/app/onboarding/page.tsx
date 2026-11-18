@@ -90,7 +90,7 @@ export default function OnboardingPage() {
 
       {!ageVerified ? (
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center sm:px-6">
-          <span className="app-tile app-tile-lg mb-6 text-[var(--ink)]">
+          <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/12 bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] text-[var(--accent-blue)] backdrop-blur-xl">
             <ShieldCheck className="h-7 w-7" strokeWidth={1.6} />
           </span>
           <h2 className="max-w-[22ch] text-display text-balance">Are you 18 or older?</h2>
@@ -120,26 +120,24 @@ export default function OnboardingPage() {
           {/* Heading */}
           <div className="mx-auto mt-4 w-full max-w-xl">
             <p className="text-label">Getting started</p>
-            <h1 className="mt-1 text-h1">Choose your topics</h1>
+            <h1 className="mt-1 text-h1">Set up your profile</h1>
             <p className="mt-1.5 text-body-sm text-[var(--mute)]">
-              Pick what you care about in your city. You can change this later.
+              Choose a nickname to join the conversation. You can explore all boards anytime.
             </p>
           </div>
 
-          {/* Progress segments */}
-          <div className="mx-auto mt-5 w-full max-w-xl">
-            <div className="flex h-[3px] w-full gap-1.5">
-              <div className="h-full flex-1 rounded-full bg-[var(--primary)]" />
-              <div className="h-full flex-1 rounded-full bg-[var(--primary)]" />
-              <div className="h-full flex-1 rounded-full bg-[var(--hairline)]" />
-              <div className="h-full flex-1 rounded-full bg-[var(--hairline)]" />
+          {/* Progress */}
+          <div className="mx-auto mt-5 w-full max-w-xl" aria-label="Setup progress">
+            <div className="h-[3px] w-full overflow-hidden rounded-full bg-[var(--hairline)]">
+              <div className="h-full w-full rounded-full bg-[var(--primary)]" />
             </div>
           </div>
 
           {/* Topic chips */}
           <div className="mx-auto mt-6 w-full max-w-xl">
             <div className="card p-4">
-              <div className="flex flex-wrap gap-1.5">
+              <p className="mb-3 text-[13px] text-[var(--mute)]">Topics you want to explore first <span className="text-[var(--ash)]">(optional)</span></p>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Topics of interest">
                 {CITIES.map((topic) => {
                   const isSelected = selectedTopics.has(topic.slug);
                   return (
@@ -157,8 +155,8 @@ export default function OnboardingPage() {
               </div>
               <p className="mt-3 text-[11px] tracking-[0.3px] text-[var(--ash)]">
                 {selectedTopics.size === 0
-                  ? "Optional, skip if you like."
-                  : `${selectedTopics.size} selected`}
+                  ? "You can skip this and pick a board later."
+                  : `${selectedTopics.size} selected for quick access`}
               </p>
             </div>
           </div>

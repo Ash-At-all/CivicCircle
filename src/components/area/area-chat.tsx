@@ -12,6 +12,7 @@ import {
   type AreaMessagesPage,
   type AreaScope,
 } from "@/features/area/chat";
+import { DefaultAvatar } from "@/components/ui/default-avatar";
 
 type Props = {
   areaIds: { locality: string; ward: string; city: string };
@@ -824,6 +825,12 @@ export function AreaChat({
               <li key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div className={`flex max-w-[86%] flex-col ${mine ? "items-end" : "items-start"}`}>
                   <p className="mb-1 flex items-center gap-1.5 px-1 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                    <DefaultAvatar
+                      name={message.authorHandle || "Ghost"}
+                      seed={message.authorId || message.authorHandle || "Ghost"}
+                      size="xs"
+                      className="h-5 w-5 text-[9px]"
+                    />
                     <span className="font-medium text-[var(--mute)]">
                       {message.authorHandle || "Ghost"}
                     </span>
@@ -936,6 +943,7 @@ export function AreaChat({
             <li key={pending.clientId} className="flex justify-end">
               <div className="flex max-w-[86%] flex-col items-end">
                 <p className="mb-1 flex items-center gap-1.5 px-1 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                  <DefaultAvatar name="You" seed="you" size="xs" className="h-5 w-5 text-[9px]" />
                   <span className="font-medium text-[var(--mute)]">You</span>
                   <span aria-hidden="true">·</span>
                   <span>{pending.status === "sending" ? "Sending..." : "Not sent"}</span>

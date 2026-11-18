@@ -397,42 +397,55 @@ input[type="checkbox"] {
 /*  Surfaces                                                          */
 /* ------------------------------------------------------------------ */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .card-elevated {
-  background: var(--surface-elevated);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .card-card {
-  background: var(--surface-card);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
 }
 
 .hairline-divider {
   height: 1px;
   width: 100%;
-  background: var(--hairline);
+  background: rgba(255, 255, 255, 0.1);
   border: 0;
 }
 
 .glass-card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 
-/* Command-palette style container */
+/* Glass container */
 .palette-card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
   overflow: hidden;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .palette-row {
@@ -459,7 +472,7 @@ input[type="checkbox"] {
   gap: 8px;
   min-height: 36px;
   padding: 8px 16px;
-  border-radius: var(--radius-md);
+  border-radius: 9999px;
   border: 1px solid transparent;
   font-size: 14px;
   line-height: 1.4;
@@ -469,7 +482,7 @@ input[type="checkbox"] {
   background: transparent;
   white-space: nowrap;
   transition: background-color var(--motion-fast), border-color var(--motion-fast),
-    color var(--motion-fast), opacity var(--motion-fast), transform var(--motion-fast);
+    color var(--motion-fast), opacity var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast);
   user-select: none;
 }
 
@@ -479,7 +492,7 @@ input[type="checkbox"] {
 
 .btn:disabled,
 .btn[aria-disabled="true"] {
-  background: var(--surface-elevated);
+  background: rgba(255, 255, 255, 0.05);
   border-color: transparent;
   color: var(--ash);
   cursor: not-allowed;
@@ -488,12 +501,13 @@ input[type="checkbox"] {
 .btn-primary {
   background: var(--primary);
   color: var(--on-primary);
-  border-color: var(--primary);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.08);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-pressed);
-  border-color: var(--primary-pressed);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .btn-secondary {
@@ -501,27 +515,32 @@ input[type="checkbox"] {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .btn-tertiary {
-  background: var(--surface-elevated);
-  border-color: var(--hairline);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
   color: var(--on-dark);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 .btn-tertiary:hover:not(:disabled) {
-  background: var(--surface-card);
-  border-color: var(--hairline-strong);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .btn-outline {
-  border-color: var(--hairline-strong);
+  border-color: rgba(255, 255, 255, 0.18);
   color: var(--on-dark);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .btn-danger {
@@ -711,23 +730,27 @@ input[type="checkbox"] {
   width: 100%;
   min-height: 36px;
   padding: 8px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--hairline);
-  background: var(--surface-elevated);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--ink);
   font-size: 16px;
-  transition: border-color var(--motion-fast), background-color var(--motion-fast);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .field:hover {
-  border-color: var(--hairline-strong);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .field:focus,
 .field:focus-visible {
   outline: none;
-  border-color: var(--hairline-strong);
-  background: var(--surface-elevated);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .field-lg {
@@ -751,10 +774,12 @@ textarea.field {
   width: 48px;
   height: 48px;
   flex: none;
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--ink);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 .app-tile-lg {
@@ -855,15 +880,19 @@ textarea.field {
 /*  Feed                                                             */
 /* ------------------------------------------------------------------ */
 .feed-card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
   overflow: hidden;
-  transition: border-color var(--motion-fast), background-color var(--motion-fast);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), transform var(--motion-fast);
 }
 
 .feed-card:hover {
-  border-color: var(--hairline-strong);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.075);
 }
 
 .action-pill {
@@ -871,9 +900,9 @@ textarea.field {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 9999px;
   border: 1px solid transparent;
   color: var(--mute);
   font-size: 13px;
@@ -883,8 +912,8 @@ textarea.field {
 }
 
 .action-pill:hover {
-  background: var(--surface-elevated);
-  border-color: var(--hairline);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
   color: var(--ink);
 }
 

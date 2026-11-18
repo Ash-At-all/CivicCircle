@@ -33,12 +33,12 @@ function DiscoveryContent() {
 
   return (
     <div className="mobile-container">
-      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
           <Link
             href="/home"
             aria-label="Back to Home"
-            className="btn btn-icon btn-secondary text-[var(--mute)]"
+            className="btn btn-icon btn-secondary text-white/80"
           >
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </Link>
@@ -104,7 +104,7 @@ function DiscoveryContent() {
                       className="group flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3.5 transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-card)]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <span className="app-tile h-10 w-10 min-h-0 rounded-[var(--radius-md)] text-[var(--mute)] group-hover:text-[var(--ink)]">
+                        <span className="flex h-10 w-10 min-h-0 items-center justify-center rounded-2xl border border-white/10 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
                           <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                         </span>
                         <span className="min-w-0">

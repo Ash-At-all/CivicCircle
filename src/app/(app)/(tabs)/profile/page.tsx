@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User, Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Trash2 } from "lucide-react";
+import { Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Trash2 } from "lucide-react";
+import { DefaultAvatar } from "@/components/ui/default-avatar";
 
 export default function ProfilePage() {
   const [nickname, setNickname] = useState(() =>
@@ -76,11 +77,11 @@ export default function ProfilePage() {
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
           <Link
             href="/home"
-            className="btn btn-icon btn-secondary text-[var(--mute)]"
+            className="btn btn-icon btn-secondary text-white/80"
             aria-label="Back to feed"
           >
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -96,9 +97,12 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <section className="card p-6">
           <div className="flex flex-col items-center text-center">
-            <span className="app-tile h-16 w-16 rounded-full text-[var(--mute)]">
-              <User className="h-7 w-7" strokeWidth={1.6} />
-            </span>
+            <DefaultAvatar
+              name={nickname || "Anonymous"}
+              seed={clientId || nickname || "Anonymous"}
+              size="xl"
+              className="h-16 w-16 text-[20px]"
+            />
             <h2 className="mt-3 text-h3">{nickname}</h2>
             <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] tracking-[0.3px] text-[var(--mute)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />

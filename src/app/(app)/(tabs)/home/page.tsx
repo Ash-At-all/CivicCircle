@@ -10,13 +10,12 @@ import {
   ThumbsUp,
   Plus,
   Image as ImageIcon,
-  Bell,
   X,
-  Menu,
   Lock,
   MapPin,
   Store,
 } from "lucide-react";
+import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { CITIES } from "@/features/cities/cities";
 import { POST_TAGS, type PostTag } from "@/features/posts/schema";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
@@ -111,6 +110,10 @@ function HomeContent() {
   const [heroPlace, setHeroPlace] = useState<string | null>(null);
   const [heroTick, setHeroTick] = useState(0);
   const [heroReady, setHeroReady] = useState(false);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [postTagFilter, setPostTagFilter] = useState<PostTag | "all">("all");
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [feedVersion, setFeedVersion] = useState(0);
 
   const clientId = typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || crypto.randomUUID() : "";
   const supabaseUrl = typeof window !== "undefined" ? process.env.NEXT_PUBLIC_SUPABASE_URL : "";
@@ -154,6 +157,31 @@ function HomeContent() {
   }, []);
 
   useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem("civiccircle-post-searches");
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed.filter((v): v is string => typeof v === "string").slice(0, 5));
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  function rememberSearch(value: string) {
+    const q = value.trim();
+    if (q.length < 2) return;
+    setRecentSearches((prev) => {
+      const next = [q, ...prev.filter((s) => s.toLowerCase() !== q.toLowerCase())].slice(0, 5);
+      try {
+        window.localStorage.setItem("civiccircle-post-searches", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  useEffect(() => {
     let active = true;
     fetch("/api/area/nearby")
       .then((res) => (res.ok ? res.json() : null))
@@ -194,7 +222,10 @@ function HomeContent() {
 
     let active = true;
     const start = window.setTimeout(() => {
-      if (active) setLoading(true);
+      if (active) {
+        setLoading(true);
+        setPostsError(null);
+      }
     }, 0);
     postsRepo.listPosts(activeTopic === "general" ? undefined : activeTopic)
       .then((data) => {
@@ -203,10 +234,12 @@ function HomeContent() {
         const voteMap: Record<string, number> = {};
         for (const p of data) voteMap[p.id] = p.votes || 0;
         setVotes(voteMap);
+        setPostsError(null);
         setLoading(false);
       })
       .catch(() => {
         if (!active) return;
+        setPostsError("Could not load posts. Check your connection and try again.");
         setLoading(false);
       });
 
@@ -214,15 +247,16 @@ function HomeContent() {
       active = false;
       window.clearTimeout(start);
     };
-  }, [activeTopic, router]);
+  }, [activeTopic, router, feedVersion]);
 
   const filteredPosts = useMemo(() => {
-    if (!searchQuery.trim()) return posts;
-    const q = searchQuery.toLowerCase();
-    return posts.filter((p) =>
-      p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q)
-    );
-  }, [posts, searchQuery]);
+    const q = searchQuery.trim().toLowerCase();
+    return posts.filter((p) => {
+      if (postTagFilter !== "all" && p.tag !== postTagFilter) return false;
+      if (!q) return true;
+      return p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q);
+    });
+  }, [posts, searchQuery, postTagFilter]);
 
   async function handleUpvote(postId: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -306,26 +340,28 @@ function HomeContent() {
 
   const activeTopicName = CITIES.find((c) => c.slug === activeTopic)?.name ?? "General";
 
+  useEffect(() => {
+    if (!createPostOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCreatePostOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [createPostOpen]);
+
   return (
     <div className="flex min-h-[100dvh] w-full min-w-0 flex-col bg-[var(--canvas)]">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
           <div className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              aria-label="Menu"
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
-            >
-              <Menu className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            </button>
-            <Link href="/home" className="flex min-w-0 items-center gap-2" aria-label="CivicCircle">
+            <Link href="/home" className="flex min-w-0 items-center gap-2" aria-label="CivicCircle home">
               <Image
                 src="/brand/logo.png"
                 alt=""
-                width={24}
-                height={24}
-                className="h-6 w-6 rounded-[var(--radius-sm)] border border-[var(--hairline)]"
+                width={35}
+                height={22}
+                className="h-[22px] w-auto"
                 priority
               />
               <span className="truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
@@ -335,30 +371,31 @@ function HomeContent() {
           </div>
 
           <div className="flex flex-none items-center gap-1">
+            <Link
+              href="/nearby"
+              aria-label="Nearby"
+              className="btn btn-icon btn-secondary text-[var(--accent-blue)]"
+            >
+              <MapPin className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </Link>
             <button
               type="button"
-              aria-label="Search posts"
+              aria-label={searchOpen ? "Close search" : "Search posts"}
+              aria-expanded={searchOpen}
+              aria-controls="post-search"
               onClick={() => setSearchOpen((v) => !v)}
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              className="btn btn-icon btn-secondary text-[var(--accent-yellow)]"
             >
-              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
               </svg>
-            </button>
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="btn btn-icon btn-secondary relative text-[var(--mute)]"
-            >
-              <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[var(--ink)]" />
             </button>
           </div>
         </div>
 
         {searchOpen && (
-          <div className="border-t border-[var(--hairline)] px-3 pb-3 pt-2.5 sm:px-5">
+          <div className="space-y-3 border-t border-[var(--hairline)] px-3 pb-3 pt-2.5 sm:px-5">
             <label className="sr-only" htmlFor="post-search">
               Search posts
             </label>
@@ -368,46 +405,105 @@ function HomeContent() {
               autoFocus
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search this board…"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") rememberSearch(searchQuery);
+              }}
+              onBlur={() => rememberSearch(searchQuery)}
+              placeholder="Search this board by keyword"
               className="field field-lg"
             />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.35px] text-[var(--mute)]">Filter by tag</p>
+                {(searchQuery || postTagFilter !== "all") ? (
+                  <button
+                    type="button"
+                    className="text-[12px] font-medium text-[var(--accent-blue)]"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setPostTagFilter("all");
+                    }}
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+              <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setPostTagFilter("all")}
+                  className={`topic-chip flex-none ${postTagFilter === "all" ? "topic-chip--active" : "topic-chip--inactive"}`}
+                >
+                  All tags
+                </button>
+                {POST_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setPostTagFilter(tag)}
+                    className={`topic-chip flex-none ${postTagFilter === tag ? "topic-chip--active" : "topic-chip--inactive"}`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {recentSearches.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.35px] text-[var(--mute)]">Recent searches</p>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((term) => (
+                    <button
+                      key={term}
+                      type="button"
+                      className="inline-flex min-h-[32px] items-center rounded-full border border-white/10 bg-white/6 px-3 text-[12px] text-[var(--body-text)] hover:bg-white/10"
+                      onClick={() => setSearchQuery(term)}
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </header>
 
       <div className="flex-1">
-        {/* Hero band  -  the single striped moment on the page */}
+        {/* Hero band */}
         <section className="hero-band">
           <div className="hero-stripes" aria-hidden="true" />
-          <div className="px-4 pb-10 pt-9 sm:px-6 sm:pb-14 sm:pt-12">
-            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+          <div className="px-4 pb-8 pt-8 sm:px-6 sm:pb-12 sm:pt-10">
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
               <div className="min-w-0">
-                <p className="mb-3 inline-flex items-center gap-2 rounded-[var(--radius-xs)] border border-[var(--hairline)] bg-[var(--surface)] px-2 py-1 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--mute)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
-                  {activeTopic === "general" ? "Your city, right now" : activeTopicName}
+                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1 text-[12px] font-medium text-[var(--mute)]">
+                  <span className="h-2 w-2 rounded-full bg-[var(--accent-green)]" />
+                  {activeTopic === "general" ? "Happening around you" : `${activeTopicName} board`}
                 </p>
 
                 <h1 className="text-display max-w-[18ch] text-balance">
                   <span className="transition-opacity duration-500 ease-out">{heroGreeting}</span>
                 </h1>
 
-                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
+                <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
                   <span className="transition-opacity duration-500 ease-out">{heroMessage}</span>
                 </p>
 
-                <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                  <Link href="/home" className="btn btn-primary btn-lg">
-                    Join your city
-                  </Link>
+                <div className="mt-5 flex flex-wrap items-center gap-2.5">
+                  <a href="#community-feed" className="btn btn-primary btn-lg">
+                    See what&apos;s new
+                  </a>
                   <Link href="/nearby" className="btn btn-tertiary btn-lg">
-                    <MapPin className="h-4 w-4" strokeWidth={1.8} />
-                    Open nearby
+                    <MapPin className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                    Nearby
                   </Link>
                 </div>
 
-                <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-[0.3px] text-[var(--ash)]">
+                <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-[0.2px] text-[var(--ash)]">
                   <span className="inline-flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    <Lock className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
                     No account needed
                   </span>
                   <span aria-hidden="true">·</span>
@@ -415,80 +511,50 @@ function HomeContent() {
                 </p>
               </div>
 
-              {/* Command-palette mockup  -  the hero's load-bearing visual */}
+              {/* Quick actions */}
               <div className="min-w-0">
-                <div className="palette-card mx-auto w-full max-w-md">
-                  <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5">
-                    <span className="flex gap-1.5" aria-hidden="true">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
-                    </span>
-                    <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-2 py-1.5">
-                      <svg className="h-3.5 w-3.5 flex-none text-[var(--stone)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                        <circle cx="11" cy="11" r="7" />
-                        <path d="m20 20-3.5-3.5" />
-                      </svg>
-                      <span className="truncate text-[13px] text-[var(--stone)]">
-                        Search your city…
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 p-2">
-                    <div className="palette-row palette-row-active">
-                      <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
-                        <Store className="h-4 w-4" strokeWidth={1.8} />
+                <div className="card mx-auto w-full max-w-md overflow-hidden p-3 sm:p-4">
+                  <p className="px-1 text-[13px] font-medium text-[var(--ink)]">Jump in</p>
+                  <div className="mt-3 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setCreatePostOpen(true)}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-3 text-left transition-colors hover:border-[var(--hairline-strong)]"
+                    >
+                      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]">
+                        <Plus className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] text-[var(--ink)]">
-                          Nearby shops
-                        </span>
-                        <span className="block truncate text-[11px] text-[var(--mute)]">
-                          Grocery, pharmacy, repair…
-                        </span>
+                        <span className="block text-[14px] font-medium text-[var(--ink)]">Share a post</span>
+                        <span className="block text-[12px] text-[var(--mute)]">Ask, update, or recommend something</span>
                       </span>
-                      <span className="keycap">↵</span>
-                    </div>
+                    </button>
 
-                    <div className="palette-row">
-                      <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
-                        <MessageSquare className="h-4 w-4" strokeWidth={1.8} />
+                    <Link
+                      href="/nearby"
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-3 text-left transition-colors hover:border-[var(--hairline-strong)]"
+                    >
+                      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
+                        <Store className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] text-[var(--ink)]">
-                          Locality room
-                        </span>
-                        <span className="block truncate text-[11px] text-[var(--mute)]">
-                          Ward and city rooms
-                        </span>
+                        <span className="block text-[14px] font-medium text-[var(--ink)]">Explore nearby</span>
+                        <span className="block text-[12px] text-[var(--mute)]">Shops, chat, and reviews around you</span>
                       </span>
-                      <span className="keycap">⌘</span>
-                      <span className="keycap">K</span>
-                    </div>
+                    </Link>
 
-                    <div className="palette-row">
-                      <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]">
-                        <Plus className="h-4 w-4" strokeWidth={1.8} />
+                    <Link
+                      href={`/chat/${activeTopic}`}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-3 text-left transition-colors hover:border-[var(--hairline-strong)]"
+                    >
+                      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
+                        <MessageSquare className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] text-[var(--ink)]">
-                          Create a post
-                        </span>
-                        <span className="block truncate text-[11px] text-[var(--mute)]">
-                          Text, tags and up to 4 images
-                        </span>
+                        <span className="block text-[14px] font-medium text-[var(--ink)]">Join the conversation</span>
+                        <span className="block text-[12px] text-[var(--mute)]">Drop into {activeTopicName} chat</span>
                       </span>
-                      <span className="keycap">N</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-[var(--hairline)] px-3 py-2 text-[11px] tracking-[0.3px] text-[var(--ash)]">
-                    <span>{activeTopicName}</span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
-                      live
-                    </span>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -496,63 +562,23 @@ function HomeContent() {
           </div>
         </section>
 
-        {/* Feature strip */}
-        <section className="grid grid-cols-1 gap-3 px-4 py-8 sm:grid-cols-3 sm:px-6">
-          {[
-            {
-              icon: Flame,
-              title: "Local posts",
-              copy: "City boards with tags, images and votes.",
-            },
-            {
-              icon: Lock,
-              title: "Anonymous by default",
-              copy: "A nickname is enough  -  no signup, no profile photo.",
-            },
-            {
-              icon: MapPin,
-              title: "Area rooms",
-              copy: "Locality, ward and city chat around your area.",
-            },
-          ].map(({ icon: Icon, title, copy }) => (
-            <div key={title} className="card p-4 sm:p-5">
-              <span className="app-tile mb-3 h-9 w-9 min-h-0 text-[var(--ink)]">
-                <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              </span>
-              <h2 className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
-                {title}
-              </h2>
-              <p className="mt-1 text-[13px] leading-relaxed text-[var(--mute)]">{copy}</p>
-            </div>
-          ))}
-        </section>
-
         <div className="hairline-divider" />
 
         {/* Board controls */}
-        <section className="px-4 pb-2 pt-7 sm:px-6">
+        <section id="community-feed" className="scroll-mt-24 px-4 pb-2 pt-7 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-label">Explore your city</p>
               <h2 className="mt-1 text-h2">{activeTopicName}</h2>
             </div>
 
-            <div
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] bg-[var(--surface)] p-1"
-              role="tablist"
-              aria-label="Feed order"
-            >
-              <button type="button" role="tab" aria-selected="true" className="pill-tab pill-tab-active">
-                Trending
-              </button>
-              <button type="button" role="tab" aria-selected="false" className="pill-tab">
-                New posts
-              </button>
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-[13px] text-[var(--body-text)]">
+              Latest posts
+            </span>
           </div>
 
-          {/* Topic chips  -  wrap on every breakpoint so nothing overflows */}
-          <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          {/* Topic chips */}
+          <div className="no-scrollbar -mx-1 mt-4 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {CITIES.map((topic) => {
               const isActive = activeTopic === topic.slug;
               return (
@@ -561,7 +587,7 @@ function HomeContent() {
                   type="button"
                   onClick={() => setActiveTopic(topic.slug)}
                   aria-pressed={isActive}
-                  className={`topic-chip ${isActive ? "topic-chip--active" : "topic-chip--inactive"}`}
+                  className={`topic-chip flex-none ${isActive ? "topic-chip--active" : "topic-chip--inactive"}`}
                 >
                   {topic.name}
                 </button>
@@ -593,100 +619,118 @@ function HomeContent() {
                 </div>
               ))}
             </div>
+          ) : postsError && posts.length === 0 ? (
+            <div className="feed-card px-5 py-10 text-center">
+              <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--accent-red)]">
+                <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <p className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">Couldn&apos;t load posts</p>
+              <p className="mt-1 text-[13px] text-[var(--mute)]">{postsError}</p>
+              <button
+                onClick={() => setFeedVersion((v) => v + 1)}
+                className="btn btn-primary mx-auto mt-5"
+              >
+                Try again
+              </button>
+            </div>
           ) : filteredPosts.length === 0 ? (
             <div className="feed-card px-5 py-10 text-center">
               <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--mute)]">
                 <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
               </span>
               <p className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
-                {searchQuery ? "No posts match that search" : "No posts here yet"}
+                {searchQuery || postTagFilter !== "all" ? "No posts match your filters" : "No posts here yet"}
               </p>
               <p className="mt-1 text-[13px] text-[var(--mute)]">
-                {searchQuery
-                  ? "Try a different word or clear the search."
+                {searchQuery || postTagFilter !== "all"
+                  ? "Try a different keyword or tag, or clear filters."
                   : "Be the first to post in this board."}
               </p>
-              <button
-                onClick={() => setCreatePostOpen(true)}
-                className="btn btn-primary mx-auto mt-5"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2} />
-                Create post
-              </button>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                {(searchQuery || postTagFilter !== "all") ? (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setPostTagFilter("all");
+                    }}
+                    className="btn btn-tertiary"
+                  >
+                    Clear filters
+                  </button>
+                ) : null}
+                <button
+                  onClick={() => setCreatePostOpen(true)}
+                  className="btn btn-primary"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2} />
+                  Create post
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-4">
               {filteredPosts.map((post) => (
-                <article key={post.id} className="feed-card">
-                  <div className="p-4">
-                    <div className="flex items-center gap-2 pb-2.5">
-                      <span className="app-tile h-7 w-7 min-h-0 rounded-[var(--radius-sm)] text-[var(--mute)]">
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                        </svg>
-                      </span>
-                      <span className="text-[13px] font-medium tracking-[0.2px] text-[var(--ink)]">
-                        Anonymous
-                      </span>
-                      <span className="h-3 w-px bg-[var(--hairline)]" aria-hidden="true" />
-                      <span className="tag-chip">{post.tag || activeTopic.replace("-", " ")}</span>
-                      <span className="ml-auto text-[11px] tracking-[0.3px] text-[var(--ash)]">
-                        {relativeTime(post.created_at)}
-                      </span>
+                <article key={post.id} className="feed-card overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 pt-4">
+                    <DefaultAvatar name="Anonymous" size="md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[14px] font-semibold tracking-[0.1px] text-[var(--ink)]">
+                          Anonymous
+                        </span>
+                        <span className="text-[11px] text-[var(--ash)]">·</span>
+                        <span className="truncate text-[12px] text-[var(--mute)]">{activeTopicName}</span>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] tracking-[0.2px] text-[var(--ash)]">
+                        <span className="tag-chip !px-2 !py-0.5">{post.tag || "General"}</span>
+                        <span>{relativeTime(post.created_at)}</span>
+                      </div>
                     </div>
+                  </div>
 
-                    <h3 className="line-clamp-3 text-balance text-[17px] font-medium leading-snug tracking-[0.1px] text-[var(--ink)]">
+                  <div className="px-4 pb-3 pt-3">
+                    <h3 className="text-[17px] font-semibold leading-snug tracking-[0.1px] text-[var(--ink)]">
                       {post.title}
                     </h3>
-
                     {post.body && (
-                      <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-[var(--mute)]">
+                      <p className="mt-1.5 line-clamp-3 text-[14px] leading-relaxed text-[var(--body-text)]">
                         {post.body}
                       </p>
                     )}
-
-                    {post.image_paths && post.image_paths.length > 0 && (
-                      <div className="mt-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--hairline)]">
-                        <img
-                          src={normalizeImageUrl(post.image_paths[0])}
-                          alt={post.title || "Post attachment"}
-                          className="max-h-[420px] w-full object-cover"
-                          loading="lazy"
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        />
-                      </div>
-                    )}
                   </div>
 
-                  <div className="flex items-center gap-1 border-t border-[var(--hairline)] px-3 py-2">
+                  {post.image_paths && post.image_paths.length > 0 && (
+                    <div className="border-y border-[var(--hairline)] bg-[var(--surface-elevated)]">
+                      <img
+                        src={normalizeImageUrl(post.image_paths[0])}
+                        alt={post.title || "Post attachment"}
+                        className="max-h-[480px] w-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1 px-3 py-2.5">
                     <button
                       type="button"
                       onClick={(e) => handleUpvote(post.id, e)}
-                      className="action-pill"
-                      aria-label="+1 post"
-                      aria-pressed={false}
+                      className="action-pill gap-1.5"
+                      aria-label={`Like post, ${votes[post.id] ?? post.votes ?? 0} likes`}
                     >
-                      <ThumbsUp className="h-4 w-4" strokeWidth={1.8} />
-                      <span className="tabular-nums text-[var(--accent-green)]">
+                      <ThumbsUp className="h-[18px] w-[18px] text-[var(--accent-green)]" strokeWidth={1.8} aria-hidden="true" />
+                      <span className="tabular-nums text-[13px] font-medium text-[var(--ink)]">
                         {votes[post.id] ?? post.votes ?? 0}
                       </span>
                     </button>
 
                     <Link
                       href={`/chat/${activeTopic}`}
-                      className="action-pill"
-                      aria-label="Chime in on post"
+                      className="action-pill gap-1.5"
+                      aria-label={`Discuss in ${activeTopicName} chat`}
                     >
-                      <MessageSquare className="h-4 w-4" strokeWidth={1.8} />
-                      <span>Chime in</span>
-                    </Link>
-
-                    <Link
-                      href={`/home?topic=${activeTopic}`}
-                      className="action-pill ml-auto"
-                      aria-label={`Open ${activeTopicName} board`}
-                    >
-                      <span className="text-[11px] uppercase tracking-[0.4px]">Board</span>
+                      <MessageSquare className="h-[18px] w-[18px] text-[var(--accent-blue)]" strokeWidth={1.8} aria-hidden="true" />
+                      <span className="text-[13px] font-medium">Discuss</span>
                     </Link>
                   </div>
                 </article>
@@ -698,11 +742,21 @@ function HomeContent() {
 
       {/* Create Post sheet */}
       {createPostOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="sheet-enter max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:rounded-[var(--radius-xl)] sm:p-6">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          role="presentation"
+          onClick={() => setCreatePostOpen(false)}
+        >
+          <div
+            className="sheet-enter max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:rounded-[var(--radius-xl)] sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-post-title"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-h2">Create a post</h2>
+                <h2 id="create-post-title" className="text-h2">Create a post</h2>
                 <p className="mt-1 text-[13px] text-[var(--mute)]">
                   Posting to <span className="text-[var(--body-text)]">{activeTopicName}</span>
                 </p>

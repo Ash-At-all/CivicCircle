@@ -7,6 +7,7 @@ import {
   type AreaReview,
   type AreaReviewsPage,
 } from "@/features/area/reviews";
+import { DefaultAvatar } from "@/components/ui/default-avatar";
 
 type Props = {
   localityName: string;
@@ -323,19 +324,22 @@ export function AreaReviews({ localityName }: Props) {
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] tracking-[0.3px] text-[var(--ash)]">
-                      <span className="font-medium text-[var(--mute)]">{review.handle}</span>
-                      {mine ? <span className="badge">Your review</span> : null}
-                      {review.edited ? <span>· edited</span> : null}
-                      <span aria-hidden="true">·</span>
-                      <span className="tabular-nums">{formatWhen(review.createdAt)}</span>
-                    </p>
-                    {review.rating !== null ? (
-                      <div className="mt-1">
-                        <ReviewStars rating={review.rating} />
-                      </div>
-                    ) : null}
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <DefaultAvatar name={review.handle} seed={review.handle} size="sm" className="mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                        <span className="font-medium text-[var(--mute)]">{review.handle}</span>
+                        {mine ? <span className="badge">Your review</span> : null}
+                        {review.edited ? <span>· edited</span> : null}
+                        <span aria-hidden="true">·</span>
+                        <span className="tabular-nums">{formatWhen(review.createdAt)}</span>
+                      </p>
+                      {review.rating !== null ? (
+                        <div className="mt-1">
+                          <ReviewStars rating={review.rating} />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                   {!mine ? (
                     <button

@@ -1,8 +1,20 @@
+"use client";
+
+import { useState } from "react";
 import { formatDistance, sourceLabel } from "@/features/shops/format";
 import { SHOP_CATEGORY_LABELS, type ShopCategory } from "@/features/shops/categories";
 import type { NearbyShop } from "@/features/shops/types";
 
 export type ShopLanguage = "en" | "hi";
+
+const ISSUE_OPTIONS = [
+  "Wrong name",
+  "Wrong location",
+  "Wrong address",
+  "Wrong phone or hours",
+  "Closed or moved",
+  "Other",
+] as const;
 
 export function ShopCard({
   shop,
@@ -13,13 +25,73 @@ export function ShopCard({
   language?: ShopLanguage;
   highlighted?: boolean;
 }) {
+  const [reportOpen, setReportOpen] = useState(false);
+  const [issue, setIssue] = useState<(typeof ISSUE_OPTIONS)[number]>("Wrong name");
+  const [details, setDetails] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+
   const category =
     SHOP_CATEGORY_LABELS[(shop.category as ShopCategory) || "other"] || shop.category;
   const primaryName = language === "hi" && shop.name_hi ? shop.name_hi : shop.name;
   const secondaryName = language === "hi" ? shop.name : shop.name_hi;
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+  const mapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
     `${shop.lat},${shop.lng}`,
   )}`;
+  const mapsViewUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${shop.lat},${shop.lng}`,
+  )}`;
+  const shareText = `${primaryName}${shop.address ? ` · ${shop.address}` : ""}\n${formatDistance(shop.distance_m)} from your area centre\n${mapsViewUrl}`;
+
+  async function shareShop() {
+    setNotice(null);
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: primaryName, text: shareText, url: mapsViewUrl });
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        setNotice("Shop details copied.");
+        return;
+      }
+      setNotice("Sharing is not available on this device.");
+    } catch {
+      // user cancelled share or clipboard failed
+    }
+  }
+
+  async function submitReport() {
+    const reportText = [
+      "CivicCircle shop report",
+      `Issue: ${issue}`,
+      details.trim() ? `Details: ${details.trim()}` : null,
+      `Shop: ${shop.name}${shop.name_hi ? ` (${shop.name_hi})` : ""}`,
+      `ID: ${shop.id}`,
+      `Category: ${shop.category}`,
+      `Address: ${shop.address || "Not listed"}`,
+      `Phone: ${shop.phone || "Not listed"}`,
+      `Hours: ${shop.opening_hours || "Not listed"}`,
+      `Coords: ${shop.lat}, ${shop.lng}`,
+      `Source: ${shop.source}`,
+      `Maps: ${mapsViewUrl}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(reportText);
+        setNotice("Report details copied. You can share them with the CivicCircle team.");
+      } else {
+        setNotice("Could not copy automatically. Please share the issue from your device.");
+      }
+      setReportOpen(false);
+      setDetails("");
+      setIssue("Wrong name");
+    } catch {
+      setNotice("Could not copy report details. Please try again.");
+    }
+  }
 
   return (
     <article
@@ -52,11 +124,12 @@ export function ShopCard({
           {formatDistance(shop.distance_m)} from your area centre
         </span>
       </p>
-      {shop.opening_hours ? (
-        <p className="mt-1 text-[12px] tracking-[0.2px] text-[var(--mute)]">Hours: {shop.opening_hours}</p>
-      ) : (
-        <p className="mt-1 text-[12px] tracking-[0.2px] text-[var(--ash)]">Hours not listed</p>
-      )}
+      <p className="mt-1 text-[12px] tracking-[0.2px] text-[var(--mute)]">
+        Hours: {shop.opening_hours || "Not listed"}
+      </p>
+      {shop.phone ? (
+        <p className="mt-1 text-[12px] tracking-[0.2px] text-[var(--mute)]">Phone: {shop.phone}</p>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {shop.phone ? (
@@ -65,14 +138,84 @@ export function ShopCard({
           </a>
         ) : null}
         <a
-          href={mapsUrl}
+          href={mapsViewUrl}
+          target="_blank"
+          rel="nofollow noopener noreferrer"
+          className="btn btn-sm btn-tertiary"
+        >
+          Open in Maps
+        </a>
+        <a
+          href={mapsDirectionsUrl}
           target="_blank"
           rel="nofollow noopener noreferrer"
           className="btn btn-sm btn-primary"
         >
           Directions
         </a>
+        <button type="button" className="btn btn-sm btn-tertiary" onClick={() => void shareShop()}>
+          Share
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-secondary text-[var(--mute)]"
+          onClick={() => {
+            setNotice(null);
+            setReportOpen((v) => !v);
+          }}
+          aria-expanded={reportOpen}
+        >
+          Report info
+        </button>
       </div>
+
+      {notice ? (
+        <p className="mt-2 text-[12px] tracking-[0.2px] text-[var(--accent-green)]" role="status">
+          {notice}
+        </p>
+      ) : null}
+
+      {reportOpen ? (
+        <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3">
+          <p className="text-[13px] font-medium text-[var(--ink)]">Report incorrect info</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--mute)]">
+            Tell us what looks wrong. We&apos;ll copy the details so you can share them with the CivicCircle team.
+          </p>
+          <label className="mt-3 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+            Issue
+            <select
+              className="field mt-1 text-white"
+              value={issue}
+              onChange={(e) => setIssue(e.target.value as (typeof ISSUE_OPTIONS)[number])}
+            >
+              {ISSUE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt} className="bg-[#141416] text-white">
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-2 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+            Details (optional)
+            <textarea
+              className="field mt-1"
+              rows={3}
+              maxLength={300}
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="What should be corrected?"
+            />
+          </label>
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <button type="button" className="btn btn-sm btn-secondary" onClick={() => setReportOpen(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-sm btn-primary" onClick={() => void submitReport()}>
+              Copy report details
+            </button>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

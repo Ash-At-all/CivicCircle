@@ -8,9 +8,9 @@ import { CITIES } from "@/features/cities/cities";
 import { Suspense } from "react";
 
 const NAV_ITEMS = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/chat/general", label: "Chats", icon: MessageSquare },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/home", label: "Home", icon: Home, color: "text-[var(--accent-blue)]", activeBg: "bg-[var(--accent-blue-soft)]" },
+  { href: "/chat/general", label: "Chats", icon: MessageSquare, color: "text-[var(--accent-green)]", activeBg: "bg-[var(--accent-green-soft)]" },
+  { href: "/profile", label: "Profile", icon: User, color: "text-[var(--accent-red)]", activeBg: "bg-[var(--accent-red-soft)]" },
 ] as const;
 
 function SidebarContent() {
@@ -22,23 +22,23 @@ function SidebarContent() {
     <div className="flex h-full min-h-0 flex-col justify-between p-3">
       <div className="min-h-0 space-y-6">
         {/* Brand */}
-        <Link href="/home" className="flex items-center gap-2.5 px-2 pt-2">
-          <span className="app-tile h-9 w-9 min-h-0">
-            <Image src="/brand/logo.png" alt="CivicCircle" width={22} height={22} />
+        <Link href="/home" className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/6 px-2.5 py-2 backdrop-blur-xl">
+          <span className="flex h-9 w-9 min-h-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] ring-1 ring-white/10">
+            <Image src="/brand/logo.png" alt="CivicCircle" width={29} height={18} className="h-[18px] w-auto" />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
               CivicCircle
             </span>
-            <span className="block truncate text-[11px] leading-4 tracking-[0.3px] text-[var(--mute)]">
+            <span className="block truncate text-[11px] leading-4 tracking-[0.3px] text-white/65">
               Local boards &amp; chat
             </span>
           </span>
         </Link>
 
         {/* Primary Navigation */}
-        <nav className="space-y-1" aria-label="Primary">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        <nav className="space-y-1.5" aria-label="Primary">
+          {NAV_ITEMS.map(({ href, label, icon: Icon, color, activeBg }) => {
             const isActive =
               pathname === href || (href !== "/home" && pathname.startsWith(href));
             return (
@@ -46,15 +46,15 @@ function SidebarContent() {
                 key={href}
                 href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-2.5 rounded-[var(--radius-md)] border px-3 py-2 text-sm tracking-[0.2px] transition-colors ${
+                className={`flex items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-sm tracking-[0.2px] transition-colors backdrop-blur-xl ${
                   isActive
-                    ? "border-[var(--hairline)] bg-[var(--surface-card)] font-medium text-[var(--on-dark)]"
-                    : "border-transparent text-[var(--body-text)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--ink)]"
+                    ? `border-white/12 ${activeBg} font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]`
+                    : "border-transparent text-white/75 hover:bg-white/6 hover:text-white"
                 }`}
               >
                 <Icon
-                  className={`h-4 w-4 ${isActive ? "text-[var(--ink)]" : "text-[var(--mute)]"}`}
-                  strokeWidth={isActive ? 2 : 1.7}
+                  className={`h-4.5 w-4.5 ${isActive ? "text-white" : color}`}
+                  strokeWidth={isActive ? 2.1 : 1.8}
                 />
                 <span>{label}</span>
               </Link>

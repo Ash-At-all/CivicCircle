@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MapPin, RotateCcw, SlidersHorizontal, Store, MessageCircle, Star, X, ChevronDown } from "lucide-react";
 import { AreaConsent, PresenceOptIn } from "@/components/area/area-consent";
 import { AreaPicker } from "@/components/area/area-picker";
 import { AreaChat } from "@/components/area/area-chat";
@@ -31,6 +32,38 @@ const NearbyMap = dynamic(() => import("@/components/map/NearbyMap").then((m) =>
 });
 
 type Mode = "consent" | "pick";
+type SheetSnap = "peek" | "mid" | "full";
+
+const SNAP_HEIGHTS: Record<SheetSnap, number> = {
+  peek: 22,
+  mid: 52,
+  full: 90,
+};
+
+const NEARBY_PREF_KEYS = {
+  radius: "civiccircle-nearby-radius",
+  language: "civiccircle-nearby-lang",
+  tab: "civiccircle-nearby-tab",
+  snap: "civiccircle-nearby-snap",
+} as const;
+
+function readStoredRadius(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(NEARBY_PREF_KEYS.radius);
+    const value = raw ? Number(raw) : NaN;
+    return RADIUS_STEPS_M.includes(value as (typeof RADIUS_STEPS_M)[number]) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function nearestSnap(height: number): SheetSnap {
+  const entries = (Object.entries(SNAP_HEIGHTS) as [SheetSnap, number][]).sort(
+    (a, b) => Math.abs(a[1] - height) - Math.abs(b[1] - height),
+  );
+  return entries[0][0];
+}
 
 export default function NearbyPage() {
   const [data, setData] = useState<NearbyResponse | null>(null);
@@ -38,22 +71,78 @@ export default function NearbyPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("consent");
-  const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
+  const [selectedRadius, setSelectedRadius] = useState<number | null>(1000);
   const [language, setLanguage] = useState<MapLanguage>("en");
-  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [snap, setSnap] = useState<SheetSnap>("peek");
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [tab, setTab] = useState<"shops" | "chat" | "reviews">("shops");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showRadiusPrompt, setShowRadiusPrompt] = useState(false);
+  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const dragRef = useRef<{ startY: number; startHeight: number; pointerId: number; moved: boolean } | null>(null);
+  const effectiveSnap: SheetSnap = tab === "chat" && snap === "peek" ? "mid" : snap;
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        const storedRadius = readStoredRadius();
+        if (storedRadius != null) setSelectedRadius(storedRadius);
+
+        const storedLang = window.localStorage.getItem(NEARBY_PREF_KEYS.language);
+        if (storedLang === "en" || storedLang === "hi") setLanguage(storedLang);
+
+        const storedTab = window.localStorage.getItem(NEARBY_PREF_KEYS.tab);
+        if (storedTab === "shops" || storedTab === "chat" || storedTab === "reviews") setTab(storedTab);
+
+        const storedSnap = window.localStorage.getItem(NEARBY_PREF_KEYS.snap);
+        if (storedSnap === "peek" || storedSnap === "mid" || storedSnap === "full") setSnap(storedSnap);
+      } catch {
+        // ignore storage errors
+      }
+      setPrefsHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    try {
+      window.localStorage.setItem(NEARBY_PREF_KEYS.radius, String(selectedRadius ?? 1000));
+    } catch {}
+  }, [selectedRadius, prefsHydrated]);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    try {
+      window.localStorage.setItem(NEARBY_PREF_KEYS.language, language);
+    } catch {}
+  }, [language, prefsHydrated]);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    try {
+      window.localStorage.setItem(NEARBY_PREF_KEYS.tab, tab);
+    } catch {}
+  }, [tab, prefsHydrated]);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    try {
+      window.localStorage.setItem(NEARBY_PREF_KEYS.snap, snap);
+    } catch {}
+  }, [snap, prefsHydrated]);
 
   const loadNearby = useCallback(async () => {
     const res = await fetch("/api/area/nearby");
     if (!res.ok) {
       setData(null);
-      setSelectedRadius(null);
+      setSelectedRadius((prev) => prev ?? readStoredRadius() ?? 1000);
       return null;
     }
     const json = (await res.json()) as NearbyResponse;
     setData(json);
-    setSelectedRadius(chooseShopRadius(json.shops).radius);
+    setSelectedRadius((prev) => prev ?? readStoredRadius() ?? 1000);
     return json;
   }, []);
 
@@ -66,9 +155,10 @@ export default function NearbyPage() {
         if (res.ok) {
           const json = (await res.json()) as NearbyResponse;
           setData(json);
-          setSelectedRadius(chooseShopRadius(json.shops).radius);
+          setSelectedRadius((prev) => prev ?? readStoredRadius() ?? 1000);
         } else {
           setData(null);
+          setSelectedRadius((prev) => prev ?? readStoredRadius() ?? 1000);
         }
       } catch {
         if (active) setData(null);
@@ -86,7 +176,7 @@ export default function NearbyPage() {
     return chooseShopRadius(data.shops);
   }, [data]);
 
-  const effectiveRadius = selectedRadius ?? shopResult?.radius ?? 500;
+  const effectiveRadius = selectedRadius ?? 1000;
 
   const displayedShops = useMemo(() => {
     if (!data) return [];
@@ -128,6 +218,7 @@ export default function NearbyPage() {
         }),
       );
       await resolveFromCoords(position.coords.latitude, position.coords.longitude);
+      setShowRadiusPrompt(true);
     } catch (e) {
       const message =
         e instanceof GeolocationPositionError
@@ -147,8 +238,10 @@ export default function NearbyPage() {
     try {
       await fetch("/api/area/location", { method: "DELETE" });
       setData(null);
-      setSelectedRadius(null);
+      setSelectedRadius(1000);
       setSelectedShopId(null);
+      setShowRadiusPrompt(false);
+      setSettingsOpen(false);
       setMode("consent");
     } catch {
       setError("Could not clear your area.");
@@ -179,72 +272,136 @@ export default function NearbyPage() {
   function selectShopFromMap(id: string) {
     setSelectedShopId(id);
     setTab("shops");
-    setSheetExpanded(true);
+    setSnap("mid");
     window.setTimeout(() => {
       document.getElementById(`shop-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       document.getElementById(`shop-${id}`)?.focus({ preventScroll: true });
-    }, 80);
+    }, 120);
+  }
+
+  function onTabChange(next: "shops" | "chat" | "reviews") {
+    setTab(next);
+    if (next === "chat") setSnap("full");
+    else if (snap === "peek") setSnap("mid");
+  }
+
+  function beginSheetDrag(e: React.PointerEvent) {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[role="tablist"]')) return;
+    const currentHeight = dragHeight ?? SNAP_HEIGHTS[effectiveSnap];
+    dragRef.current = {
+      startY: e.clientY,
+      startHeight: currentHeight,
+      pointerId: e.pointerId,
+      moved: false,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function moveSheetDrag(e: React.PointerEvent) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    const deltaPx = drag.startY - e.clientY;
+    if (!drag.moved && Math.abs(deltaPx) < 6) return;
+    drag.moved = true;
+    const deltaVh = (deltaPx / window.innerHeight) * 100;
+    const next = Math.max(16, Math.min(94, drag.startHeight + deltaVh));
+    setDragHeight(next);
+  }
+
+  function endSheetDrag(e: React.PointerEvent) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    dragRef.current = null;
+    if (!drag.moved) {
+      setDragHeight(null);
+      return;
+    }
+    const finalHeight = dragHeight ?? SNAP_HEIGHTS[effectiveSnap];
+    setDragHeight(null);
+    const nextSnap = nearestSnap(finalHeight);
+    setSnap(tab === "chat" && nextSnap === "peek" ? "mid" : nextSnap);
   }
 
   if (loading) {
     return (
       <main className="grid min-h-[100dvh] place-items-center bg-[var(--canvas)] p-4">
-        <p className="text-sm text-[var(--mute)]">Loading your area...</p>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-xl">
+            <MapPin className="h-6 w-6 text-[var(--accent-blue)]" strokeWidth={1.8} aria-hidden="true" />
+          </span>
+          <p className="text-sm font-medium text-[var(--ink)]">Loading area…</p>
+        </div>
       </main>
     );
   }
 
   if (!data) {
     return (
-      <main className="mobile-container">
-        <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-2 px-4 py-2.5 pt-[max(env(safe-area-inset-top),10px)]">
+      <main className="relative min-h-[100dvh] overflow-hidden bg-[var(--canvas)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_20%_0%,rgba(87,193,255,0.16),transparent_60%),radial-gradient(ellipse_60%_40%_at_100%_20%,rgba(255,255,255,0.06),transparent_55%)]" aria-hidden="true" />
+        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col px-4 pb-8 pt-[max(env(safe-area-inset-top),16px)]">
+          <header className="flex items-center gap-3 py-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-xl">
+              <MapPin className="h-5 w-5 text-[var(--ink)]" strokeWidth={1.8} aria-hidden="true" />
+            </span>
             <div>
-              <h1 className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">Nearby</h1>
-              <p className="text-[11px] tracking-[0.3px] text-[var(--ash)]">
-                Chhatrapati Sambhajinagar
+              <h1 className="text-[15px] font-semibold tracking-[0.1px] text-[var(--ink)]">Nearby</h1>
+              <p className="text-[12px] text-[var(--mute)]">Chhatrapati Sambhajinagar</p>
+            </div>
+          </header>
+
+          <div className="flex flex-1 flex-col justify-center py-6">
+            <div className="mb-5">
+              <h2 className="max-w-[16ch] text-balance text-[clamp(1.75rem,5vw,2.4rem)] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]">
+                Shops, chat, and reviews nearby
+              </h2>
+              <p className="mt-2 max-w-md text-[14px] leading-relaxed text-[var(--body-text)]">
+                Set an approximate area. Your exact location isn&apos;t stored.
               </p>
             </div>
-          </div>
-        </header>
 
-        <div className="mx-auto w-full max-w-2xl flex-1 space-y-3 px-4 py-6">
-          <div className="mb-2">
-            <p className="text-label">Local discovery</p>
-            <h2 className="mt-1 text-h2">Shops and rooms around you</h2>
-            <p className="mt-1.5 text-body-sm text-[var(--mute)]">
-              Approximate area only. Set your location or pick an area to start.
-            </p>
+            {mode === "consent" ? (
+              <AreaConsent
+                onUseLocation={useLocation}
+                onChooseManually={() => setMode("pick")}
+                busy={busy}
+                error={error}
+              />
+            ) : (
+              <AreaPicker
+                onCancel={() => setMode("consent")}
+                onPick={async (result) => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    await resolveFromCoords(result.lat, result.lng);
+                    setMode("consent");
+                    setShowRadiusPrompt(true);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Could not set your area.");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              />
+            )}
           </div>
-
-          {mode === "consent" ? (
-            <AreaConsent
-              onUseLocation={useLocation}
-              onChooseManually={() => setMode("pick")}
-              busy={busy}
-              error={error}
-            />
-          ) : (
-            <AreaPicker
-              onCancel={() => setMode("consent")}
-              onPick={async (result) => {
-                setBusy(true);
-                setError(null);
-                try {
-                  await resolveFromCoords(result.lat, result.lng);
-                  setMode("consent");
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : "Could not set your area.");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            />
-          )}
         </div>
       </main>
     );
   }
+
+  const sheetHeight = dragHeight ?? SNAP_HEIGHTS[effectiveSnap];
+  const isPeek = effectiveSnap === "peek" && !dragHeight;
+
+  const peekSummary =
+    tab === "shops"
+      ? `${displayedShops.length} ${displayedShops.length === 1 ? "place" : "places"} within ${formatRadiusLabel(effectiveRadius)}`
+      : tab === "chat"
+        ? `Chat in ${data.localityName || "your area"}`
+        : `Reviews for ${data.localityName || "your area"}`;
 
   return (
     <main className="relative h-[100dvh] w-full overflow-hidden bg-[var(--canvas)]">
@@ -258,114 +415,230 @@ export default function NearbyPage() {
         />
       </div>
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b from-[rgba(7,8,10,0.92)] to-transparent p-3 pb-10">
-        <div className="pointer-events-auto rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[rgba(13,13,13,0.9)] px-3 py-2 backdrop-blur-md">
-          <h1 className="text-[13px] font-medium tracking-[0.2px] text-[var(--ink)]">Nearby</h1>
-          <p className="text-[11px] tracking-[0.3px] text-[var(--mute)]">
-            {data.localityName || "Your area"} · Chhatrapati Sambhajinagar
-          </p>
-        </div>
-        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-          <div
-            className="inline-flex items-center gap-0.5 rounded-full border border-[var(--hairline)] bg-[rgba(13,13,13,0.9)] p-1 backdrop-blur-md"
-            role="group"
-            aria-label="Map label language"
-          >
-            <button
-              type="button"
-              className={`pill-tab ${language === "en" ? "pill-tab-active" : ""}`}
-              aria-pressed={language === "en"}
-              onClick={() => setLanguage("en")}
-            >
-              English
-            </button>
-            <button
-              type="button"
-              className={`pill-tab ${language === "hi" ? "pill-tab-active" : ""}`}
-              aria-pressed={language === "hi"}
-              onClick={() => setLanguage("hi")}
-            >
-              हिंदी
-            </button>
-          </div>
+      {/* Floating top bar */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-gradient-to-b from-black/55 via-black/15 to-transparent px-3 pb-16 pt-[max(env(safe-area-inset-top),12px)]">
+        <button
+          type="button"
+          className="pointer-events-auto flex min-w-0 max-w-[68%] items-center gap-2 rounded-full border border-white/15 bg-white/10 p-1.5 pr-3 text-left shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 active:scale-[0.99]"
+          onClick={() => setSnap((s) => (s === "peek" ? "mid" : s))}
+          aria-label={`Area ${data.localityName || "Your area"}. ${displayedShops.length} places nearby. Tap to show details.`}
+        >
+          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] text-[var(--accent-blue)] ring-1 ring-white/15">
+            <MapPin className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-semibold text-[var(--ink)]">
+              {data.localityName || "Your area"}
+            </span>
+            <span className="block truncate text-[11px] text-white/70">
+              {displayedShops.length} places nearby
+            </span>
+          </span>
+        </button>
+
+        <div className="pointer-events-auto relative">
           <button
             type="button"
-            className="btn btn-sm btn-tertiary backdrop-blur-md"
-            onClick={() => {
-              setData(null);
-              setSelectedRadius(null);
-              setSelectedShopId(null);
-              setMode("consent");
-            }}
+            className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white shadow-[0_8px_32px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 transition-colors ${settingsOpen ? "bg-white/20" : "hover:bg-white/15"}`}
+            aria-label={settingsOpen ? "Close map settings" : "Map and area settings"}
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen((v) => !v)}
           >
-            Change area
+            <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
           </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-tertiary backdrop-blur-md"
-            onClick={() => void clearArea()}
-            disabled={busy}
-          >
-            Clear
-          </button>
+
+          {settingsOpen ? (
+            <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[min(19rem,calc(100vw-1.5rem))] rounded-[22px] border border-white/12 bg-[rgba(20,20,22,0.72)] p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150">
+              <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                <p className="text-[13px] font-medium text-white">Map settings</p>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  aria-label="Close settings"
+                  onClick={() => setSettingsOpen(false)}
+                >
+                  <X className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-white/10 bg-white/6 p-2.5">
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.35px] text-white/55">Map labels</p>
+                  <div className="grid grid-cols-2 gap-1 rounded-xl bg-white/6 p-1" role="group" aria-label="Map label language">
+                    <button
+                      type="button"
+                      className={`min-h-[38px] rounded-lg px-3 text-[13px] font-medium transition-colors ${language === "en" ? "bg-white/18 text-white" : "text-white/70"}`}
+                      aria-pressed={language === "en"}
+                      onClick={() => setLanguage("en")}
+                    >
+                      English
+                    </button>
+                    <button
+                      type="button"
+                      className={`min-h-[38px] rounded-lg px-3 text-[13px] font-medium transition-colors ${language === "hi" ? "bg-white/18 text-white" : "text-white/70"}`}
+                      aria-pressed={language === "hi"}
+                      onClick={() => setLanguage("hi")}
+                    >
+                      हिंदी
+                    </button>
+                  </div>
+                </div>
+
+                <label className="block rounded-2xl border border-white/10 bg-white/6 p-2.5">
+                  <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.35px] text-white/55">Search radius</span>
+                  <select
+                    className="field min-h-[42px] w-full rounded-xl border-white/12 bg-white/8 text-[14px] text-white"
+                    value={effectiveRadius}
+                    onChange={(e) => setSelectedRadius(Number(e.target.value))}
+                  >
+                    {RADIUS_STEPS_M.map((r) => (
+                      <option key={r} value={r} className="bg-[#141416] text-white">
+                        {formatRadiusLabel(r)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="rounded-2xl border border-white/10 bg-white/6 p-2.5">
+                  <PresenceOptIn
+                    checked={Boolean(data.showPresence)}
+                    onChange={(next) => void togglePresence(next)}
+                    disabled={busy}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-tertiary min-h-[42px] justify-center rounded-xl border-white/12 bg-white/8 text-[13px]"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      setData(null);
+                      setSelectedRadius(1000);
+                      setSelectedShopId(null);
+                      setShowRadiusPrompt(false);
+                      setSnap("peek");
+                      setMode("consent");
+                    }}
+                  >
+                    Change area
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-tertiary min-h-[42px] justify-center rounded-xl border-white/12 bg-white/8 text-[13px] text-[var(--accent-red)]"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      void clearArea();
+                    }}
+                    disabled={busy}
+                  >
+                    <RotateCcw className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                    Clear
+                  </button>
+                </div>
+
+                {error ? (
+                  <p className="px-1 text-[12px] text-[var(--accent-red)]" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </header>
+
+      {settingsOpen ? (
+        <button
+          type="button"
+          aria-label="Close settings"
+          className="absolute inset-0 z-[15] cursor-default bg-transparent"
+          onClick={() => setSettingsOpen(false)}
+        />
+      ) : null}
 
       <section
         id="nearby-sheet"
         aria-label="Nearby area"
-        className={`absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-3xl flex-col rounded-t-[var(--radius-xl)] border border-b-0 border-[var(--hairline)] bg-[var(--surface)] transition-[height] duration-200 ${
-          sheetExpanded ? "h-[82dvh]" : "h-[46dvh]"
-        }`}
+        className="absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-3xl flex-col rounded-t-[28px] border border-b-0 border-white/12 bg-[rgba(20,20,22,0.62)] shadow-[0_-18px_50px_rgba(0,0,0,0.42)] backdrop-blur-2xl backdrop-saturate-150"
+        style={{
+          height: `${sheetHeight}dvh`,
+          transition: dragHeight != null ? "none" : "height 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
       >
-        <button
-          type="button"
-          className="mx-auto mt-2 flex h-8 w-full items-center justify-center"
-          aria-expanded={sheetExpanded}
-          aria-controls="nearby-sheet-content"
-          onClick={() => setSheetExpanded((v) => !v)}
+        <div
+          className="touch-none select-none px-4 pb-1 pt-2"
+          onPointerDown={beginSheetDrag}
+          onPointerMove={moveSheetDrag}
+          onPointerUp={endSheetDrag}
+          onPointerCancel={endSheetDrag}
         >
-          <span className="h-1.5 w-12 rounded-full bg-[var(--stone)]" aria-hidden="true" />
-          <span className="sr-only">{sheetExpanded ? "Collapse panel" : "Expand panel"}</span>
-        </button>
+          <button
+            type="button"
+            className="mx-auto flex h-7 w-full items-center justify-center"
+            aria-expanded={!isPeek}
+            aria-controls="nearby-sheet-content"
+            onClick={() => {
+              setSnap((s) => {
+                if (s === "peek") return "mid";
+                if (s === "mid") return tab === "chat" ? "full" : "full";
+                return "mid";
+              });
+            }}
+          >
+            <span className="h-1.5 w-12 rounded-full bg-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" aria-hidden="true" />
+            <span className="sr-only">{isPeek ? "Expand panel" : "Change panel size"}</span>
+          </button>
 
-        <div className="px-4">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 rounded-2xl px-1 pb-2 pt-1 text-left"
+            onClick={() => setSnap((s) => (s === "peek" ? "mid" : s))}
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold text-white">
+                {tab === "shops" ? "Nearby places" : tab === "chat" ? "Area chat" : "Area reviews"}
+              </span>
+              <span className="block truncate text-[12px] text-white/65">{peekSummary}</span>
+            </span>
+            <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/8 text-white/70 transition-transform ${isPeek ? "" : "rotate-180"}`}>
+              <ChevronDown className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            </span>
+          </button>
+
           <div
             role="tablist"
             aria-label="Nearby sections"
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] p-1"
+            className="grid grid-cols-3 gap-1.5 rounded-2xl border border-white/10 bg-white/8 p-1.5 backdrop-blur-xl"
           >
             <button
               type="button"
               role="tab"
               aria-selected={tab === "shops"}
-              className={`pill-tab ${tab === "shops" ? "pill-tab-active" : ""}`}
-              onClick={() => setTab("shops")}
+              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors ${tab === "shops" ? "bg-white/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "text-white/65 hover:text-white/85"}`}
+              onClick={() => onTabChange("shops")}
             >
+              <Store className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
               Shops
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={tab === "chat"}
-              className={`pill-tab ${tab === "chat" ? "pill-tab-active" : ""}`}
-              onClick={() => {
-                setTab("chat");
-                setSheetExpanded(true);
-              }}
+              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors ${tab === "chat" ? "bg-white/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "text-white/65 hover:text-white/85"}`}
+              onClick={() => onTabChange("chat")}
             >
+              <MessageCircle className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
               Chat
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={tab === "reviews"}
-              className={`pill-tab ${tab === "reviews" ? "pill-tab-active" : ""}`}
-              onClick={() => {
-                setTab("reviews");
-                setSheetExpanded(true);
-              }}
+              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors ${tab === "reviews" ? "bg-white/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "text-white/65 hover:text-white/85"}`}
+              onClick={() => onTabChange("reviews")}
             >
+              <Star className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
               Reviews
             </button>
           </div>
@@ -374,52 +647,40 @@ export default function NearbyPage() {
         <div
           id="nearby-sheet-content"
           className={`flex-1 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${
-            tab === "chat" ? "overflow-hidden" : "overflow-y-auto"
+            isPeek ? "overflow-hidden" : tab === "chat" ? "overflow-hidden" : "overflow-y-auto"
           }`}
         >
-          {tab === "shops" ? (
+          {isPeek ? (
+            <div className="pt-2">
+              <p className="text-[13px] text-white/65">
+                {tab === "shops"
+                  ? "Swipe up to browse places, filters, and ratings."
+                  : tab === "chat"
+                    ? "Open chat to talk with people in this area."
+                    : "Swipe up to read and write reviews."}
+              </p>
+            </div>
+          ) : tab === "shops" ? (
             <>
-              <div className="mt-3">
-                <AreaRating />
-              </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[13px] text-[var(--body-text)]">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[12px] text-white/80">
                   {shopResult ? shopRadiusMessage(shopResult) : "Loading shops..."}
-                </p>
-                <label className="flex items-center gap-2 text-[12px] tracking-[0.3px] text-[var(--mute)]">
-                  Radius
-                  <select
-                    className="field w-auto min-h-[32px] py-1 pl-2.5 text-[13px]"
-                    value={effectiveRadius}
-                    onChange={(e) => setSelectedRadius(Number(e.target.value))}
-                  >
-                    {RADIUS_STEPS_M.map((r) => (
-                      <option key={r} value={r}>
-                        {formatRadiusLabel(r)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 text-[12px] font-medium text-white/85 hover:bg-white/12"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+                  Radius &amp; area
+                </button>
               </div>
-              <p className="mt-1 text-[12px] tracking-[0.3px] text-[var(--mute)]">
+              <p className="mt-2 text-[12px] tracking-[0.2px] text-white/55">
                 {peopleChoice ? peopleMessage(peopleChoice, Boolean(data.showPresence)) : "Checking nearby activity..."}
               </p>
 
-              <div className="card-elevated mt-3 p-3">
-                <PresenceOptIn
-                  checked={Boolean(data.showPresence)}
-                  onChange={(next) => void togglePresence(next)}
-                  disabled={busy}
-                />
-                <p className="mt-2 text-[11px] leading-relaxed tracking-[0.2px] text-[var(--ash)]">
-                  Distances are approximate from your area centre. Map data © OpenStreetMap contributors.
-                  Boundaries shown by the base map are not a legal claim.
-                </p>
-                {error ? (
-                  <p className="mt-2 text-[13px] text-[var(--accent-red)]" role="alert">
-                    {error}
-                  </p>
-                ) : null}
+              <div className="mt-3">
+                <AreaRating />
               </div>
 
               <div className="mt-4">
@@ -429,16 +690,20 @@ export default function NearbyPage() {
                   selectedShopId={selectedShopId}
                 />
               </div>
+
+              <p className="mt-4 pb-2 text-[11px] leading-relaxed tracking-[0.2px] text-white/45">
+                Distances are approximate from your area centre. Map data © OpenStreetMap contributors.
+              </p>
             </>
           ) : tab === "reviews" ? (
             <>
-              <div className="mt-3">
+              <div className="mt-2">
                 <AreaRating />
               </div>
               <AreaReviews localityName={data.localityName || "Your area"} />
             </>
           ) : data.areaIds ? (
-            <div className="mt-3 h-full min-h-0 pb-2">
+            <div className="mt-2 h-full min-h-0 pb-2">
               <AreaChat
                 areaIds={data.areaIds}
                 localityName={data.localityName || "Your area"}
@@ -446,8 +711,11 @@ export default function NearbyPage() {
                 onPresenceChange={async (next) => {
                   await togglePresence(next);
                 }}
-                onSheetActive={() => setSheetExpanded(true)}
-                onClearArea={() => void clearArea()}
+                onSheetActive={() => setSnap("full")}
+                onClearArea={() => {
+                  setSettingsOpen(false);
+                  void clearArea();
+                }}
               />
             </div>
           ) : (
@@ -455,6 +723,43 @@ export default function NearbyPage() {
           )}
         </div>
       </section>
+
+      {showRadiusPrompt ? (
+        <div
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="radius-prompt-title"
+        >
+          <div className="w-full max-w-sm rounded-[24px] border border-white/12 bg-[rgba(20,20,22,0.82)] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+            <h2 id="radius-prompt-title" className="text-[16px] font-semibold text-white">
+              Area set
+            </h2>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-white/75">
+              Want to change the search radius? Default is 1 km.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className="btn btn-tertiary min-h-[44px] justify-center rounded-xl border-white/12 bg-white/8"
+                onClick={() => setShowRadiusPrompt(false)}
+              >
+                Keep 1 km
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary min-h-[44px] justify-center rounded-xl"
+                onClick={() => {
+                  setShowRadiusPrompt(false);
+                  setSettingsOpen(true);
+                }}
+              >
+                Change radius
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

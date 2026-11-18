@@ -39,12 +39,12 @@ export default function ChatDiscoveryPage({
   return (
     <div className="mobile-container">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
           <div className="flex min-w-0 items-center gap-2">
             <Link
               href="/home"
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              className="btn btn-icon btn-secondary text-white/80"
               aria-label="Back to feed"
             >
               <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -53,12 +53,12 @@ export default function ChatDiscoveryPage({
               <span className="block truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
                 Chat rooms
               </span>
-              <span className="block truncate text-[11px] tracking-[0.3px] text-[var(--ash)]">
+              <span className="block truncate text-[11px] tracking-[0.3px] text-white/60">
                 City channels
               </span>
             </span>
           </div>
-          <span className="badge badge-success flex-none">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-[var(--accent-green-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent-green)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
             live
           </span>
@@ -139,7 +139,7 @@ export default function ChatDiscoveryPage({
                       className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-2.5 py-2.5 transition-colors hover:bg-[var(--surface-card)]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <span className="app-tile h-10 w-10 min-h-0 rounded-[var(--radius-md)] text-[var(--mute)]">
+                        <span className="flex h-10 w-10 min-h-0 items-center justify-center rounded-2xl border border-white/10 bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
                           <Users className="h-[18px] w-[18px]" strokeWidth={1.8} />
                         </span>
                         <span className="min-w-0">

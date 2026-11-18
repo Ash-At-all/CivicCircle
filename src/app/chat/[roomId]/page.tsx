@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Lock, Send, Paperclip, ShieldCheck, ChevronDown } from "lucide-react";
+import { DefaultAvatar } from "@/components/ui/default-avatar";
 
 type Message = {
   id: string;
@@ -208,27 +209,37 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
           messages.map((m) => (
             <div
               key={m.id}
-              className={`flex flex-col ${m.fromYou ? "items-end" : "items-start"}`}
+              className={`flex w-full ${m.fromYou ? "justify-end" : "justify-start"}`}
             >
               {!m.fromYou && (
-                <span className="mb-1 ml-1 text-[11px] font-medium tracking-[0.3px] text-[var(--mute)]">
-                  {m.author}
-                </span>
+                <DefaultAvatar
+                  name={m.author}
+                  seed={m.author_username || m.author}
+                  size="sm"
+                  className="mr-2 mt-5 shrink-0"
+                />
               )}
-              <div
-                className={`max-w-[82%] rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[14px] leading-relaxed ${
-                  m.fromYou
-                    ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                    : "border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--body-text)]"
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words">{m.body}</p>
+              <div className={`flex min-w-0 max-w-[82%] flex-col ${m.fromYou ? "items-end" : "items-start"}`}>
+                {!m.fromYou && (
+                  <span className="mb-1 ml-0.5 text-[11px] font-medium tracking-[0.3px] text-[var(--mute)]">
+                    {m.author}
+                  </span>
+                )}
                 <div
-                  className={`mt-1 text-right text-[10px] tracking-[0.2px] ${
-                    m.fromYou ? "text-black/55" : "text-[var(--ash)]"
+                  className={`max-w-full rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[14px] leading-relaxed ${
+                    m.fromYou
+                      ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                      : "border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--body-text)]"
                   }`}
                 >
-                  {m.time}
+                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  <div
+                    className={`mt-1 text-right text-[10px] tracking-[0.2px] ${
+                      m.fromYou ? "text-black/55" : "text-[var(--ash)]"
+                    }`}
+                  >
+                    {m.time}
+                  </div>
                 </div>
               </div>
             </div>

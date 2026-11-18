@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ShopCard, type ShopLanguage } from "./ShopCard";
 import { SHOP_CATEGORIES, SHOP_CATEGORY_LABELS, type ShopCategory } from "@/features/shops/categories";
 import type { NearbyShop } from "@/features/shops/types";
 
 type SortMode = "nearest" | "name";
+
+const RECENT_SHOP_SEARCHES_KEY = "civiccircle-shop-searches";
 
 export function ShopsList({
   shops,
@@ -19,6 +21,32 @@ export function ShopsList({
   const [category, setCategory] = useState<ShopCategory | "all">("all");
   const [sort, setSort] = useState<SortMode>("nearest");
   const [query, setQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(RECENT_SHOP_SEARCHES_KEY);
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed.filter((v): v is string => typeof v === "string").slice(0, 5));
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  function rememberSearch(value: string) {
+    const q = value.trim();
+    if (q.length < 2) return;
+    setRecentSearches((prev) => {
+      const next = [q, ...prev.filter((s) => s.toLowerCase() !== q.toLowerCase())].slice(0, 5);
+      try {
+        window.localStorage.setItem(RECENT_SHOP_SEARCHES_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -45,13 +73,13 @@ export function ShopsList({
         <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
           Category
           <select
-            className="field mt-1"
+            className="field mt-1 text-white"
             value={category}
             onChange={(e) => setCategory(e.target.value as ShopCategory | "all")}
           >
-            <option value="all">{SHOP_CATEGORY_LABELS.all}</option>
+            <option value="all" className="bg-[#141416] text-white">{SHOP_CATEGORY_LABELS.all}</option>
             {SHOP_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
+              <option key={c} value={c} className="bg-[#141416] text-white">
                 {SHOP_CATEGORY_LABELS[c]}
               </option>
             ))}
@@ -60,12 +88,12 @@ export function ShopsList({
         <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
           Sort
           <select
-            className="field mt-1"
+            className="field mt-1 text-white"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortMode)}
           >
-            <option value="nearest">Nearest first</option>
-            <option value="name">Name A to Z</option>
+            <option value="nearest" className="bg-[#141416] text-white">Nearest first</option>
+            <option value="name" className="bg-[#141416] text-white">Name A to Z</option>
           </select>
         </label>
         <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
@@ -76,22 +104,61 @@ export function ShopsList({
             placeholder="Search name or address"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") rememberSearch(query);
+            }}
+            onBlur={() => rememberSearch(query)}
           />
         </label>
       </div>
+
+      {recentSearches.length > 0 && !query.trim() ? (
+        <div className="mt-3">
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.35px] text-[var(--mute)]">Recent searches</p>
+          <div className="flex flex-wrap gap-2">
+            {recentSearches.map((term) => (
+              <button
+                key={term}
+                type="button"
+                className="inline-flex min-h-[32px] items-center rounded-full border border-white/10 bg-white/6 px-3 text-[12px] text-[var(--body-text)] hover:bg-white/10"
+                onClick={() => setQuery(term)}
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <p className="mt-3 text-[12px] tracking-[0.3px] text-[var(--mute)]" aria-live="polite">
         {filtered.length} of {shops.length} shop{shops.length === 1 ? "" : "s"} shown
       </p>
 
       {shops.length === 0 ? (
-        <p className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-[13px] text-[var(--mute)]">
-          No shops are listed within 50 km yet.
-        </p>
+        <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-center">
+          <p className="text-[14px] font-medium text-[var(--ink)]">No shops in this radius yet</p>
+          <p className="mt-1 text-[13px] text-[var(--mute)]">
+            Try increasing the search radius in map settings or check again later.
+          </p>
+        </div>
       ) : filtered.length === 0 ? (
-        <p className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-[13px] text-[var(--mute)]">
-          No shops match these filters.
-        </p>
+        <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-center">
+          <p className="text-[14px] font-medium text-[var(--ink)]">No shops match your filters</p>
+          <p className="mt-1 text-[13px] text-[var(--mute)]">
+            Try a different name, category, or sort option.
+          </p>
+          <button
+            type="button"
+            className="btn btn-sm btn-tertiary mx-auto mt-3"
+            onClick={() => {
+              setQuery("");
+              setCategory("all");
+              setSort("nearest");
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="mt-3 grid gap-2.5">
           {filtered.map((shop) => (

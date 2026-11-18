@@ -124,17 +124,17 @@ export default function RootPage() {
 
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-col px-5 sm:px-8">
         {/* Top bar */}
-        <header className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--hairline-strong)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />
+        <header className="mt-3 flex items-center justify-between gap-3 rounded-full border border-white/12 bg-white/8 px-3 py-2 backdrop-blur-2xl backdrop-saturate-150">
+          <div className="flex items-center gap-2.5 pl-1">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] ring-1 ring-white/10">
+              <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent-green)]" />
             </span>
             <span className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
               CivicCircle
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Link href="/privacy" className="btn btn-sm btn-secondary text-[var(--mute)]">
+            <Link href="/privacy" className="btn btn-sm btn-secondary text-white/80">
               Privacy
             </Link>
             <Link href="/onboarding" className="btn btn-sm btn-primary">
@@ -147,9 +147,9 @@ export default function RootPage() {
         <main className="flex flex-1 flex-col justify-center py-16 sm:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
             <div className="min-w-0">
-              <p className="inline-flex items-center gap-2 rounded-[var(--radius-xs)] border border-[var(--hairline)] bg-[var(--surface)] px-2 py-1 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--mute)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
-                Now live in Chhatrapati Sambhajinagar
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[12px] font-medium text-white/85 backdrop-blur-xl">
+                <span className="h-2 w-2 rounded-full bg-[var(--accent-green)]" />
+                Live in Chhatrapati Sambhajinagar
               </p>
 
               <h1 className="mt-5 max-w-[16ch] text-balance text-display">
@@ -270,21 +270,28 @@ export default function RootPage() {
 
         {/* Feature strip */}
         <section className="grid grid-cols-1 gap-3 pb-12 sm:grid-cols-3">
-          {FEATURES.map(({ icon: Icon, title, copy }) => (
-            <div key={title} className="card p-4 sm:p-5">
-              <span className="app-tile mb-3 h-9 w-9 min-h-0 text-[var(--ink)]">
-                <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              </span>
-              <h2 className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
-                {title}
-              </h2>
-              <p className="mt-1 text-[13px] leading-relaxed text-[var(--mute)]">{copy}</p>
-            </div>
-          ))}
+          {FEATURES.map(({ icon: Icon, title, copy }, i) => {
+            const colors = [
+              "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]",
+              "bg-[var(--accent-green-soft)] text-[var(--accent-green)]",
+              "bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]",
+            ];
+            return (
+              <div key={title} className="card p-4 sm:p-5">
+                <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 ${colors[i % colors.length]}`}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                </span>
+                <h2 className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
+                  {title}
+                </h2>
+                <p className="mt-1 text-[13px] leading-relaxed text-[var(--mute)]">{copy}</p>
+              </div>
+            );
+          })}
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--hairline)] py-5 text-[11px] tracking-[0.3px] text-[var(--ash)]">
-          <span>CivicCircle · Preview</span>
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 py-5 text-[11px] tracking-[0.3px] text-white/60">
+          <span>CivicCircle</span>
           <span className="flex items-center gap-4">
             <Link href="/privacy" className="transition-colors hover:text-[var(--ink)]">
               Privacy
