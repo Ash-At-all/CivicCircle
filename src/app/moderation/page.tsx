@@ -25,7 +25,7 @@ type Analytics = {
 
 type Report = {
   id: string;
-  type: "post" | "comment" | "message" | "review";
+  type: "post" | "comment" | "message";
   targetId: string;
   targetContent: string;
   reason: string;
@@ -53,7 +53,6 @@ const TYPE_LABELS: Record<Report["type"], string> = {
   post: "Post",
   comment: "Comment",
   message: "Chat message",
-  review: "Review",
 };
 
 const STATUS_FILTERS = ["open", "reviewed", "actioned", "all"] as const;

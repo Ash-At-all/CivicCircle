@@ -9,10 +9,10 @@ function friendlyMessage(label: string, retryAfter: number) {
   if (label === "sending messages") {
     return `You are sending messages too quickly. Try again in ${retryAfter} ${unit}.`;
   }
-  if (label === "rating areas") {
+  if (label === "rating shops") {
     return `You are rating too often. Try again in ${retryAfter} ${unit}.`;
   }
-  if (label === "reviewing areas") {
+  if (label === "reviewing shops") {
     return `You are reviewing too often. Try again in ${retryAfter} ${unit}.`;
   }
   return `You are doing that too quickly. Try again in ${retryAfter} ${unit}.`;

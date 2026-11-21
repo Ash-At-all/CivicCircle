@@ -14,8 +14,5 @@ export type HighlightsResponse = {
     busy: boolean;
     localityName: string | null;
   };
-  reviews: {
-    recent: number;
-  };
   generatedAt: string;
 };

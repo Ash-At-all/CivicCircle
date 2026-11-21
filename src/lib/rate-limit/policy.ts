@@ -14,8 +14,6 @@ export type RateLimitAction =
   | "areaNearby"
   | "areaMessagesRead"
   | "areaMessageSend"
-  | "areaRating"
-  | "areaReview"
   | "presenceHeartbeat"
   | "presenceStop"
   | "areaReport"
@@ -27,6 +25,8 @@ export type RateLimitAction =
   | "shopCreate"
   | "shopCorrect"
   | "shopPhoto"
+  | "shopRating"
+  | "shopReview"
   | "areaCreate";
 
 type Policy = {
@@ -57,8 +57,6 @@ export const RATE_LIMIT_POLICIES: Record<RateLimitAction, Policy> = {
   areaNearby: { action: "area-nearby", limit: 240, windowSeconds: 3600, label: "loading nearby places" },
   areaMessagesRead: { action: "area-messages-read", limit: 600, windowSeconds: 3600, label: "loading messages" },
   areaMessageSend: { action: "area-message-send", limit: 30, windowSeconds: 60, label: "sending messages" },
-  areaRating: { action: "area-rating", limit: 10, windowSeconds: 3600, label: "rating areas" },
-  areaReview: { action: "area-review", limit: 5, windowSeconds: 3600, label: "reviewing areas" },
   presenceHeartbeat: { action: "presence-heartbeat", limit: 4, windowSeconds: 60, label: "presence updates" },
   presenceStop: { action: "presence-stop", limit: 10, windowSeconds: 3600, label: "updating presence" },
   areaReport: { action: "area-report", limit: 10, windowSeconds: 3600, label: "reporting" },
@@ -70,5 +68,7 @@ export const RATE_LIMIT_POLICIES: Record<RateLimitAction, Policy> = {
   shopCreate: { action: "shop-create", limit: 3, windowSeconds: 86400, label: "adding shops" },
   shopCorrect: { action: "shop-correct", limit: 10, windowSeconds: 3600, label: "shop corrections" },
   shopPhoto: { action: "shop-photo", limit: 10, windowSeconds: 86400, label: "shop photos" },
+  shopRating: { action: "shop-rating", limit: 20, windowSeconds: 3600, label: "rating shops" },
+  shopReview: { action: "shop-review", limit: 10, windowSeconds: 3600, label: "reviewing shops" },
   areaCreate: { action: "area-create", limit: 60, windowSeconds: 86400, label: "area updates" },
 };

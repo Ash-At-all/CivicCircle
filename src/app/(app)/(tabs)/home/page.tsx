@@ -339,17 +339,6 @@ function HomeContent() {
       });
     }
 
-    if (activity?.reviews.recent) {
-      items.push({
-        id: "reviews",
-        title: "New area reviews",
-        detail: `${activity.reviews.recent} in the last 48 hours`,
-        href: "/nearby",
-        icon: "star",
-        accent: "red",
-      });
-    }
-
     const topBoard = activity?.posts.byBoard.find((entry) => entry.slug !== activeTopic);
     if (topBoard) {
       const name = CITIES.find((city) => city.slug === topBoard.slug)?.name ?? topBoard.slug;

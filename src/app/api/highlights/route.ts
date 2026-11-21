@@ -16,7 +16,6 @@ function emptyResponse(): HighlightsResponse {
   return {
     posts: { total: 0, byBoard: [], topTag: null },
     chat: { recent: 0, busy: false, localityName: null },
-    reviews: { recent: 0 },
     generatedAt: new Date().toISOString(),
   };
 }
@@ -53,23 +52,17 @@ export async function GET() {
     const topTagEntry = [...tagCounts.entries()].sort((a, b) => b[1] - a[1])[0];
 
     let chat: HighlightsResponse["chat"] = { recent: 0, busy: false, localityName: null };
-    let reviews: HighlightsResponse["reviews"] = { recent: 0 };
 
     if (userResult?.user) {
       const ownArea = await loadOwnAreas(supabase, userResult.user.id);
       if (ownArea.ok) {
-        const [chatResult, reviewResult, areaResult] = await Promise.all([
+        const [chatResult, areaResult] = await Promise.all([
           supabase
             .from("messages")
             .select("id", { count: "exact", head: true })
             .eq("area_id", ownArea.areaIds.locality)
             .gte("created_at", chatSince)
             .is("deleted_at", null),
-          supabase
-            .from("area_reviews")
-            .select("id", { count: "exact", head: true })
-            .eq("area_id", ownArea.areaIds.locality)
-            .gte("created_at", postsSince),
           supabase.from("areas").select("name").eq("id", ownArea.areaIds.locality).maybeSingle(),
         ]);
 
@@ -80,7 +73,6 @@ export async function GET() {
           busy: recentChat >= CHAT_BUSY_THRESHOLD,
           localityName: areaName,
         };
-        reviews = { recent: reviewResult.count ?? 0 };
       }
     }
 
@@ -91,7 +83,6 @@ export async function GET() {
         topTag: topTagEntry ? { tag: topTagEntry[0], count: topTagEntry[1] } : null,
       },
       chat,
-      reviews,
       generatedAt: new Date().toISOString(),
     } satisfies HighlightsResponse);
   } catch (error) {

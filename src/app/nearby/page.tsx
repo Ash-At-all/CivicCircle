@@ -2,12 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapPin, RotateCcw, SlidersHorizontal, Store, MessageCircle, Star, X, ChevronDown } from "lucide-react";
+import { MapPin, RotateCcw, SlidersHorizontal, Store, MessageCircle, X, ChevronDown } from "lucide-react";
 import { AreaConsent, PresenceOptIn } from "@/components/area/area-consent";
 import { AreaPicker } from "@/components/area/area-picker";
 import { AreaChat } from "@/components/area/area-chat";
-import { AreaRating } from "@/components/area/area-rating";
-import { AreaReviews } from "@/components/area/area-reviews";
 import { ShopsList } from "@/components/shops/ShopsList";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { HighlightsStrip, type HighlightItem } from "@/components/highlights/highlights-strip";
@@ -91,7 +89,7 @@ export default function NearbyPage() {
   const [language, setLanguage] = useState<MapLanguage>("en");
   const [snap, setSnap] = useState<SheetSnap>("peek");
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"shops" | "chat" | "reviews">("shops");
+  const [tab, setTab] = useState<"shops" | "chat">("shops");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showRadiusPrompt, setShowRadiusPrompt] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
@@ -120,7 +118,7 @@ export default function NearbyPage() {
         if (storedLang === "en" || storedLang === "hi") setLanguage(storedLang);
 
         const storedTab = window.localStorage.getItem(NEARBY_PREF_KEYS.tab);
-        if (storedTab === "shops" || storedTab === "chat" || storedTab === "reviews") setTab(storedTab);
+        if (storedTab === "shops" || storedTab === "chat") setTab(storedTab);
 
         const storedSnap = window.localStorage.getItem(NEARBY_PREF_KEYS.snap);
         if (storedSnap === "peek" || storedSnap === "mid" || storedSnap === "full") setSnap(storedSnap);
@@ -254,16 +252,6 @@ export default function NearbyPage() {
       });
     }
 
-    if (activity?.reviews.recent) {
-      items.push({
-        id: "reviews",
-        title: "New area reviews",
-        detail: `${activity.reviews.recent} in the last 48 hours`,
-        icon: "star",
-        accent: "red",
-      });
-    }
-
     if (activity?.posts.topTag) {
       items.push({
         id: "tag",
@@ -370,7 +358,7 @@ export default function NearbyPage() {
     }, 120);
   }
 
-  function onTabChange(next: "shops" | "chat" | "reviews") {
+  function onTabChange(next: "shops" | "chat") {
     setTab(next);
     if (next === "chat") setSnap("full");
     else if (snap === "peek") setSnap("mid");
@@ -496,9 +484,7 @@ export default function NearbyPage() {
   const peekSummary =
     tab === "shops"
       ? `${displayedShops.length} ${displayedShops.length === 1 ? "place" : "places"} within ${formatRadiusLabel(effectiveRadius)}`
-      : tab === "chat"
-        ? `Chat in ${data.localityName || "your area"}`
-        : `Reviews for ${data.localityName || "your area"}`;
+      : `Chat in ${data.localityName || "your area"}`;
 
   return (
     <main className="relative h-[100dvh] w-full overflow-hidden bg-[var(--canvas)]">
@@ -696,7 +682,7 @@ export default function NearbyPage() {
           >
             <span className="min-w-0">
               <span className="block truncate text-[15px] font-semibold text-white">
-                {tab === "shops" ? "Nearby places" : tab === "chat" ? "Area chat" : "Area reviews"}
+                {tab === "shops" ? "Nearby places" : "Area chat"}
               </span>
               <span className="block truncate text-[12px] text-white/65">{peekSummary}</span>
             </span>
@@ -708,7 +694,7 @@ export default function NearbyPage() {
           <div
             role="tablist"
             aria-label="Nearby sections"
-            className="grid grid-cols-3 gap-1.5 rounded-2xl border border-white/10 bg-white/8 p-1.5 backdrop-blur-xl"
+            className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/10 bg-white/8 p-1.5 backdrop-blur-xl"
           >
             <button
               type="button"
@@ -730,16 +716,6 @@ export default function NearbyPage() {
               <MessageCircle className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
               Chat
             </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "reviews"}
-              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors ${tab === "reviews" ? "bg-white/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "text-white/65 hover:text-white/85"}`}
-              onClick={() => onTabChange("reviews")}
-            >
-              <Star className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-              Reviews
-            </button>
           </div>
         </div>
 
@@ -753,10 +729,8 @@ export default function NearbyPage() {
             <div className="pt-2">
               <p className="text-[13px] text-white/65">
                 {tab === "shops"
-                  ? "Swipe up to browse places, filters, and ratings."
-                  : tab === "chat"
-                    ? "Open chat to talk with people in this area."
-                    : "Swipe up to read and write reviews."}
+                  ? "Swipe up to browse places and details."
+                  : "Open chat to talk with people in this area."}
               </p>
             </div>
           ) : tab === "shops" ? (
@@ -782,10 +756,6 @@ export default function NearbyPage() {
                 <HighlightsStrip items={nearbyHighlights} glass />
               </div>
 
-              <div className="mt-3">
-                <AreaRating />
-              </div>
-
               <div className="mt-4">
                 <ShopsList
                   shops={displayedShops}
@@ -797,13 +767,6 @@ export default function NearbyPage() {
               <p className="mt-4 pb-2 text-[11px] leading-relaxed tracking-[0.2px] text-white/45">
                 Distances are approximate from your area centre. Map data © OpenStreetMap contributors.
               </p>
-            </>
-          ) : tab === "reviews" ? (
-            <>
-              <div className="mt-2">
-                <AreaRating />
-              </div>
-              <AreaReviews localityName={data.localityName || "Your area"} />
             </>
           ) : data.areaIds ? (
             <div className="mt-2 h-full min-h-0 pb-2">

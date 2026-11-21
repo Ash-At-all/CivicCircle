@@ -8,7 +8,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 4 * 1024;
 const reportSchema = z.object({
-  type: z.enum(["post", "comment", "message", "review"]),
+  type: z.enum(["post", "comment", "message"]),
   targetId: z.string().uuid(),
   reason: z.enum(["harassment", "hate", "spam", "personal-information", "violence", "other"]),
   details: z.string().trim().max(500).default(""),
@@ -18,7 +18,7 @@ const reportStatusSchema = z.object({
   status: z.enum(["reviewed", "actioned"]),
 }).strict();
 
-type ReportType = "post" | "comment" | "message" | "review";
+type ReportType = "post" | "comment" | "message";
 
 type ReportRow = {
   id: string;
@@ -34,15 +34,15 @@ type ReportRow = {
 
 type SupabaseServerClient = Awaited<ReturnType<typeof getSupabaseServerClient>>;
 
-function reportType(row: ReportRow): ReportType {
+function reportType(row: ReportRow): ReportType | null {
   if (row.post_id) return "post";
   if (row.comment_id) return "comment";
   if (row.message_id) return "message";
-  return "review";
+  return null;
 }
 
 function targetIdOf(row: ReportRow): string {
-  return row.post_id ?? row.comment_id ?? row.message_id ?? row.review_id ?? "";
+  return row.post_id ?? row.comment_id ?? row.message_id ?? "";
 }
 
 function previewText(value: string | null | undefined) {
@@ -53,7 +53,7 @@ function previewText(value: string | null | undefined) {
 
 async function loadPreviews(
   supabase: SupabaseServerClient,
-  table: "posts" | "post_comments" | "messages" | "area_reviews",
+  table: "posts" | "post_comments" | "messages",
   ids: string[],
 ) {
   if (ids.length === 0) return new Map<string, string>();
@@ -101,23 +101,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ isModerator, reports: [], analytics: emptyAnalytics() });
     }
 
-    const rows = (data ?? []) as ReportRow[];
-    const ids: Record<ReportType, string[]> = { post: [], comment: [], message: [], review: [] };
+    const rows = ((data ?? []) as ReportRow[]).filter((row) => reportType(row) !== null);
+    const ids: Record<ReportType, string[]> = { post: [], comment: [], message: [] };
     for (const row of rows) {
-      ids[reportType(row)].push(targetIdOf(row));
+      const type = reportType(row);
+      if (type) ids[type].push(targetIdOf(row));
     }
 
-    const [postPreviews, commentPreviews, messagePreviews, reviewPreviews] = await Promise.all([
+    const [postPreviews, commentPreviews, messagePreviews] = await Promise.all([
       loadPreviews(supabase, "posts", ids.post),
       loadPreviews(supabase, "post_comments", ids.comment),
       loadPreviews(supabase, "messages", ids.message),
-      loadPreviews(supabase, "area_reviews", ids.review),
     ]);
     const previews: Record<ReportType, Map<string, string>> = {
       post: postPreviews,
       comment: commentPreviews,
       message: messagePreviews,
-      review: reviewPreviews,
     };
 
     const byReason: Record<string, number> = {};
@@ -125,7 +124,7 @@ export async function GET(request: Request) {
     for (const row of rows) {
       byReason[row.reason] = (byReason[row.reason] ?? 0) + 1;
       const type = reportType(row);
-      byType[type] = (byType[type] ?? 0) + 1;
+      if (type) byType[type] = (byType[type] ?? 0) + 1;
     }
 
     return NextResponse.json({
@@ -138,20 +137,23 @@ export async function GET(request: Request) {
         byReason,
         byType,
       },
-      reports: rows.map((row) => {
-        const type = reportType(row);
-        const targetId = targetIdOf(row);
-        return {
-          id: row.id,
-          type,
-          targetId,
-          targetContent: previews[type].get(targetId) ?? "",
-          reason: row.reason,
-          details: row.details ?? "",
-          status: row.status,
-          created_at: row.created_at,
-        };
-      }),
+      reports: rows
+        .map((row) => {
+          const type = reportType(row);
+          if (!type) return null;
+          const targetId = targetIdOf(row);
+          return {
+            id: row.id,
+            type,
+            targetId,
+            targetContent: previews[type].get(targetId) ?? "",
+            reason: row.reason,
+            details: row.details ?? "",
+            status: row.status,
+            created_at: row.created_at,
+          };
+        })
+        .filter(Boolean),
     });
   } catch (error) {
     console.error("Report list error:", error);
@@ -176,9 +178,7 @@ export async function POST(request: Request) {
 
     const rateLimitResponse = await enforceRateLimit(
       supabase,
-      parsed.data.type === "message" || parsed.data.type === "review"
-        ? "areaReport"
-        : "reports",
+      parsed.data.type === "message" ? "areaReport" : "reports",
     );
     if (rateLimitResponse) return rateLimitResponse;
 
@@ -206,35 +206,6 @@ export async function POST(request: Request) {
       }
     }
 
-    if (parsed.data.type === "review") {
-      const ownArea = await loadOwnAreas(supabase, userResult.user.id);
-      if (!ownArea.ok) return ownArea.response;
-
-      const { data: review, error: reviewError } = await supabase
-        .from("area_reviews")
-        .select("id, user_id")
-        .eq("id", parsed.data.targetId)
-        .in("area_id", [
-          ownArea.areaIds.locality,
-          ownArea.areaIds.ward,
-          ownArea.areaIds.city,
-        ])
-        .maybeSingle();
-
-      if (reviewError) {
-        return NextResponse.json({ error: "Could not submit your report. Please try again." }, { status: 502 });
-      }
-      if (!review) {
-        return NextResponse.json({ error: "That review is not available to report." }, { status: 404 });
-      }
-      if ((review as { user_id: string }).user_id === userResult.user.id) {
-        return NextResponse.json(
-          { error: "You cannot report your own review.", code: "forbidden" },
-          { status: 403 },
-        );
-      }
-    }
-
     const insert: Record<string, unknown> = {
       reporter_id: userResult.user.id,
       reason: parsed.data.reason,
@@ -242,7 +213,7 @@ export async function POST(request: Request) {
       post_id: parsed.data.type === "post" ? parsed.data.targetId : null,
       comment_id: parsed.data.type === "comment" ? parsed.data.targetId : null,
       message_id: parsed.data.type === "message" ? parsed.data.targetId : null,
-      review_id: parsed.data.type === "review" ? parsed.data.targetId : null,
+      review_id: null,
     };
 
     const { data, error } = await supabase.from("reports").insert(insert).select("id, reason, details, status").single();

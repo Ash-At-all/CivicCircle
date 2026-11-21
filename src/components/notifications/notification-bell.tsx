@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Bell, BellRing, CheckCheck, MapPin, MessageSquare, Star, ShieldCheck, X } from "lucide-react";
+import { Bell, BellRing, CheckCheck, MapPin, MessageSquare, ShieldCheck, X } from "lucide-react";
 
 type Digest = {
   authRequired: boolean;
@@ -10,7 +10,6 @@ type Digest = {
   chatRecent: number;
   chatBusy: boolean;
   localityName: string | null;
-  reviews: number;
   serverTime: string | null;
 };
 
@@ -21,7 +20,6 @@ const EMPTY_DIGEST: Digest = {
   chatRecent: 0,
   chatBusy: false,
   localityName: null,
-  reviews: 0,
   serverTime: null,
 };
 
@@ -81,7 +79,6 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           authRequired?: boolean;
           replies?: { new?: number };
           chat?: { new?: number; recent?: number; busy?: boolean; localityName?: string | null };
-          reviews?: { new?: number };
           serverTime?: string;
         };
 
@@ -92,14 +89,13 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           chatRecent: json.chat?.recent ?? 0,
           chatBusy: Boolean(json.chat?.busy),
           localityName: json.chat?.localityName ?? null,
-          reviews: json.reviews?.new ?? 0,
           serverTime: json.serverTime ?? null,
         };
         setDigest(next);
         serverTimeRef.current = next.serverTime;
         setStatus(next.authRequired ? "Alerts need an active session. Reload the page and try again." : null);
 
-        const totalNew = next.replies + next.chatNew + next.reviews;
+        const totalNew = next.replies + next.chatNew;
         if (!openRef.current) setUnseen(totalNew);
 
         if (
@@ -116,9 +112,6 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           }
           if (next.chatNew > 0) {
             parts.push(`${next.chatNew} new area chat ${next.chatNew === 1 ? "message" : "messages"}`);
-          }
-          if (next.reviews > 0) {
-            parts.push(`${next.reviews} new ${next.reviews === 1 ? "review" : "reviews"} nearby`);
           }
           try {
             new Notification("CivicCircle", {
@@ -235,7 +228,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
     }
   }
 
-  const totalNew = digest.replies + digest.chatNew + digest.reviews;
+  const totalNew = digest.replies + digest.chatNew;
   const badge = open ? 0 : unseen;
   const BellIcon = enabled ? BellRing : Bell;
 
@@ -293,7 +286,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
               <div className="min-w-0">
                 <p className="text-[13px] font-medium text-white">Alerts on this device</p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-white/55">
-                  Replies, area chat spikes, and new reviews. No message contents.
+                  Replies and area chat spikes. No message contents.
                 </p>
               </div>
               <button
@@ -354,11 +347,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                   count={digest.chatNew}
                   detail={digest.chatRecent > 0 ? `${digest.chatRecent} messages in the last 30 minutes` : undefined}
                 />
-                <ActivityRow
-                  icon={<Star className="h-3.5 w-3.5" strokeWidth={1.8} />}
-                  label="New reviews nearby"
-                  count={digest.reviews}
-                />
+
 
                 {totalNew > 0 ? (
                   <button
