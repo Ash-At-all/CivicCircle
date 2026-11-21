@@ -16,6 +16,24 @@ const CITY_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const MAP_BACKGROUND_COLOR = "#0b1020";
+const WATER_COLOR = "#16283f";
+
+const SHOP_CATEGORY_INDEX: Record<string, number> = {
+  food: 0,
+  grocery: 1,
+  pharmacy: 2,
+  health: 3,
+  education: 4,
+  services: 5,
+  repair: 6,
+  salon: 7,
+  hardware: 8,
+  clothing: 9,
+  electronics: 10,
+  transport: 11,
+  other: 12,
+};
 
 function toFeatureCollection(shops: NearbyShop[]) {
   return {
@@ -27,6 +45,7 @@ function toFeatureCollection(shops: NearbyShop[]) {
         name: shop.name,
         name_hi: shop.name_hi || shop.name,
         category: shop.category,
+        categoryIndex: SHOP_CATEGORY_INDEX[shop.category] ?? 0,
       },
       geometry: {
         type: "Point" as const,
@@ -73,24 +92,97 @@ function labelExpression(language: MapLanguage) {
     : ["get", "name"];
 }
 
+class MapFloatControl implements maplibregl.IControl {
+  private containerEl: HTMLDivElement | null = null;
+
+  constructor(private readonly onLocate: (() => void) | null) {}
+
+  onAdd(map: maplibregl.Map): HTMLElement {
+    const el = document.createElement("div");
+    el.style.position = "absolute";
+    el.style.top = "12px";
+    el.style.right = "12px";
+    el.style.display = "flex";
+    el.style.flexDirection = "column";
+    el.style.gap = "8px";
+    el.style.zIndex = "4";
+
+    const button = (ariaLabel: string, onPress: () => void) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("aria-label", ariaLabel);
+      btn.style.width = "38px";
+      btn.style.height = "38px";
+      btn.style.borderRadius = "999px";
+      btn.style.border = "1px solid rgba(255,255,255,0.18)";
+      btn.style.backgroundColor = "rgba(16,17,17,0.85)";
+      btn.style.backdropFilter = "blur(12px)";
+      btn.style.color = "#f4f4f6";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "center";
+      btn.style.cursor = "pointer";
+      btn.style.padding = "0";
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "18");
+      svg.setAttribute("height", "18");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "2");
+      svg.setAttribute("strokeLinecap", "round");
+      svg.setAttribute("aria-hidden", "true");
+      svg.innerHTML = '<path d="M12 5v14M5 12h14"></path>';
+      btn.appendChild(svg);
+      btn.addEventListener("click", onPress);
+      el.appendChild(btn);
+    };
+
+    button("Zoom in", () => {
+      map.easeTo({ zoom: Math.min(map.getMaxZoom(), map.getZoom() + 1), duration: 180 });
+    });
+    button("Zoom out", () => {
+      map.easeTo({ zoom: Math.max(map.getMinZoom(), map.getZoom() - 1), duration: 180 });
+    });
+    button("Center map on your area", () => {
+      this.onLocate?.();
+    });
+
+    this.containerEl = el;
+    return el;
+  }
+
+  onRemove(): void {
+    this.containerEl?.remove();
+    this.containerEl = null;
+  }
+}
+
 export function NearbyMap({
   centroid,
   radiusM,
   shops,
   language = "en",
   onSelectShop,
+  onLocate,
 }: {
   centroid: { lat: number; lng: number };
   radiusM: number;
   shops: NearbyShop[];
   language?: MapLanguage;
   onSelectShop?: (id: string) => void;
+  onLocate?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const loadedRef = useRef(false);
   const languageRef = useRef<MapLanguage>(language);
   const dataRef = useRef({ centroid, radiusM, shops });
+  const onLocateRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    onLocateRef.current = onLocate ?? null;
+  }, [onLocate]);
 
   useEffect(() => {
     languageRef.current = language;
@@ -120,7 +212,7 @@ export function NearbyMap({
       attributionControl: false,
     });
     map.addControl(new maplibregl.AttributionControl({ compact: true }));
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new MapFloatControl(() => onLocateRef.current?.()), "top-right");
     map.dragRotate.disable();
     map.touchZoomRotate.disableRotation();
     mapRef.current = map;
@@ -128,6 +220,19 @@ export function NearbyMap({
     // Keep the dark map calm and lighter on low-end phones: hide POI,
     // transit, and airport layers that add tiles and visual noise.
     map.on("style.load", () => {
+      const style = map.getStyle();
+      const backgroundLayer = style.layers?.find((layer) => layer.id === "background");
+      if (backgroundLayer) {
+        map.setPaintProperty("background", "background-color", MAP_BACKGROUND_COLOR);
+      }
+      const waterLayer = style.layers?.find((layer) => layer.id === "water");
+      if (waterLayer) {
+        try {
+          map.setPaintProperty("water", "fill-color", WATER_COLOR);
+        } catch {
+          // Non-fill water layers keep their default styling.
+        }
+      }
       for (const layer of map.getStyle().layers ?? []) {
         if (/(^|[-_])(poi|transit|airport|rail)([-_]|$)/i.test(layer.id)) {
           map.setLayoutProperty(layer.id, "visibility", "none");
@@ -150,13 +255,13 @@ export function NearbyMap({
           id: "radius-fill",
           type: "fill",
           source: "radius",
-          paint: { "fill-color": "#ffffff", "fill-opacity": 0.06 },
+          paint: { "fill-color": "#57c1ff", "fill-opacity": 0.07 },
         });
         map.addLayer({
           id: "radius-line",
           type: "line",
           source: "radius",
-          paint: { "line-color": "#ffffff", "line-width": 1.5, "line-opacity": 0.45 },
+          paint: { "line-color": "#57c1ff", "line-width": 2, "line-opacity": 0.5 },
         });
       }
       if (!map.getSource("shops")) {
@@ -173,10 +278,22 @@ export function NearbyMap({
           source: "shops",
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": "#101111",
-            "circle-stroke-color": "#ffffff",
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "point_count"],
+              1,
+              "#57c1ff",
+              8,
+              "#38bdf8",
+              20,
+              "#ffc533",
+              40,
+              "#ff9f43",
+            ],
+            "circle-stroke-color": MAP_BACKGROUND_COLOR,
             "circle-stroke-width": 2,
-            "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 30, 26],
+            "circle-radius": ["step", ["get", "point_count"], 18, 12, 24, 30, 28],
           },
         });
         map.addLayer({
@@ -201,10 +318,24 @@ export function NearbyMap({
           source: "shops",
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": "#ffffff",
-            "circle-radius": 6,
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "categoryIndex"],
+              0,
+              "#57c1ff",
+              2,
+              "#38bdf8",
+              4,
+              "#ffc533",
+              6,
+              "#ff9f43",
+              8,
+              "#59d499",
+            ],
+            "circle-stroke-color": MAP_BACKGROUND_COLOR,
             "circle-stroke-width": 2,
-            "circle-stroke-color": "#07080a",
+            "circle-radius": 7,
           },
         });
         map.addLayer({
@@ -214,7 +345,7 @@ export function NearbyMap({
           filter: ["!", ["has", "point_count"]],
           layout: {
             "text-field": labelExpression(languageRef.current) as maplibregl.ExpressionSpecification,
-            "text-size": 11,
+            "text-size": 12,
             "text-font": ["Noto Sans Regular"],
             "text-offset": [0, 1.1],
             "text-anchor": "top",
@@ -224,7 +355,7 @@ export function NearbyMap({
           paint: {
             "text-color": "#f4f4f6",
             "text-halo-color": "#07080a",
-            "text-halo-width": 1,
+            "text-halo-width": 2,
           },
         });
       }

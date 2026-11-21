@@ -292,7 +292,7 @@ export default function NearbyPage() {
     await loadNearby();
   }
 
-  async function useLocation() {
+  async function locateFromGeolocation() {
     setBusy(true);
     setError(null);
     try {
@@ -317,6 +317,10 @@ export default function NearbyPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleNearbyLocate() {
+    void locateFromGeolocation();
   }
 
   async function clearArea() {
@@ -457,7 +461,7 @@ export default function NearbyPage() {
 
             {mode === "consent" ? (
               <AreaConsent
-                onUseLocation={useLocation}
+                onUseLocation={locateFromGeolocation}
                 onChooseManually={() => setMode("pick")}
                 busy={busy}
                 error={error}
@@ -505,6 +509,7 @@ export default function NearbyPage() {
           shops={displayedShops}
           language={language}
           onSelectShop={selectShopFromMap}
+          onLocate={handleNearbyLocate}
         />
       </div>
 
