@@ -68,6 +68,19 @@ function nearestSnap(height: number): SheetSnap {
   return entries[0][0];
 }
 
+const SNAP_ORDER: readonly SheetSnap[] = ["peek", "mid", "full"];
+const FAST_SWIPE_VELOCITY_PX_PER_MS = 0.08;
+
+function resolveSheetSnap(finalHeight: number, velocityPxPerMs: number, currentSnap: SheetSnap): SheetSnap {
+  const fast = Math.abs(velocityPxPerMs) >= FAST_SWIPE_VELOCITY_PX_PER_MS;
+  const snapped = nearestSnap(finalHeight);
+  if (!fast) return snapped;
+  const currentIndex = SNAP_ORDER.indexOf(currentSnap);
+  const nextIndex =
+    velocityPxPerMs > 0 ? Math.min(currentIndex + 1, SNAP_ORDER.length - 1) : Math.max(currentIndex - 1, 0);
+  return SNAP_ORDER[nextIndex];
+}
+
 export default function NearbyPage() {
   const [data, setData] = useState<NearbyResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,8 +97,18 @@ export default function NearbyPage() {
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const [prefsHydrated, setPrefsHydrated] = useState(false);
   const [activity, setActivity] = useState<HighlightsResponse | null>(null);
-  const dragRef = useRef<{ startY: number; startHeight: number; pointerId: number; moved: boolean } | null>(null);
+  const dragRef = useRef<{
+    startY: number;
+    startHeight: number;
+    pointerId: number;
+    moved: boolean;
+    velocityPxPerMs: number;
+    lastMoveTs: number;
+  } | null>(null);
   const effectiveSnap: SheetSnap = tab === "chat" && snap === "peek" ? "mid" : snap;
+  const handleSheetActive = useCallback(() => {
+    setSnap("full");
+  }, []);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -359,6 +382,8 @@ export default function NearbyPage() {
       startHeight: currentHeight,
       pointerId: e.pointerId,
       moved: false,
+      velocityPxPerMs: 0,
+      lastMoveTs: 0,
     };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
@@ -369,6 +394,10 @@ export default function NearbyPage() {
     const deltaPx = drag.startY - e.clientY;
     if (!drag.moved && Math.abs(deltaPx) < 6) return;
     drag.moved = true;
+    const now = e.timeStamp;
+    const deltaMs = now - drag.lastMoveTs;
+    if (deltaMs > 0) drag.velocityPxPerMs = deltaPx / deltaMs;
+    drag.lastMoveTs = now;
     const deltaVh = (deltaPx / window.innerHeight) * 100;
     const next = Math.max(16, Math.min(94, drag.startHeight + deltaVh));
     setDragHeight(next);
@@ -384,7 +413,7 @@ export default function NearbyPage() {
     }
     const finalHeight = dragHeight ?? SNAP_HEIGHTS[effectiveSnap];
     setDragHeight(null);
-    const nextSnap = nearestSnap(finalHeight);
+    const nextSnap = resolveSheetSnap(finalHeight, drag.velocityPxPerMs, effectiveSnap);
     setSnap(tab === "chat" && nextSnap === "peek" ? "mid" : nextSnap);
   }
 
@@ -780,7 +809,7 @@ export default function NearbyPage() {
                 onPresenceChange={async (next) => {
                   await togglePresence(next);
                 }}
-                onSheetActive={() => setSnap("full")}
+                onSheetActive={handleSheetActive}
                 onClearArea={() => {
                   setSettingsOpen(false);
                   void clearArea();
