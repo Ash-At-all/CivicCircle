@@ -109,6 +109,8 @@ export async function POST(request: Request) {
     city: z.string().min(1),
     channel: z.string().min(1),
     body: messageDraftSchema.shape.body,
+    anonId: z.string().max(120).optional(),
+    authorName: z.string().max(80).optional(),
   }).strict();
 
   const parsed = schema.safeParse(payload.value);
