@@ -14,10 +14,17 @@ import {
   Lock,
   MapPin,
   Store,
+  Bookmark,
+  Lightbulb,
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { HighlightsStrip, type HighlightItem } from "@/components/highlights/highlights-strip";
+import { SavePostButton } from "@/components/saved/save-post-button";
 import { CITIES } from "@/features/cities/cities";
 import { POST_TAGS, type PostTag } from "@/features/posts/schema";
+import { suggestTag } from "@/features/posts/tag-suggest";
+import type { HighlightsResponse } from "@/features/highlights/types";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
 import { processImage } from "@/lib/client-image";
 
@@ -114,6 +121,8 @@ function HomeContent() {
   const [postTagFilter, setPostTagFilter] = useState<PostTag | "all">("all");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [feedVersion, setFeedVersion] = useState(0);
+  const [activity, setActivity] = useState<HighlightsResponse | null>(null);
+  const [nowMs, setNowMs] = useState(0);
 
   const clientId = typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || crypto.randomUUID() : "";
   const supabaseUrl = typeof window !== "undefined" ? process.env.NEXT_PUBLIC_SUPABASE_URL : "";
@@ -196,6 +205,24 @@ function HomeContent() {
     };
   }, []);
 
+  useEffect(() => {
+    const id = window.setTimeout(() => setNowMs(Date.now()), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/highlights")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active && data) setActivity(data as HighlightsResponse);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const heroGreeting = useMemo(() => {
     void heroTick;
     if (!heroReady) return "Your area. Your people. Your city.";
@@ -257,6 +284,87 @@ function HomeContent() {
       return p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q);
     });
   }, [posts, searchQuery, postTagFilter]);
+
+  const activeTopicName = CITIES.find((c) => c.slug === activeTopic)?.name ?? "General";
+
+  const tagSuggestion = useMemo(() => suggestTag(postTitle, postBody), [postTitle, postBody]);
+  const showTagSuggestion = tagSuggestion !== null && tagSuggestion.tag !== selectedTag;
+
+  const highlightItems = useMemo<HighlightItem[]>(() => {
+    const items: HighlightItem[] = [];
+    const recent =
+      nowMs > 0
+        ? posts.filter((post) => {
+            const created = Date.parse(post.created_at);
+            return Number.isFinite(created) && nowMs - created <= 48 * 60 * 60 * 1000;
+          })
+        : [];
+
+    if (recent.length > 0) {
+      items.push({
+        id: "fresh",
+        title: `${recent.length} fresh ${recent.length === 1 ? "post" : "posts"} in ${activeTopicName}`,
+        detail: "Posted in the last 48 hours",
+        href: "#community-feed",
+        icon: "flame",
+        accent: "yellow",
+      });
+    }
+
+    const tagCounts = new Map<string, number>();
+    for (const post of recent) {
+      const tag = post.tag || "General";
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+    const topTag = [...tagCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (topTag && topTag[1] > 0) {
+      items.push({
+        id: "tag",
+        title: `#${topTag[0]} is the busiest tag`,
+        detail: `${topTag[1]} recent ${topTag[1] === 1 ? "post" : "posts"} in this board`,
+        href: "#community-feed",
+        icon: "trend",
+        accent: "blue",
+      });
+    }
+
+    if (activity?.chat.busy) {
+      items.push({
+        id: "chat",
+        title: `Chat is live${activity.chat.localityName ? ` in ${activity.chat.localityName}` : " nearby"}`,
+        detail: `${activity.chat.recent} messages in the last 30 minutes`,
+        href: "/nearby",
+        icon: "chat",
+        accent: "green",
+      });
+    }
+
+    if (activity?.reviews.recent) {
+      items.push({
+        id: "reviews",
+        title: "New area reviews",
+        detail: `${activity.reviews.recent} in the last 48 hours`,
+        href: "/nearby",
+        icon: "star",
+        accent: "red",
+      });
+    }
+
+    const topBoard = activity?.posts.byBoard.find((entry) => entry.slug !== activeTopic);
+    if (topBoard) {
+      const name = CITIES.find((city) => city.slug === topBoard.slug)?.name ?? topBoard.slug;
+      items.push({
+        id: "board",
+        title: `${name} is buzzing`,
+        detail: `${topBoard.count} new ${topBoard.count === 1 ? "post" : "posts"} in 48 hours`,
+        href: `/home?topic=${encodeURIComponent(topBoard.slug)}`,
+        icon: "trend",
+        accent: "red",
+      });
+    }
+
+    return items.slice(0, 5);
+  }, [posts, activity, activeTopic, activeTopicName, nowMs]);
 
   async function handleUpvote(postId: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -338,8 +446,6 @@ function HomeContent() {
     }
   }
 
-  const activeTopicName = CITIES.find((c) => c.slug === activeTopic)?.name ?? "General";
-
   useEffect(() => {
     if (!createPostOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -371,6 +477,14 @@ function HomeContent() {
           </div>
 
           <div className="flex flex-none items-center gap-1">
+            <NotificationBell />
+            <Link
+              href="/saved"
+              aria-label="Saved posts and places"
+              className="btn btn-icon btn-secondary text-[var(--accent-yellow)]"
+            >
+              <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </Link>
             <Link
               href="/nearby"
               aria-label="Nearby"
@@ -596,6 +710,10 @@ function HomeContent() {
           </div>
         </section>
 
+        <section className="px-4 pt-4 sm:px-6">
+          <HighlightsStrip items={highlightItems} />
+        </section>
+
         {/* Post feed */}
         <section className="px-4 pb-10 pt-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -732,6 +850,18 @@ function HomeContent() {
                       <MessageSquare className="h-[18px] w-[18px] text-[var(--accent-blue)]" strokeWidth={1.8} aria-hidden="true" />
                       <span className="text-[13px] font-medium">Discuss</span>
                     </Link>
+
+                    <SavePostButton
+                      className="ml-auto"
+                      post={{
+                        id: post.id,
+                        title: post.title,
+                        body: post.body,
+                        tag: post.tag || "General",
+                        citySlug: post.city_slug || activeTopic,
+                        imageUrl: post.image_paths?.[0] ? normalizeImageUrl(post.image_paths[0]) : null,
+                      }}
+                    />
                   </div>
                 </article>
               ))}
@@ -798,6 +928,31 @@ function HomeContent() {
                   ))}
                 </select>
               </div>
+
+              {showTagSuggestion && tagSuggestion ? (
+                <div className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[rgba(255,197,51,0.24)] bg-[var(--accent-yellow-soft)] p-3">
+                  <Lightbulb className="mt-0.5 h-4 w-4 flex-none text-[var(--accent-yellow)]" strokeWidth={1.8} aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-[var(--ink)]">
+                      Suggested tag: {tagSuggestion.tag}
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--body-text)]">
+                      {tagSuggestion.reason}
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-tertiary mt-2"
+                      onClick={() => setSelectedTag(tagSuggestion.tag)}
+                    >
+                      Use {tagSuggestion.tag}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] leading-relaxed text-[var(--ash)]">
+                  Pick the closest tag so neighbours can find your post.
+                </p>
+              )}
 
               <div className="space-y-1.5">
                 <label htmlFor="post-title" className="text-label block">

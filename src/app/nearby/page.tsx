@@ -9,6 +9,8 @@ import { AreaChat } from "@/components/area/area-chat";
 import { AreaRating } from "@/components/area/area-rating";
 import { AreaReviews } from "@/components/area/area-reviews";
 import { ShopsList } from "@/components/shops/ShopsList";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { HighlightsStrip, type HighlightItem } from "@/components/highlights/highlights-strip";
 import type { MapLanguage } from "@/components/map/NearbyMap";
 import {
   RADIUS_STEPS_M,
@@ -18,6 +20,7 @@ import {
   peopleMessage,
   shopRadiusMessage,
 } from "@/features/area/radius";
+import type { HighlightsResponse } from "@/features/highlights/types";
 import type { NearbyResponse } from "@/features/shops/types";
 
 const NearbyMap = dynamic(() => import("@/components/map/NearbyMap").then((m) => m.NearbyMap), {
@@ -80,6 +83,7 @@ export default function NearbyPage() {
   const [showRadiusPrompt, setShowRadiusPrompt] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const [activity, setActivity] = useState<HighlightsResponse | null>(null);
   const dragRef = useRef<{ startY: number; startHeight: number; pointerId: number; moved: boolean } | null>(null);
   const effectiveSnap: SheetSnap = tab === "chat" && snap === "peek" ? "mid" : snap;
 
@@ -171,6 +175,19 @@ export default function NearbyPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    fetch("/api/highlights")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (active && json) setActivity(json as HighlightsResponse);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const shopResult = useMemo(() => {
     if (!data) return null;
     return chooseShopRadius(data.shops);
@@ -189,6 +206,53 @@ export default function NearbyPage() {
     if (!data) return null;
     return choosePeopleRadius(data.people || []);
   }, [data]);
+
+  const nearbyHighlights = useMemo<HighlightItem[]>(() => {
+    const items: HighlightItem[] = [];
+
+    if (displayedShops.length > 0) {
+      items.push({
+        id: "places",
+        title: `${displayedShops.length} ${displayedShops.length === 1 ? "place" : "places"} nearby`,
+        detail: `Within ${formatRadiusLabel(effectiveRadius)} of your area centre`,
+        icon: "store",
+        accent: "blue",
+        href: undefined,
+      });
+    }
+
+    if (activity?.chat.busy) {
+      items.push({
+        id: "chat",
+        title: `Chat is live${data?.localityName ? ` in ${data.localityName}` : " nearby"}`,
+        detail: `${activity.chat.recent} messages in the last 30 minutes`,
+        icon: "chat",
+        accent: "green",
+      });
+    }
+
+    if (activity?.reviews.recent) {
+      items.push({
+        id: "reviews",
+        title: "New area reviews",
+        detail: `${activity.reviews.recent} in the last 48 hours`,
+        icon: "star",
+        accent: "red",
+      });
+    }
+
+    if (activity?.posts.topTag) {
+      items.push({
+        id: "tag",
+        title: `#${activity.posts.topTag.tag} is trending`,
+        detail: `${activity.posts.topTag.count} recent ${activity.posts.topTag.count === 1 ? "post" : "posts"} citywide`,
+        icon: "trend",
+        accent: "yellow",
+      });
+    }
+
+    return items;
+  }, [displayedShops, effectiveRadius, activity, data]);
 
   async function resolveFromCoords(lat: number, lng: number) {
     const h3 = await import("h3-js");
@@ -436,7 +500,8 @@ export default function NearbyPage() {
           </span>
         </button>
 
-        <div className="pointer-events-auto relative">
+        <div className="pointer-events-auto relative flex items-center gap-2">
+          <NotificationBell />
           <button
             type="button"
             className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white shadow-[0_8px_32px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 transition-colors ${settingsOpen ? "bg-white/20" : "hover:bg-white/15"}`}
@@ -678,6 +743,10 @@ export default function NearbyPage() {
               <p className="mt-2 text-[12px] tracking-[0.2px] text-white/55">
                 {peopleChoice ? peopleMessage(peopleChoice, Boolean(data.showPresence)) : "Checking nearby activity..."}
               </p>
+
+              <div className="mt-4">
+                <HighlightsStrip items={nearbyHighlights} glass />
+              </div>
 
               <div className="mt-3">
                 <AreaRating />

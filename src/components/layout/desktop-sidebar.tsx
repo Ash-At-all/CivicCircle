@@ -3,13 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, MessageSquare, User } from "lucide-react";
+import { Home, MessageSquare, User, Bookmark, MapPin } from "lucide-react";
 import { CITIES } from "@/features/cities/cities";
 import { Suspense } from "react";
 
 const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: Home, color: "text-[var(--accent-blue)]", activeBg: "bg-[var(--accent-blue-soft)]" },
+  { href: "/nearby", label: "Nearby", icon: MapPin, color: "text-[var(--accent-yellow)]", activeBg: "bg-[var(--accent-yellow-soft)]" },
   { href: "/chat/general", label: "Chats", icon: MessageSquare, color: "text-[var(--accent-green)]", activeBg: "bg-[var(--accent-green-soft)]" },
+  { href: "/saved", label: "Saved", icon: Bookmark, color: "text-[var(--accent-yellow)]", activeBg: "bg-[var(--accent-yellow-soft)]" },
   { href: "/profile", label: "Profile", icon: User, color: "text-[var(--accent-red)]", activeBg: "bg-[var(--accent-red-soft)]" },
 ] as const;
 

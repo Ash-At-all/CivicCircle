@@ -18,48 +18,144 @@ const reportStatusSchema = z.object({
   status: z.enum(["reviewed", "actioned"]),
 }).strict();
 
-export async function GET() {
+type ReportType = "post" | "comment" | "message" | "review";
+
+type ReportRow = {
+  id: string;
+  post_id: string | null;
+  comment_id: string | null;
+  message_id: string | null;
+  review_id: string | null;
+  reason: string;
+  details: string | null;
+  status: string;
+  created_at: string;
+};
+
+type SupabaseServerClient = Awaited<ReturnType<typeof getSupabaseServerClient>>;
+
+function reportType(row: ReportRow): ReportType {
+  if (row.post_id) return "post";
+  if (row.comment_id) return "comment";
+  if (row.message_id) return "message";
+  return "review";
+}
+
+function targetIdOf(row: ReportRow): string {
+  return row.post_id ?? row.comment_id ?? row.message_id ?? row.review_id ?? "";
+}
+
+function previewText(value: string | null | undefined) {
+  const text = (value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+}
+
+async function loadPreviews(
+  supabase: SupabaseServerClient,
+  table: "posts" | "post_comments" | "messages" | "area_reviews",
+  ids: string[],
+) {
+  if (ids.length === 0) return new Map<string, string>();
+  const columns = table === "posts" ? "id, title, body" : "id, body";
+  const { data, error } = await supabase.from(table).select(columns).in("id", ids);
+  if (error) return new Map<string, string>();
+  const map = new Map<string, string>();
+  for (const row of (data ?? []) as unknown[]) {
+    const record = row as { id: string; title?: string; body?: string };
+    map.set(record.id, previewText(record.title ? `${record.title} ${record.body ?? ""}` : record.body));
+  }
+  return map;
+}
+
+function emptyAnalytics() {
+  return {
+    total: 0,
+    open: 0,
+    reviewed: 0,
+    actioned: 0,
+    byReason: {} as Record<string, number>,
+    byType: {} as Record<string, number>,
+  };
+}
+
+export async function GET(request: Request) {
+  const metaOnly = new URL(request.url).searchParams.get("meta") === "1";
   try {
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
     if (!userResult?.user) {
-      return NextResponse.json({ isModerator: false, reports: [] });
+      if (metaOnly) return NextResponse.json({ isModerator: false });
+      return NextResponse.json({ isModerator: false, reports: [], analytics: emptyAnalytics() });
     }
     const isModerator = ["moderator", "admin"].includes(String(userResult.user.app_metadata?.role ?? ""));
+    if (metaOnly) {
+      return NextResponse.json({ isModerator });
+    }
     const { data, error } = await supabase
       .from("reports")
       .select("id, post_id, comment_id, message_id, review_id, reason, details, status, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) {
-      return NextResponse.json({ isModerator, reports: [] });
+      return NextResponse.json({ isModerator, reports: [], analytics: emptyAnalytics() });
     }
-    const rows = data ?? [];
+
+    const rows = (data ?? []) as ReportRow[];
+    const ids: Record<ReportType, string[]> = { post: [], comment: [], message: [], review: [] };
+    for (const row of rows) {
+      ids[reportType(row)].push(targetIdOf(row));
+    }
+
+    const [postPreviews, commentPreviews, messagePreviews, reviewPreviews] = await Promise.all([
+      loadPreviews(supabase, "posts", ids.post),
+      loadPreviews(supabase, "post_comments", ids.comment),
+      loadPreviews(supabase, "messages", ids.message),
+      loadPreviews(supabase, "area_reviews", ids.review),
+    ]);
+    const previews: Record<ReportType, Map<string, string>> = {
+      post: postPreviews,
+      comment: commentPreviews,
+      message: messagePreviews,
+      review: reviewPreviews,
+    };
+
+    const byReason: Record<string, number> = {};
+    const byType: Record<string, number> = {};
+    for (const row of rows) {
+      byReason[row.reason] = (byReason[row.reason] ?? 0) + 1;
+      const type = reportType(row);
+      byType[type] = (byType[type] ?? 0) + 1;
+    }
+
     return NextResponse.json({
       isModerator,
-      reports: rows.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (r: any) => ({
-        id: r.id,
-        type: r.post_id
-          ? "post"
-          : r.comment_id
-            ? "comment"
-            : r.message_id
-              ? "message"
-              : r.review_id
-                ? "review"
-                : "post",
-        targetId: r.post_id ?? r.comment_id ?? r.message_id ?? r.review_id,
-        targetContent: "",
-        reason: r.reason,
-        details: r.details,
-        status: r.status,
-      })),
+      analytics: {
+        total: rows.length,
+        open: rows.filter((row) => row.status === "open").length,
+        reviewed: rows.filter((row) => row.status === "reviewed").length,
+        actioned: rows.filter((row) => row.status === "actioned").length,
+        byReason,
+        byType,
+      },
+      reports: rows.map((row) => {
+        const type = reportType(row);
+        const targetId = targetIdOf(row);
+        return {
+          id: row.id,
+          type,
+          targetId,
+          targetContent: previews[type].get(targetId) ?? "",
+          reason: row.reason,
+          details: row.details ?? "",
+          status: row.status,
+          created_at: row.created_at,
+        };
+      }),
     });
   } catch (error) {
     console.error("Report list error:", error);
-    return NextResponse.json({ isModerator: false, reports: [] });
+    return NextResponse.json({ isModerator: false, reports: [], analytics: emptyAnalytics() });
   }
 }
 

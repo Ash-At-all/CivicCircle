@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Trash2 } from "lucide-react";
+import { Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Trash2, Bookmark, Flag } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 
 export default function ProfilePage() {
@@ -18,6 +18,22 @@ export default function ProfilePage() {
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/reports?meta=1", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (active && json && typeof json.isModerator === "boolean") {
+          setIsModerator(json.isModerator);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function handleSaveNickname(e: React.FormEvent) {
     e.preventDefault();
@@ -165,6 +181,45 @@ export default function ProfilePage() {
             </span>
             <span className="text-[var(--mute)]">{copiedKey ? "Copied!" : "Export"}</span>
           </button>
+        </section>
+
+        {/* Saved & Tools */}
+        <section className="card p-5">
+          <h3 className="text-label mb-2">Saved &amp; tools</h3>
+          <div className="divide-y divide-[var(--hairline)]">
+            <Link
+              href="/saved"
+              className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
+            >
+              <span className="flex items-center gap-2">
+                <Bookmark className="h-4 w-4 text-[var(--accent-yellow)]" strokeWidth={1.8} />
+                <span>Saved posts &amp; places</span>
+              </span>
+              <span className="text-[var(--ash)]">→</span>
+            </Link>
+            <Link
+              href="/nearby"
+              className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
+            >
+              <span className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-[var(--accent-blue)]" strokeWidth={1.8} />
+                <span>Nearby area</span>
+              </span>
+              <span className="text-[var(--ash)]">→</span>
+            </Link>
+            {isModerator ? (
+              <Link
+                href="/moderation"
+                className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
+              >
+                <span className="flex items-center gap-2">
+                  <Flag className="h-4 w-4 text-[var(--accent-red)]" strokeWidth={1.8} />
+                  <span>Moderation queue</span>
+                </span>
+                <span className="text-[var(--ash)]">→</span>
+              </Link>
+            ) : null}
+          </div>
         </section>
 
         {/* About & Legal */}

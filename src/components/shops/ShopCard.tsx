@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SaveShopButton } from "@/components/saved/save-shop-button";
 import { formatDistance, sourceLabel } from "@/features/shops/format";
 import { SHOP_CATEGORY_LABELS, type ShopCategory } from "@/features/shops/categories";
 import type { NearbyShop } from "@/features/shops/types";
@@ -156,6 +157,21 @@ export function ShopCard({
         <button type="button" className="btn btn-sm btn-tertiary" onClick={() => void shareShop()}>
           Share
         </button>
+        <SaveShopButton
+          shop={{
+            id: shop.id,
+            name: shop.name,
+            name_hi: shop.name_hi,
+            category: shop.category,
+            address: shop.address,
+            phone: shop.phone,
+            opening_hours: shop.opening_hours,
+            lat: shop.lat,
+            lng: shop.lng,
+            distance_m: shop.distance_m,
+            source: shop.source,
+          }}
+        />
         <button
           type="button"
           className="btn btn-sm btn-secondary text-[var(--mute)]"
