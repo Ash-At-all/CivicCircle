@@ -54,7 +54,7 @@ export function scopeLabel(scope: AreaScope, localityName?: string) {
 }
 
 export function roomCountMessage(count: number) {
-  if (count <= 0) return "No one else is active in this room right now.";
+  if (count <= 0) return "Be the first voice in your mohalla. Start the conversation - your neighbours will join.";
   if (count === 1) return "1 other person is active in this room.";
   return `${count} other people are active in this room.`;
 }

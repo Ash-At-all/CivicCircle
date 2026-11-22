@@ -2,37 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Lock, MapPin, MessageSquare } from "lucide-react";
+import { Lock, MapPin, MessageSquare, ShieldCheck } from "lucide-react";
 
 const HERO_MESSAGES = [
-  "Your neighbourhood has a story. Be part of it.",
-  "Something's always happening around you.",
-  "Good things start with a conversation.",
-  "Your local community starts here.",
-  "Got something to say? Your neighbours are listening.",
-  "Stay curious about your neighbourhood.",
-  "A little local connection goes a long way.",
-  "Know your area. Meet your community.",
-  "What's happening around you today?",
-  "Every neighbourhood has something to talk about.",
-  "Your voice belongs in your community.",
-  "New day, new conversations.",
-  "There's more happening nearby than you think.",
-  "Make your neighbourhood a little more connected.",
-  "The best local updates come from locals.",
-  "Small chats can spark big things nearby.",
-  "See what's buzzing in your area.",
-  "Drop in and say hi to your neighbours.",
-  "Your corner of the city is worth knowing.",
-  "Local tips, real people, right here.",
+  "Talk to neighbours, find local shops, share what's happening.",
+  "Your mohalla is talking. Pull up a chair.",
+  "Local tips, real people, no sign-up forms.",
+  "See what's buzzing nearby, without giving your name.",
+  "Drop in, say hi, stay anonymous.",
 ];
 
-function getGreeting(hour: number) {
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 17) return "Good afternoon";
-  if (hour >= 17 && hour < 21) return "Good evening";
-  return "Hey night owl";
-}
+
 
 function daySeed(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
@@ -103,16 +83,15 @@ export default function RootPage() {
 
   const heroGreeting = useMemo(() => {
     void heroTick;
-    if (!heroReady) return "Your city, without the noise.";
-    const now = new Date();
-    const base = getGreeting(now.getHours());
-    return heroPlace ? `${base}, ${heroPlace}!` : `${base}!`;
+    if (!heroReady) return "Your mohalla. No signup needed.";
+    if (heroPlace) return `Your ${heroPlace} mohalla. No signup needed.`;
+    return "Your mohalla. No signup needed.";
   }, [heroReady, heroPlace, heroTick]);
 
   const heroMessage = useMemo(() => {
     void heroTick;
     if (!heroReady) {
-      return "City boards and live chat for your community. Post anonymously, follow the boards that matter, and talk to the people actually around you.";
+      return "Talk to neighbours, find local shops, share what's happening - completely anonymous.";
     }
     const now = new Date();
     return HERO_MESSAGES[dailyMessageIndex(daySeed(now), HERO_MESSAGES.length)];
@@ -161,24 +140,28 @@ export default function RootPage() {
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-2.5">
-                <Link href="/onboarding" className="btn btn-primary btn-lg">
-                  Get started
+                <Link href="/nearby" className="btn btn-primary btn-lg">
+                  See what&apos;s nearby
                 </Link>
                 <Link href="/home" className="btn btn-tertiary btn-lg">
                   Browse boards
                 </Link>
               </div>
 
-              <p className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-[0.3px] text-[var(--ash)]">
-                <span className="inline-flex items-center gap-1.5">
+                            <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px] tracking-[0.3px] text-[var(--ash)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
                   <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
                   No account needed
                 </span>
-                <span aria-hidden="true">·</span>
-                <span>Approximate area only</span>
-                <span aria-hidden="true">·</span>
-                <span>18+</span>
-              </p>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Approximate location only
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Ghost name, always
+                </span>
+              </div>
             </div>
 
             {/* Command-palette mockup */}
@@ -290,16 +273,21 @@ export default function RootPage() {
           })}
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 py-5 text-[11px] tracking-[0.3px] text-white/60">
-          <span>CivicCircle</span>
-          <span className="flex items-center gap-4">
-            <Link href="/privacy" className="transition-colors hover:text-[var(--ink)]">
-              Privacy
-            </Link>
-            <Link href="/terms" className="transition-colors hover:text-[var(--ink)]">
-              Terms
-            </Link>
-          </span>
+        <footer className="border-t border-white/10 py-5 text-[11px] tracking-[0.3px] text-white/60">
+          <p className="mb-3 max-w-xl text-[12px] leading-relaxed text-white/55">
+            CivicCircle never asks for your name, phone, or email. Your ghost handle keeps you anonymous.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>CivicCircle</span>
+            <span className="flex items-center gap-4">
+              <Link href="/privacy" className="transition-colors hover:text-[var(--ink)]">
+                Privacy
+              </Link>
+              <Link href="/terms" className="transition-colors hover:text-[var(--ink)]">
+                Terms
+              </Link>
+            </span>
+          </div>
         </footer>
       </div>
     </div>

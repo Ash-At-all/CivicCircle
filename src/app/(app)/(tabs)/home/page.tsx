@@ -225,7 +225,7 @@ function HomeContent() {
 
   const heroGreeting = useMemo(() => {
     void heroTick;
-    if (!heroReady) return "Your area. Your people. Your city.";
+    if (!heroReady) return "Your mohalla, right now.";
     const now = new Date();
     const base = getGreeting(now.getHours());
     return heroPlace ? `${base}, ${heroPlace}!` : `${base}!`;
@@ -583,7 +583,7 @@ function HomeContent() {
               <div className="min-w-0">
                 <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1 text-[12px] font-medium text-[var(--mute)]">
                   <span className="h-2 w-2 rounded-full bg-[var(--accent-green)]" />
-                  {activeTopic === "general" ? "Happening around you" : `${activeTopicName} board`}
+                  {activeTopic === "general" ? "Your mohalla, right now" : `${activeTopicName} board`}
                 </p>
 
                 <h1 className="text-display max-w-[18ch] text-balance">
