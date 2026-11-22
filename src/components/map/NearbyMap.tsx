@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
@@ -165,6 +165,7 @@ export function NearbyMap({
   language = "en",
   onSelectShop,
   onLocate,
+  onMapStatusChange,
 }: {
   centroid: { lat: number; lng: number };
   radiusM: number;
@@ -172,6 +173,7 @@ export function NearbyMap({
   language?: MapLanguage;
   onSelectShop?: (id: string) => void;
   onLocate?: () => void;
+  onMapStatusChange?: (status: "loading" | "ready") => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -179,10 +181,16 @@ export function NearbyMap({
   const languageRef = useRef<MapLanguage>(language);
   const dataRef = useRef({ centroid, radiusM, shops });
   const onLocateRef = useRef<(() => void) | null>(null);
+  const onMapStatusChangeRef = useRef<((status: "loading" | "ready") => void) | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready">("loading");
 
   useEffect(() => {
     onLocateRef.current = onLocate ?? null;
   }, [onLocate]);
+
+  useEffect(() => {
+    onMapStatusChangeRef.current = onMapStatusChange ?? null;
+  }, [onMapStatusChange]);
 
   useEffect(() => {
     languageRef.current = language;
@@ -216,6 +224,15 @@ export function NearbyMap({
     map.dragRotate.disable();
     map.touchZoomRotate.disableRotation();
     mapRef.current = map;
+
+    map.on("loading", () => {
+      setStatus("loading");
+      onMapStatusChangeRef.current?.("loading");
+    });
+    map.on("idle", () => {
+      setStatus("ready");
+      onMapStatusChangeRef.current?.("ready");
+    });
 
     // Keep the dark map calm and lighter on low-end phones: hide POI,
     // transit, and airport layers that add tiles and visual noise.
@@ -444,9 +461,20 @@ export function NearbyMap({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full overflow-hidden bg-[var(--surface)]"
+      className="relative h-full w-full overflow-hidden"
+      style={{ opacity: status === "ready" ? 1 : 0, transition: "opacity 600ms ease-out" }}
       aria-label="Map showing nearby shops and your area"
       role="region"
-    />
+    >
+      {status === "loading" ? (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-[#0b1020]"
+          role="status"
+          aria-label="Loading map tiles"
+        >
+          <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/12 border-t-[var(--accent-blue)]" />
+        </div>
+      ) : null}
+    </div>
   );
 }

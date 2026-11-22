@@ -68,6 +68,12 @@ function nearestSnap(height: number): SheetSnap {
 
 const SNAP_ORDER: readonly SheetSnap[] = ["peek", "mid", "full"];
 const FAST_SWIPE_VELOCITY_PX_PER_MS = 0.08;
+const AREA_RESOLVE_STEPS = [
+  "Setting up your area...",
+  "Finding your locality...",
+  "Loading nearby places...",
+  "Almost there...",
+] as const;
 
 function resolveSheetSnap(finalHeight: number, velocityPxPerMs: number, currentSnap: SheetSnap): SheetSnap {
   const fast = Math.abs(velocityPxPerMs) >= FAST_SWIPE_VELOCITY_PX_PER_MS;
@@ -84,6 +90,10 @@ export default function NearbyPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMapLoading, setIsMapLoading] = useState(true);
+  const [isResolvingArea, setIsResolvingArea] = useState(false);
+  const [areaProgressStep, setAreaProgressStep] = useState(-1);
+  const areaProgressTimers = useRef<number[]>([]);
   const [mode, setMode] = useState<Mode>("consent");
   const [selectedRadius, setSelectedRadius] = useState<number | null>(1000);
   const [language, setLanguage] = useState<MapLanguage>("en");
@@ -265,6 +275,24 @@ export default function NearbyPage() {
     return items;
   }, [displayedShops, effectiveRadius, activity, data]);
 
+  function clearAreaProgress() {
+    for (const t of areaProgressTimers.current) window.clearTimeout(t);
+    areaProgressTimers.current = [];
+  }
+
+  function runAreaProgress() {
+    clearAreaProgress();
+    AREA_RESOLVE_STEPS.forEach((_, i) => {
+      areaProgressTimers.current.push(window.setTimeout(() => setAreaProgressStep(i), 900 * i));
+    });
+  }
+
+  function finishAreaProgress() {
+    clearAreaProgress();
+    setAreaProgressStep(-1);
+    setIsResolvingArea(false);
+  }
+
   async function resolveFromCoords(lat: number, lng: number) {
     const h3 = await import("h3-js");
     const h3r8 = h3.latLngToCell(lat, lng, 8);
@@ -282,6 +310,7 @@ export default function NearbyPage() {
 
   async function locateFromGeolocation() {
     setBusy(true);
+    setIsResolvingArea(true);
     setError(null);
     try {
       if (!("geolocation" in navigator)) throw new Error("Location is not available in this browser.");
@@ -304,6 +333,7 @@ export default function NearbyPage() {
       setError(message);
     } finally {
       setBusy(false);
+      finishAreaProgress();
     }
   }
 
@@ -459,7 +489,9 @@ export default function NearbyPage() {
                 onCancel={() => setMode("consent")}
                 onPick={async (result) => {
                   setBusy(true);
+                  setIsResolvingArea(true);
                   setError(null);
+                  runAreaProgress();
                   try {
                     await resolveFromCoords(result.lat, result.lng);
                     setMode("consent");
@@ -468,6 +500,7 @@ export default function NearbyPage() {
                     setError(e instanceof Error ? e.message : "Could not set your area.");
                   } finally {
                     setBusy(false);
+                    finishAreaProgress();
                   }
                 }}
               />
@@ -496,7 +529,29 @@ export default function NearbyPage() {
           language={language}
           onSelectShop={selectShopFromMap}
           onLocate={handleNearbyLocate}
+          onMapStatusChange={(status) => setIsMapLoading(status !== "ready")}
         />
+
+        {isResolvingArea ? (
+          <div
+            className="absolute inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="w-[min(22rem,calc(100vw-2rem))] rounded-[24px] border border-white/12 bg-[rgba(20,20,22,0.85)] p-4 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-[var(--accent-blue)]" />
+              </span>
+              <p className="mt-2.5 text-[13px] font-medium text-white">{AREA_RESOLVE_STEPS[areaProgressStep] ?? "Setting up your area..."}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {isMapLoading ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0b1020]" role="status" aria-label="Loading map tiles">
+            <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/12 border-t-[var(--accent-blue)]" />
+          </div>
+        ) : null}
       </div>
 
       {/* Floating top bar */}
@@ -733,7 +788,7 @@ export default function NearbyPage() {
                   : "Open chat to talk with people in this area."}
               </p>
             </div>
-          ) : tab === "shops" ? (
+          ) : tab === "shops" && !isResolvingArea ? (
             <>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[12px] text-white/80">
@@ -768,6 +823,16 @@ export default function NearbyPage() {
                 Distances are approximate from your area centre. Map data © OpenStreetMap contributors.
               </p>
             </>
+          ) : tab === "shops" && isResolvingArea ? (
+            <div className="space-y-3" role="status" aria-label="Loading nearby places">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-[22px] border border-white/10 bg-white/6 p-4">
+                  <div className="h-3 w-2/3 rounded-full bg-white/10 shimmer" />
+                  <div className="mt-2 h-3 w-1/3 rounded-full bg-white/10 shimmer" />
+                  <div className="mt-3 h-3 w-full rounded-full bg-white/8 shimmer" />
+                </div>
+              ))}
+            </div>
           ) : data.areaIds ? (
             <div className="mt-2 h-full min-h-0 pb-2">
               <AreaChat
