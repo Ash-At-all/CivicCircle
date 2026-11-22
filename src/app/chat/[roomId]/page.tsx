@@ -22,6 +22,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [chatError, setChatError] = useState<{ message: string; code?: string } | null>(null);
 
 const scrollRef = useRef<HTMLDivElement>(null);
 const isNearBottomRef = useRef(true);
@@ -42,10 +43,20 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const loadMessages = async () => {
     try {
       const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&anon=${encodeURIComponent(clientId)}`, { cache: "no-store" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
+        if (activeRef.current) {
+          setChatError({
+            message: err?.error || "Could not load messages.",
+            code: err?.code,
+          });
+        }
+        return;
+      }
       const data = await res.json();
       if (!activeRef.current || !data.messages) return;
 
+      setChatError(null);
       setMessages((prev) => {
         if (prev.length > 0 && data.messages.length > prev.length && !isNearBottomRef.current) {
           setHasNewMessages(true);
@@ -60,10 +71,11 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   useEffect(() => {
     activeRef.current = true;
 
-    loadMessages();
+    const initial = setTimeout(() => { void loadMessages(); }, 0);
     intervalRef.current = setInterval(loadMessages, 3000);
     return () => {
       activeRef.current = false;
+      clearTimeout(initial);
       clearInterval(intervalRef.current ?? 0);
       intervalRef.current = null;
     };
@@ -134,9 +146,17 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
       if (res.ok) {
         const data = await res.json();
+        setChatError(null);
         setMessages((prev) =>
           prev.map((m) => (m.id === tempId ? { ...data.message, fromYou: true } : m))
         );
+      } else {
+        const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setChatError({
+          message: err?.error || "Could not send your message.",
+          code: err?.code,
+        });
       }
     } catch {
       // optimistic keeps message
@@ -187,6 +207,21 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
         </p>
       </div>
 
+      {chatError ? (
+        <div className="border-b border-[var(--hairline)] bg-[var(--accent-red-soft)] px-4 py-3 text-center">
+          <p className="text-[13px] text-[var(--ink)]">{chatError.message}</p>
+          {chatError.code === "invalid_area" ? (
+            <Link href="/nearby" className="mt-2 inline-flex text-[12px] font-medium text-[var(--accent-blue)] underline-offset-2 hover:underline">
+              Set your area in Nearby
+            </Link>
+          ) : chatError.code === "auth_required" ? (
+            <Link href="/profile" className="mt-2 inline-flex text-[12px] font-medium text-[var(--accent-blue)] underline-offset-2 hover:underline">
+              Sign in to continue
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Message List */}
       <div
         ref={scrollRef}
@@ -199,9 +234,11 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
               <span className="app-tile mb-3 h-11 w-11 text-[var(--mute)]">
                 <Lock className="h-5 w-5" strokeWidth={1.8} />
               </span>
-              <p className="text-[15px] font-medium text-[var(--ink)]">No messages yet</p>
+              <p className="text-[15px] font-medium text-[var(--ink)]">
+                {chatError ? "Chat unavailable" : "No messages yet"}
+              </p>
               <p className="mt-1 text-[12px] text-[var(--mute)]">
-                Start the conversation in this room.
+                {chatError ? "Set your area or sign in to see this room." : "Start the conversation in this room."}
               </p>
             </div>
           </div>
