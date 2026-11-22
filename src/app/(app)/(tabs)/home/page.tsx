@@ -53,6 +53,33 @@ const HERO_MESSAGES = [
   "Local tips, real people, right here.",
 ];
 
+const MOHAALLA_PROMPTS = [
+  "Need a plumber nearby?",
+  "Best chai spot around here?",
+  "Is the road open today?",
+  "Anyone know a good doctor?",
+  "Power cut in your area?",
+  "Looking for a PG/room?",
+  "Best sabzi mandi nearby?",
+  "Auto/cab available?",
+];
+
+function seededShuffle<T>(items: readonly T[], seed: number): T[] {
+  const out = [...items];
+  let state = (seed ^ 0x9e3779b9) >>> 0;
+  const next = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(next() * (i + 1));
+    const swap = out[i];
+    out[i] = out[j];
+    out[j] = swap;
+  }
+  return out;
+}
+
 function getGreeting(hour: number) {
   if (hour >= 5 && hour < 12) return "Good morning";
   if (hour >= 12 && hour < 17) return "Good afternoon";
@@ -239,6 +266,18 @@ function HomeContent() {
     const now = new Date();
     return HERO_MESSAGES[dailyMessageIndex(daySeed(now), HERO_MESSAGES.length)];
   }, [heroReady, heroTick]);
+
+  const promptChips = useMemo(() => {
+    if (!heroReady) return [...MOHAALLA_PROMPTS];
+    return seededShuffle(MOHAALLA_PROMPTS, daySeed(new Date()));
+  }, [heroReady]);
+
+  function startPromptPost(prompt: string) {
+    setErrorMsg(null);
+    setPostTitle(prompt);
+    setPostBody("");
+    setCreatePostOpen(true);
+  }
 
   useEffect(() => {
     const onboarded = typeof window !== "undefined" ? localStorage.getItem("civiccircle-onboarded") : null;
@@ -658,6 +697,22 @@ function HomeContent() {
                         <span className="block text-[12px] text-[var(--mute)]">Drop into {activeTopicName} chat</span>
                       </span>
                     </Link>
+                  </div>
+
+                  <div className="mt-4 border-t border-[var(--hairline)] pt-3">
+                    <p className="px-1 text-[11px] uppercase tracking-[0.35px] text-[var(--ash)]">Quick ask</p>
+                    <div className="no-scrollbar -mx-1 mt-2 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+                      {promptChips.map((prompt) => (
+                        <button
+                          key={prompt}
+                          type="button"
+                          onClick={() => startPromptPost(prompt)}
+                          className="flex-none rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[12px] text-[var(--body-text)] transition-colors hover:border-white/20 hover:bg-white/10"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
