@@ -141,14 +141,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Could not save your area.", code: "server_error" }, { status: 502 });
     }
 
-    return NextResponse.json({
-      area: {
-        locality: { id: localityRow.id, name: localityRow.name, h3: h3r8 },
-        ward: { id: wardRow.id, name: wardRow.name, h3: h3r7 },
-        city: { id: cityRow.id, name: cityRow.name, h3: h3r5 },
-        centroid: { lat: localityRow.centroid_lat, lng: localityRow.centroid_lng },
+    return NextResponse.json(
+      {
+        area: {
+          locality: { id: localityRow.id, name: localityRow.name, h3: h3r8 },
+          ward: { id: wardRow.id, name: wardRow.name, h3: h3r7 },
+          city: { id: cityRow.id, name: cityRow.name, h3: h3r5 },
+          centroid: { lat: localityRow.centroid_lat, lng: localityRow.centroid_lng },
+        },
       },
-    });
+      { status: 200, headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+    );
   } catch (error) {
     console.error("Area resolve failed:", error);
     return NextResponse.json({ error: "Could not resolve your area.", code: "server_error" }, { status: 503 });
