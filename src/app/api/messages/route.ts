@@ -3,96 +3,61 @@ import { z } from "zod";
 import { messageDraftSchema } from "@/features/posts/schema";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { loadAreaScope } from "@/lib/server/area-scope";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
 
-const listQuerySchema = z.object({
-  city: z.string().min(1),
-  channel: z.string().min(1),
-  anon: z.string().optional(),
-});
+type MessageRow = {
+  id: string;
+  client_id: string | null;
+  body: string;
+  author_id: string;
+  author_handle: string | null;
+  created_at: string;
+  deleted_at: string | null;
+};
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const city = url.searchParams.get("city");
-  const channel = url.searchParams.get("channel");
-  const anon = url.searchParams.get("anon");
-
-  const parsed = listQuerySchema.safeParse({ city, channel, anon: anon ?? undefined });
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues.map((issue) => issue.message).join(" ") },
-      { status: 400 },
-    );
-  }
-
+export async function GET() {
   try {
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
     const currentUserId = userResult?.user?.id ?? null;
-
-    // 1. Try querying messages with anon_id & author_id
-    const query = supabase
-      .from("messages")
-      .select("id, city_slug, channel_id, author_id, anon_id, body, created_at")
-      .eq("city_slug", parsed.data.city)
-      .eq("channel_id", parsed.data.channel)
-      .order("created_at", { ascending: true })
-      .limit(50);
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      const messages = data.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (row: any) => {
-        const isMine = Boolean(
-          (currentUserId && (row.author_id === currentUserId || row.anon_id === currentUserId)) ||
-          (parsed.data.anon && row.anon_id === parsed.data.anon)
-        );
-        return {
-          id: row.id,
-          body: row.body,
-          time: new Date(row.created_at).toLocaleString(),
-          fromYou: isMine,
-          author: isMine ? "You" : "Community member",
-          author_username: null,
-          initials: isMine ? "YO" : "CM",
-          anon_id: row.anon_id,
-        };
-      });
-      return NextResponse.json({ messages });
+    if (!userResult?.user) {
+      return NextResponse.json({ error: "Sign in to load messages.", code: "auth_required" }, { status: 401 });
     }
 
-    // 2. If query failed, fallback to basic columns
-    console.warn("Direct anon_id message query failed, falling back to basic columns:", error?.message);
-    const fallbackQuery = supabase
+    // General chat is city-scoped: messages live in the viewer's city area.
+    const areaResult = await loadAreaScope(supabase, userResult.user.id, "city");
+    if (!areaResult.ok) return areaResult.response;
+    const { areaId } = areaResult.context;
+
+    const { data, error } = await supabase
       .from("messages")
-      .select("id, city_slug, channel_id, body, created_at")
-      .eq("city_slug", parsed.data.city)
-      .eq("channel_id", parsed.data.channel)
+      .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
+      .eq("area_id", areaId)
       .order("created_at", { ascending: true })
       .limit(50);
 
-    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-    if (fallbackError) {
-      console.error("Supabase fallback message list failed:", fallbackError.message);
+    if (error) {
+      console.error("Supabase area message list failed:", error.message);
       return NextResponse.json({ error: "Could not load messages. Please try again." }, { status: 502 });
     }
 
-    const messages = (fallbackData ?? []).map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (row: any) => ({
-      id: row.id,
-      body: row.body,
-      time: new Date(row.created_at).toLocaleString(),
-      fromYou: false,
-      author: "Community member",
-      author_username: null,
-      initials: "CM",
-      anon_id: null,
-    }));
+    const messages = (data ?? []).map((row: MessageRow) => {
+      const isMine = row.author_id === currentUserId;
+      const authorName = (row.author_handle ?? "").trim() || "Community member";
+      return {
+        id: row.id,
+        body: row.deleted_at ? "" : row.body,
+        time: new Date(row.created_at).toLocaleString(),
+        fromYou: isMine,
+        author: isMine ? "You" : authorName,
+        author_username: row.author_handle ?? null,
+        initials: isMine ? "YO" : authorName.slice(0, 2).toUpperCase(),
+        anon_id: row.client_id ?? "",
+      };
+    });
 
     return NextResponse.json({ messages });
   } catch (error) {
@@ -128,31 +93,65 @@ export async function POST(request: Request) {
     const rateLimitResponse = await enforceRateLimit(supabase, "messages");
     if (rateLimitResponse) return rateLimitResponse;
 
-    // Legacy city/channel messages are deprecated in favor of area messages.
-    // With hardened RLS, inserts require an authenticated author.
-    const insertPayload: Record<string, unknown> = {
-      city_slug: parsed.data.city,
-      channel_id: parsed.data.channel,
-      body: parsed.data.body,
-      author_id: userResult.user.id,
-    };
+    // General chat is city-scoped: the insert must use the area-scoped columns
+    // granted to authenticated, with the viewer's own area on record.
+    const areaResult = await loadAreaScope(supabase, userResult.user.id, "city");
+    if (!areaResult.ok) return areaResult.response;
+    const { areaId, h3Cell } = areaResult.context;
 
+    const clientId = parsed.data.anonId ?? crypto.randomUUID();
     const { data, error } = await supabase
       .from("messages")
-      .insert(insertPayload)
-      .select("id, city_slug, channel_id, author_id, body, created_at")
+      .insert({
+        area_id: areaId,
+        scope: "city",
+        h3_cell: h3Cell,
+        client_id: clientId,
+        author_id: userResult.user.id,
+        author_handle: parsed.data.authorName?.trim().slice(0, 40) || "Ghost",
+        body: parsed.data.body,
+      })
+      .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
       .single();
 
     if (error || !data) {
+      const errorCode = (error as { code?: string } | null)?.code;
+      // A retried send can hit the unique (author_id, client_id) index. Return
+      // the existing row instead of creating a duplicate.
+      if (errorCode === "23505") {
+        const { data: existing } = await supabase
+          .from("messages")
+          .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
+          .eq("author_id", userResult.user.id)
+          .eq("client_id", clientId)
+          .maybeSingle();
+
+        if (existing) {
+          const existingRow = existing as MessageRow;
+          return NextResponse.json({
+            message: {
+              id: existingRow.id,
+              body: existingRow.body,
+              time: new Date(existingRow.created_at).toLocaleString(),
+              fromYou: true,
+              author: "You",
+              author_username: null,
+              initials: "YO",
+            },
+          }, { status: 200 });
+        }
+      }
+
       console.error("Supabase message create failed:", error?.message);
       return NextResponse.json({ error: error?.message || "Could not send your message." }, { status: 502 });
     }
 
+    const created = data as MessageRow;
     return NextResponse.json({
       message: {
-        id: data.id,
-        body: data.body,
-        time: new Date(data.created_at).toLocaleString(),
+        id: created.id,
+        body: created.body,
+        time: new Date(created.created_at).toLocaleString(),
         fromYou: true,
         author: "You",
         author_username: null,
@@ -161,8 +160,6 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     console.error("Message send is unavailable:", error);
-    return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
+    return NextResponse.json({ error: "Could not send your message. Please try again." }, { status: 503 });
   }
 }
-
-
