@@ -4,6 +4,7 @@ export type RateLimitAction =
   | "postImages"
   | "comments"
   | "votes"
+  | "helpfulMarks"
   | "reports"
   | "blocks"
   | "messages"
@@ -42,6 +43,7 @@ export const RATE_LIMIT_POLICIES: Record<RateLimitAction, Policy> = {
   postImages: { action: "post-images", limit: 10, windowSeconds: 3600, label: "image uploads" },
   comments: { action: "comments", limit: 30, windowSeconds: 3600, label: "commenting" },
   votes: { action: "votes", limit: 60, windowSeconds: 3600, label: "voting" },
+  helpfulMarks: { action: "helpful-marks", limit: 120, windowSeconds: 3600, label: "marking helpful posts" },
   reports: { action: "reports", limit: 10, windowSeconds: 3600, label: "reporting" },
   blocks: { action: "blocks", limit: 30, windowSeconds: 3600, label: "blocking" },
   messages: { action: "messages", limit: 30, windowSeconds: 60, label: "sending messages" },

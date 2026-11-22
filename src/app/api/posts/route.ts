@@ -6,6 +6,39 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
 
+type HelpfulSummary = { count: number; marked: boolean };
+
+async function loadHelpfulSummaries(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  postIds: string[],
+): Promise<Record<string, HelpfulSummary>> {
+  if (postIds.length === 0) return {};
+  try {
+    const { data, error } = await supabase.rpc("get_post_helpful_summaries", { p_post_ids: postIds });
+    if (error) {
+      console.warn("Helpful summary lookup failed:", error.message);
+      return {};
+    }
+    const rows = (data ?? []) as Array<{
+      post_id: string;
+      helpful_count: number | string;
+      marked: boolean;
+    }>;
+    const summaries: Record<string, HelpfulSummary> = {};
+    for (const row of rows) {
+      summaries[row.post_id] = {
+        count: Number(row.helpful_count ?? 0),
+        marked: Boolean(row.marked),
+      };
+    }
+    return summaries;
+  } catch (error) {
+    console.warn("Helpful summary lookup unavailable:", error);
+    return {};
+  }
+}
+
+
 export async function GET(request: Request) {
   const city = new URL(request.url).searchParams.get("city");
   const author = new URL(request.url).searchParams.get("author");
@@ -32,11 +65,14 @@ export async function GET(request: Request) {
     const { data: postsData, error: postsError } = await queryWithAnon;
 
     if (!postsError && postsData) {
+      const helpful = await loadHelpfulSummaries(supabase, postsData.map((p) => p.id));
       const posts = postsData.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (p: any) => ({
         ...p,
         mine: Boolean(currentUserId && (p.author_id === currentUserId || p.anon_id === currentUserId)),
+        helpful_count: helpful[p.id]?.count ?? 0,
+        helpful_marked: helpful[p.id]?.marked ?? false,
       }));
       return NextResponse.json({ posts });
     }
@@ -51,7 +87,17 @@ export async function GET(request: Request) {
 
     const { data: fallbackData, error: fallbackError } = await fallbackQuery;
     if (!fallbackError && fallbackData) {
-      return NextResponse.json({ posts: fallbackData });
+      const helpful = await loadHelpfulSummaries(supabase, fallbackData.map((p) => p.id));
+      return NextResponse.json({
+        posts: fallbackData.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (p: any) => ({
+            ...p,
+            helpful_count: helpful[p.id]?.count ?? 0,
+            helpful_marked: helpful[p.id]?.marked ?? false,
+          }),
+        ),
+      });
     }
 
     // 3. Fallback to selecting standard columns from `posts`
@@ -63,10 +109,16 @@ export async function GET(request: Request) {
 
     const { data: basicData, error: basicError } = await basicQuery;
     if (!basicError && basicData) {
+      const helpful = await loadHelpfulSummaries(supabase, basicData.map((p) => p.id));
       return NextResponse.json({
         posts: basicData.map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (p: any) => ({ ...p, image_paths: [] })
+          (p: any) => ({
+            ...p,
+            image_paths: [],
+            helpful_count: helpful[p.id]?.count ?? 0,
+            helpful_marked: helpful[p.id]?.marked ?? false,
+          }),
         ),
       });
     }

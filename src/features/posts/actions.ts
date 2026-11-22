@@ -17,6 +17,8 @@ export type PersistedPost = {
   updated_at: string;
   votes?: number;
   user_vote?: number;
+  helpful_count?: number;
+  helpful_marked?: boolean;
   comments?: PersistedComment[];
 };
 

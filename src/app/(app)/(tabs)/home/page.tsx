@@ -116,6 +116,45 @@ function relativeTime(createdAt: string) {
   return `${days}d ago`;
 }
 
+function HelpfulButton({
+  postId,
+  count,
+  marked,
+  onToggle,
+}: {
+  postId: string;
+  count: number;
+  marked: boolean;
+  onToggle: (postId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle(postId);
+      }}
+      aria-pressed={marked}
+      aria-label={`${marked ? "Remove helpful mark" : "Mark as helpful"}, ${count} helpful marks`}
+      className={`action-pill min-h-[38px] touch-manipulation gap-1.5 !px-2.5 ${
+        marked
+          ? "border-[rgba(255,197,51,0.32)] bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]"
+          : ""
+      }`}
+    >
+      <Lightbulb
+        className="h-[17px] w-[17px]"
+        strokeWidth={1.8}
+        fill={marked ? "currentColor" : "none"}
+        aria-hidden="true"
+      />
+      <span className="text-[13px] font-medium">Helpful</span>
+      <span className="tabular-nums text-[12px] opacity-80">({count})</span>
+    </button>
+  );
+}
+
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -131,6 +170,7 @@ function HomeContent() {
   const [posts, setPosts] = useState<PersistedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [votes, setVotes] = useState<Record<string, number>>({});
+  const [helpful, setHelpful] = useState<Record<string, { count: number; marked: boolean }>>({});
   const [createPostOpen, setCreatePostOpen] = useState(false);
 
   const [postTitle, setPostTitle] = useState("");
@@ -300,6 +340,14 @@ function HomeContent() {
         const voteMap: Record<string, number> = {};
         for (const p of data) voteMap[p.id] = p.votes || 0;
         setVotes(voteMap);
+        const helpfulMap: Record<string, { count: number; marked: boolean }> = {};
+        for (const p of data) {
+          helpfulMap[p.id] = {
+            count: p.helpful_count || 0,
+            marked: Boolean(p.helpful_marked),
+          };
+        }
+        setHelpful(helpfulMap);
         setPostsError(null);
         setLoading(false);
       })
@@ -407,6 +455,35 @@ function HomeContent() {
       });
     } catch {
       // optimistic
+    }
+  }
+
+  async function handleHelpful(postId: string) {
+    const current = helpful[postId] ?? { count: 0, marked: false };
+    const optimistic = {
+      count: Math.max(0, current.count + (current.marked ? -1 : 1)),
+      marked: !current.marked,
+    };
+    setHelpful((prev) => ({ ...prev, [postId]: optimistic }));
+
+    try {
+      const response = await fetch(`/api/posts/${encodeURIComponent(postId)}/helpful`, {
+        method: current.marked ? "DELETE" : "POST",
+      });
+      if (!response.ok) throw new Error("Helpful update failed.");
+      const data = (await response.json()) as {
+        helpfulCount?: number | null;
+        marked?: boolean;
+      };
+      setHelpful((prev) => ({
+        ...prev,
+        [postId]: {
+          count: typeof data.helpfulCount === "number" ? data.helpfulCount : optimistic.count,
+          marked: typeof data.marked === "boolean" ? data.marked : optimistic.marked,
+        },
+      }));
+    } catch {
+      setHelpful((prev) => ({ ...prev, [postId]: current }));
     }
   }
 
@@ -873,7 +950,7 @@ function HomeContent() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-1 px-3 py-2.5">
+                  <div className="flex flex-wrap items-center gap-1 px-3 py-2.5">
                     <button
                       type="button"
                       onClick={(e) => handleUpvote(post.id, e)}
@@ -885,6 +962,13 @@ function HomeContent() {
                         {votes[post.id] ?? post.votes ?? 0}
                       </span>
                     </button>
+
+                    <HelpfulButton
+                      postId={post.id}
+                      count={helpful[post.id]?.count ?? post.helpful_count ?? 0}
+                      marked={helpful[post.id]?.marked ?? Boolean(post.helpful_marked)}
+                      onToggle={handleHelpful}
+                    />
 
                     <Link
                       href={`/chat/${activeTopic}`}
