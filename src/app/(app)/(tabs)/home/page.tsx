@@ -16,6 +16,7 @@ import {
   Store,
   Bookmark,
   Lightbulb,
+  Flag,
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -23,6 +24,7 @@ import { HighlightsStrip, type HighlightItem } from "@/components/highlights/hig
 import { SavePostButton } from "@/components/saved/save-post-button";
 import { CITIES } from "@/features/cities/cities";
 import { POST_TAGS, type PostTag } from "@/features/posts/schema";
+import { POST_ALERT_BADGE_CLASS, POST_ALERT_LABELS, POST_ALERT_TYPES, isPostAlertType, type PostAlertType } from "@/features/posts/alerts";
 import { suggestTag } from "@/features/posts/tag-suggest";
 import type { HighlightsResponse } from "@/features/highlights/types";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
@@ -180,6 +182,13 @@ function HomeContent() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [alertType, setAlertType] = useState<PostAlertType | null>(null);
+  const [alertOnly, setAlertOnly] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ postId: string; title: string } | null>(null);
+  const [reportReason, setReportReason] = useState("other");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportNotice, setReportNotice] = useState<string | null>(null);
 
   const [heroPlace, setHeroPlace] = useState<string | null>(null);
   const [heroTick, setHeroTick] = useState(0);
@@ -366,11 +375,12 @@ function HomeContent() {
   const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return posts.filter((p) => {
+      if (alertOnly && !p.alert_type) return false;
       if (postTagFilter !== "all" && p.tag !== postTagFilter) return false;
       if (!q) return true;
       return p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q);
     });
-  }, [posts, searchQuery, postTagFilter]);
+  }, [posts, searchQuery, postTagFilter, alertOnly]);
 
   const activeTopicName = CITIES.find((c) => c.slug === activeTopic)?.name ?? "General";
 
@@ -515,6 +525,34 @@ function HomeContent() {
     });
   }
 
+  async function submitPostReport() {
+    if (!reportTarget) return;
+    setReportBusy(true);
+    setReportNotice(null);
+    try {
+      const response = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "post",
+          targetId: reportTarget.postId,
+          reason: reportReason,
+          details: reportDetails.trim(),
+        }),
+      });
+      const json = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(json.error ?? "Could not submit your report.");
+      setReportNotice("Report submitted.");
+      setReportTarget(null);
+      setReportDetails("");
+      setReportReason("other");
+    } catch {
+      setReportNotice("Could not submit your report. Please try again.");
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
   async function handleCreatePost(e: React.FormEvent) {
     e.preventDefault();
     if (!postTitle.trim() || !postBody.trim()) return;
@@ -536,6 +574,7 @@ function HomeContent() {
         },
         imagePaths,
         clientId,
+        alertType,
       );
 
       setPosts((prev) => [created, ...prev]);
@@ -543,6 +582,7 @@ function HomeContent() {
       setPostBody("");
       setSelectedImages([]);
       setImagePreviews([]);
+      setAlertType(null);
       setCreatePostOpen(false);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to create post. Please try again.");
@@ -814,6 +854,14 @@ function HomeContent() {
 
           {/* Topic chips */}
           <div className="no-scrollbar -mx-1 mt-4 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+            <button
+              type="button"
+              onClick={() => setAlertOnly((v) => !v)}
+              aria-pressed={alertOnly}
+              className={`topic-chip flex-none ${alertOnly ? "topic-chip--active" : "topic-chip--inactive"}`}
+            >
+              Alerts
+            </button>
             {CITIES.map((topic) => {
               const isActive = activeTopic === topic.slug;
               return (
@@ -909,7 +957,7 @@ function HomeContent() {
           ) : (
             <div className="space-y-4">
               {filteredPosts.map((post) => (
-                <article key={post.id} className="feed-card overflow-hidden">
+                <article key={post.id} className={`feed-card overflow-hidden ${post.alert_type ? "border-[rgba(255,197,51,0.3)]" : ""}`}>
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <DefaultAvatar name="Anonymous" size="md" />
                     <div className="min-w-0 flex-1">
@@ -922,6 +970,11 @@ function HomeContent() {
                       </div>
                       <div className="mt-0.5 flex items-center gap-2 text-[11px] tracking-[0.2px] text-[var(--ash)]">
                         <span className="tag-chip !px-2 !py-0.5">{post.tag || "General"}</span>
+                        {post.alert_type && isPostAlertType(post.alert_type) ? (
+                          <span className={`badge ${POST_ALERT_BADGE_CLASS[post.alert_type]}`}>
+                            {POST_ALERT_LABELS[post.alert_type]}
+                          </span>
+                        ) : null}
                         <span>{relativeTime(post.created_at)}</span>
                       </div>
                     </div>
@@ -969,6 +1022,18 @@ function HomeContent() {
                       marked={helpful[post.id]?.marked ?? Boolean(post.helpful_marked)}
                       onToggle={handleHelpful}
                     />
+
+                    {post.alert_type && isPostAlertType(post.alert_type) ? (
+                      <button
+                        type="button"
+                        onClick={() => setReportTarget({ postId: post.id, title: post.title })}
+                        className="action-pill gap-1.5 border-[rgba(255,97,97,0.32)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]"
+                        aria-label={`Report ${post.title} as a local alert`}
+                      >
+                        <Flag className="h-[17px] w-[17px]" strokeWidth={1.8} aria-hidden="true" />
+                        <span className="text-[13px] font-medium">Report</span>
+                      </button>
+                    ) : null}
 
                     <Link
                       href={`/chat/${activeTopic}`}
@@ -1055,6 +1120,28 @@ function HomeContent() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="post-alert-type" className="text-label block">
+                  Alert type
+                </label>
+                <select
+                  id="post-alert-type"
+                  value={alertType ?? ""}
+                  onChange={(e) => setAlertType((e.target.value || null) as PostAlertType | null)}
+                  className="field"
+                >
+                  <option value="">No alert type</option>
+                  {POST_ALERT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {POST_ALERT_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] leading-relaxed text-[var(--ash)]">
+                  Optional. Use it for local alerts like water cuts or road closures.
+                </p>
               </div>
 
               {showTagSuggestion && tagSuggestion ? (
@@ -1164,6 +1251,84 @@ function HomeContent() {
           </div>
         </div>
       )}
+
+      {reportTarget ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          role="presentation"
+          onClick={() => setReportTarget(null)}
+        >
+          <div
+            className="sheet-enter max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:rounded-[var(--radius-xl)] sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="report-post-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="report-post-title" className="text-h2">Report this post</h2>
+                <p className="mt-1 text-[13px] text-[var(--mute)]">Send it to the moderation team.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReportTarget(null)}
+                aria-label="Close"
+                className="btn btn-icon btn-secondary -mr-1 -mt-1 text-[var(--mute)]"
+              >
+                <X className="h-4 w-4" strokeWidth={1.8} />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <label className="block text-label" htmlFor="report-reason">
+                Reason
+              </label>
+              <select
+                id="report-reason"
+                className="field"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+              >
+                <option value="harassment">Harassment</option>
+                <option value="hate">Hate</option>
+                <option value="spam">Spam</option>
+                <option value="personal-information">Personal info</option>
+                <option value="violence">Violence</option>
+                <option value="other">Other</option>
+              </select>
+
+              <label className="block text-label" htmlFor="report-details">
+                Details
+              </label>
+              <textarea
+                id="report-details"
+                className="field"
+                rows={3}
+                maxLength={500}
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                placeholder="Add context if needed. Keep it short."
+              />
+
+              {reportNotice ? (
+                <p className="rounded-[var(--radius-md)] border border-[rgba(89,212,153,0.28)] bg-[var(--accent-green-soft)] p-3 text-[13px] text-[var(--accent-green)]" role="status">
+                  {reportNotice}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button type="button" className="btn btn-secondary" onClick={() => setReportTarget(null)} disabled={reportBusy}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => void submitPostReport()} disabled={reportBusy}>
+                  {reportBusy ? "Submitting..." : "Submit report"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

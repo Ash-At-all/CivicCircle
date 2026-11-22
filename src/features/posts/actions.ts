@@ -1,4 +1,5 @@
 import type { PostDraft } from "./schema";
+import type { PostAlertType } from "./alerts";
 
 export type PersistedPost = {
   id: string;
@@ -12,6 +13,7 @@ export type PersistedPost = {
   tag: string;
   title: string;
   body: string;
+  alert_type?: string | null;
   image_paths: string[];
   created_at: string;
   updated_at: string;
@@ -36,7 +38,7 @@ export interface PostsRepo {
   listPosts(city?: string): Promise<PersistedPost[]>;
   uploadPostImages(images: Blob[]): Promise<string[]>;
   removePostImages(imagePaths: string[]): Promise<void>;
-  createPost(post: PostDraft, imagePaths?: string[], anonId?: string): Promise<PersistedPost>;
+  createPost(post: PostDraft, imagePaths?: string[], anonId?: string, alertType?: PostAlertType | null): Promise<PersistedPost>;
   updatePost(id: string, post: PostEdit): Promise<PersistedPost>;
   deletePost(id: string): Promise<string | null>;
 }
@@ -89,12 +91,12 @@ export const postsRepo: PostsRepo = {
     );
   },
 
-  async createPost(post: PostDraft, imagePaths?: string[], anonId?: string): Promise<PersistedPost> {
+  async createPost(post: PostDraft, imagePaths?: string[], anonId?: string, alertType?: PostAlertType | null): Promise<PersistedPost> {
     const result = await readResponse<{ post: PersistedPost }>(
       await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ post, imagePaths, anonId }),
+        body: JSON.stringify({ post: { ...post, alert_type: alertType ?? null }, imagePaths, anonId }),
       }),
     );
     return result.post;

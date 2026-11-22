@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CITIES } from "../cities/cities";
+import { postAlertTypeSchema } from "./alerts";
 
 const CITY_SLUGS = CITIES.map((city) => city.slug) as [typeof CITIES[number]["slug"], ...typeof CITIES[number]["slug"][]];
 
@@ -15,6 +16,7 @@ export const postDraftSchema = z.object({
   title: postTitleSchema,
   body: postBodySchema,
   tag: postTagSchema,
+  alert_type: postAlertTypeSchema,
 }).strict();
 
 export const postImagePathSchema = z.string()

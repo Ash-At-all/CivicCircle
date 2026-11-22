@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     // 1. Try querying `posts` with anon_id & author_id
     let queryWithAnon = supabase
       .from("posts")
-      .select("id, city_slug, author_id, anon_id, tag, title, body, image_paths, created_at, updated_at")
+      .select("id, city_slug, author_id, anon_id, tag, title, body, alert_type, image_paths, created_at, updated_at")
       .order("created_at", { ascending: false });
     if (city) queryWithAnon = queryWithAnon.eq("city_slug", city);
     if (author) queryWithAnon = queryWithAnon.eq("anon_id", author);
@@ -73,6 +73,7 @@ export async function GET(request: Request) {
         mine: Boolean(currentUserId && (p.author_id === currentUserId || p.anon_id === currentUserId)),
         helpful_count: helpful[p.id]?.count ?? 0,
         helpful_marked: helpful[p.id]?.marked ?? false,
+        alert_type: (p as { alert_type?: string | null }).alert_type ?? null,
       }));
       return NextResponse.json({ posts });
     }
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
       body: parsed.data.post.body,
       image_paths: parsed.data.imagePaths,
       author_id: userResult.user.id,
+      alert_type: parsed.data.post.alert_type ?? null,
     };
 
     let { data, error } = await supabase

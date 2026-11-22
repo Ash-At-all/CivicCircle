@@ -707,6 +707,12 @@ input[type="checkbox"] {
   color: var(--accent-red);
 }
 
+.badge-warning {
+  background: var(--accent-yellow-soft);
+  border-color: transparent;
+  color: var(--accent-yellow);
+}
+
 .keycap {
   display: inline-flex;
   align-items: center;
