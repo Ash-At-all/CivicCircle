@@ -6,7 +6,7 @@ import { Lock, MapPin, MessageSquare, ShieldCheck } from "lucide-react";
 
 const HERO_MESSAGES = [
   "Talk to neighbours, find local shops, share what's happening.",
-  "Your mohalla is talking. Pull up a chair.",
+  "Talk to your neighbours. No account needed.",
   "Local tips, real people, no sign-up forms.",
   "See what's buzzing nearby, without giving your name.",
   "Drop in, say hi, stay anonymous.",
@@ -83,8 +83,9 @@ export default function RootPage() {
 
   const heroGreeting = useMemo(() => {
     void heroTick;
+    const place = heroPlace ? heroPlace.replace(/^your\s+/i, "").trim() : "";
     if (!heroReady) return "Your mohalla. No signup needed.";
-    if (heroPlace) return `Your ${heroPlace} mohalla. No signup needed.`;
+    if (place) return `Your ${place} mohalla. No signup needed.`;
     return "Your mohalla. No signup needed.";
   }, [heroReady, heroPlace, heroTick]);
 
@@ -148,7 +149,7 @@ export default function RootPage() {
                 </Link>
               </div>
 
-                            <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px] tracking-[0.3px] text-[var(--ash)]">
+              <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px] tracking-[0.3px] text-[var(--ash)]">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
                   <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
                   No account needed
@@ -219,8 +220,6 @@ export default function RootPage() {
                         Ward and city rooms
                       </span>
                     </span>
-                    <span className="keycap">⌘</span>
-                    <span className="keycap">K</span>
                   </div>
 
                   <div className="palette-row">
@@ -235,7 +234,6 @@ export default function RootPage() {
                         No account, no email
                       </span>
                     </span>
-                    <span className="keycap">N</span>
                   </div>
                 </div>
 
