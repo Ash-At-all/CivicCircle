@@ -113,6 +113,7 @@ export default function NearbyPage() {
     velocityPxPerMs: number;
     lastMoveTs: number;
   } | null>(null);
+  const suppressClickRef = useRef(false);
   const effectiveSnap: SheetSnap = tab === "chat" && snap === "peek" ? "mid" : snap;
   const handleSheetActive = useCallback(() => {
     setSnap("full");
@@ -408,6 +409,7 @@ export default function NearbyPage() {
       lastMoveTs: 0,
     };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    suppressClickRef.current = false;
   }
 
   function moveSheetDrag(e: React.PointerEvent) {
@@ -433,10 +435,14 @@ export default function NearbyPage() {
       setDragHeight(null);
       return;
     }
-    const finalHeight = dragHeight ?? SNAP_HEIGHTS[effectiveSnap];
+    // Compute from the drag ref, not from render-scoped state, so a stale
+    // render cannot resolve the snap from an old height.
+    const finalHeight = Math.max(16, Math.min(94, drag.startHeight + ((drag.startY - e.clientY) / window.innerHeight) * 100));
     setDragHeight(null);
     const nextSnap = resolveSheetSnap(finalHeight, drag.velocityPxPerMs, effectiveSnap);
     setSnap(tab === "chat" && nextSnap === "peek" ? "mid" : nextSnap);
+    // A swipe that moved should not also fire a click on the grabber toggle.
+    suppressClickRef.current = true;
   }
 
   if (loading) {
@@ -719,6 +725,10 @@ export default function NearbyPage() {
             aria-expanded={!isPeek}
             aria-controls="nearby-sheet-content"
             onClick={() => {
+              if (suppressClickRef.current) {
+                suppressClickRef.current = false;
+                return;
+              }
               setSnap((s) => {
                 if (s === "peek") return "mid";
                 if (s === "mid") return tab === "chat" ? "full" : "full";
@@ -733,7 +743,13 @@ export default function NearbyPage() {
           <button
             type="button"
             className="flex w-full items-center justify-between gap-3 rounded-2xl px-1 pb-2 pt-1 text-left"
-            onClick={() => setSnap((s) => (s === "peek" ? "mid" : s))}
+            onClick={() => {
+              if (suppressClickRef.current) {
+                suppressClickRef.current = false;
+                return;
+              }
+              setSnap((s) => (s === "peek" ? "mid" : s));
+            }}
           >
             <span className="min-w-0">
               <span className="block truncate text-[15px] font-semibold text-white">
