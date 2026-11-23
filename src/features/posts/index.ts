@@ -2,3 +2,4 @@ export { citySlugSchema, postTagSchema, postTitleSchema, postBodySchema, postDra
 export type { PostTag, PostDraft } from "./schema";
 export { postsRepo, type PostsRepo, type PersistedPost, type PersistedComment, type PostEdit } from "./actions";
 export type { PersistedPost as Post } from "./types";
+export type { Poll, PollOption, PollResult } from "./types";

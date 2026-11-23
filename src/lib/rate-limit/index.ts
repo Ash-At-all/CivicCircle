@@ -18,6 +18,12 @@ function friendlyMessage(label: string, retryAfter: number) {
   if (label === "searching GIFs") {
     return `You are searching GIFs too often. Try again in ${retryAfter} ${unit}.`;
   }
+  if (label === "creating polls") {
+    return `You are creating polls too often. Try again in ${retryAfter} ${unit}.`;
+  }
+  if (label === "voting on polls") {
+    return `You are voting too often. Try again in ${retryAfter} ${unit}.`;
+  }
   return `You are doing that too quickly. Try again in ${retryAfter} ${unit}.`;
 }
 

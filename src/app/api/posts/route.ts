@@ -8,6 +8,63 @@ const MAX_REQUEST_BYTES = 16 * 1024;
 
 type HelpfulSummary = { count: number; marked: boolean };
 
+type PollSummary = {
+  id: string;
+  post_id: string;
+  question: string;
+  created_at: string;
+  expires_at: string;
+  options: Array<{ id: string; text: string }>;
+};
+
+async function loadPollSummaries(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  postIds: string[],
+): Promise<Record<string, PollSummary | null>> {
+  const summaries: Record<string, PollSummary | null> = {};
+  if (postIds.length === 0) return summaries;
+
+  const { data: polls, error: pollsError } = await supabase
+    .from("polls")
+    .select("id, post_id, question, created_at, expires_at")
+    .in("post_id", postIds);
+  if (pollsError) {
+    console.warn("Poll summary lookup failed:", pollsError.message);
+    return summaries;
+  }
+
+  const pollIds = (polls ?? []).map((p) => String(p.id));
+  const optionsByPoll = new Map<string, Array<{ id: string; text: string }>>();
+  if (pollIds.length > 0) {
+    const { data: options, error: optionsError } = await supabase
+      .from("poll_options")
+      .select("id, poll_id, text")
+      .in("poll_id", pollIds);
+    if (!optionsError) {
+      for (const option of (options ?? []) as Array<{ id: string; poll_id: string; text: string }>) {
+        const key = String(option.poll_id);
+        const list = optionsByPoll.get(key) ?? [];
+        list.push({ id: String(option.id), text: String(option.text) });
+        optionsByPoll.set(key, list);
+      }
+    }
+  }
+
+  for (const poll of polls ?? []) {
+    const pollId = String(poll.id);
+    summaries[String(poll.post_id)] = {
+      id: pollId,
+      post_id: String(poll.post_id),
+      question: String(poll.question),
+      created_at: String(poll.created_at),
+      expires_at: String(poll.expires_at),
+      options: optionsByPoll.get(pollId) ?? [],
+    };
+  }
+
+  return summaries;
+}
+
 async function loadHelpfulSummaries(
   supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
   postIds: string[],
@@ -66,6 +123,7 @@ export async function GET(request: Request) {
 
     if (!postsError && postsData) {
       const helpful = await loadHelpfulSummaries(supabase, postsData.map((p) => p.id));
+      const pollSummaries = await loadPollSummaries(supabase, postsData.map((p) => p.id));
       const posts = postsData.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (p: any) => ({
@@ -74,6 +132,7 @@ export async function GET(request: Request) {
         helpful_count: helpful[p.id]?.count ?? 0,
         helpful_marked: helpful[p.id]?.marked ?? false,
         alert_type: (p as { alert_type?: string | null }).alert_type ?? null,
+        poll: pollSummaries[p.id] ?? null,
       }));
       return NextResponse.json({ posts });
     }

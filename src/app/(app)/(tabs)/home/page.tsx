@@ -28,6 +28,7 @@ import { POST_ALERT_BADGE_CLASS, POST_ALERT_LABELS, POST_ALERT_TYPES, isPostAler
 import { suggestTag } from "@/features/posts/tag-suggest";
 import type { HighlightsResponse } from "@/features/highlights/types";
 import { postsRepo, type PersistedPost } from "@/features/posts/actions";
+import type { PollResult } from "@/features/posts/types";
 import { processImage } from "@/lib/client-image";
 
 type CitySlug = typeof CITIES[number]["slug"];
@@ -157,6 +158,88 @@ function HelpfulButton({
   );
 }
 
+function PollResults({
+  question,
+  options,
+  totalVotes,
+  closed,
+  votedOptionId,
+  onVote,
+}: {
+  question: string;
+  options: PollResult["options"];
+  totalVotes: number;
+  closed: boolean;
+  votedOptionId: string | null;
+  onVote: (optionId: string) => void;
+}) {
+  const voted = Boolean(votedOptionId);
+  const sorted = [...options].sort((a, b) => b.votes - a.votes);
+
+  return (
+    <div className="border-t border-[var(--hairline)] px-4 py-3">
+      <p className="text-[13px] font-semibold tracking-[0.1px] text-[var(--ink)]">{question}</p>
+
+      {closed ? (
+        <div className="mt-2">
+          {sorted.map((option) => (
+            <div key={option.id} className="mb-1.5 last:mb-0">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="truncate text-[12px] text-[var(--body-text)]">{option.text}</span>
+                <span className="tabular-nums text-[11px] text-[var(--ash)]">{option.percent}%</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-elevated)]">
+                <div
+                  className="h-full rounded-full bg-[var(--accent-blue)]"
+                  style={{ width: `${option.percent}%` }}
+                />
+              </div>
+            </div>
+          ))}
+          <p className="mt-2 text-[11px] text-[var(--ash)]">{totalVotes} votes</p>
+        </div>
+      ) : voted ? (
+        <div className="mt-2">
+          {sorted.map((option) => (
+            <div key={option.id} className="mb-1.5 last:mb-0">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="truncate text-[12px] text-[var(--body-text)]">{option.text}</span>
+                <span className="tabular-nums text-[11px] text-[var(--ash)]">{option.votes} votes</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-elevated)]">
+                <div
+                  className="h-full rounded-full bg-[var(--accent-green)]"
+                  style={{ width: `${option.percent}%` }}
+                />
+              </div>
+              {votedOptionId === option.id ? (
+                <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--accent-green)]">
+                  <span className="h-1 w-1 rounded-full bg-[var(--accent-green)]" aria-hidden="true" />
+                  Your vote
+                </span>
+              ) : null}
+            </div>
+          ))}
+          <p className="mt-2 text-[11px] text-[var(--ash)]">{totalVotes} votes</p>
+        </div>
+      ) : (
+        <div className="mt-2 space-y-1.5">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onVote(option.id)}
+              className="field w-full text-left text-[13px] font-medium text-[var(--body-text)]"
+            >
+              {option.text}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -181,6 +264,9 @@ function HomeContent() {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
+  const [pollEnabled, setPollEnabled] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [alertType, setAlertType] = useState<PostAlertType | null>(null);
   const [alertOnly, setAlertOnly] = useState(false);
@@ -199,6 +285,8 @@ function HomeContent() {
   const [feedVersion, setFeedVersion] = useState(0);
   const [activity, setActivity] = useState<HighlightsResponse | null>(null);
   const [nowMs, setNowMs] = useState(0);
+  const [polls, setPolls] = useState<Record<string, PollResult>>({});
+  const [votedPolls, setVotedPolls] = useState<Record<string, string>>({});
 
   const clientId = typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || crypto.randomUUID() : "";
   const supabaseUrl = typeof window !== "undefined" ? process.env.NEXT_PUBLIC_SUPABASE_URL : "";
@@ -357,6 +445,18 @@ function HomeContent() {
           };
         }
         setHelpful(helpfulMap);
+        const pollMap: Record<string, PollResult> = {};
+        for (const p of data) {
+          const poll = p.poll;
+          if (!poll) continue;
+          pollMap[poll.id] = {
+            poll,
+            options: (poll.options ?? []).map((o) => ({ id: o.id, text: o.text, votes: 0, percent: 0 })),
+            totalVotes: 0,
+            closed: Date.parse(poll.expires_at) <= Date.now(),
+          };
+        }
+        setPolls((prev) => ({ ...prev, ...pollMap }));
         setPostsError(null);
         setLoading(false);
       })
@@ -451,6 +551,20 @@ function HomeContent() {
 
     return items.slice(0, 5);
   }, [posts, activity, activeTopic, activeTopicName, nowMs]);
+
+  async function handlePollVote(pollId: string, optionId: string) {
+    setVotedPolls((prev) => ({ ...prev, [pollId]: optionId }));
+    const result = await postsRepo.votePoll(pollId, optionId);
+    if (result) {
+      setPolls((prev) => ({ ...prev, [pollId]: result }));
+    } else {
+      setVotedPolls((prev) => {
+        const next = { ...prev };
+        delete next[pollId];
+        return next;
+      });
+    }
+  }
 
   async function handleUpvote(postId: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -555,6 +669,8 @@ function HomeContent() {
 
   async function handleCreatePost(e: React.FormEvent) {
     e.preventDefault();
+    const trimmedOptions = pollOptions.map((o) => o.trim()).filter((o) => o.length > 0);
+    if (pollEnabled && (pollQuestion.trim().length === 0 || trimmedOptions.length < 2)) return;
     if (!postTitle.trim() || !postBody.trim()) return;
     setPosting(true);
     setErrorMsg(null);
@@ -577,6 +693,23 @@ function HomeContent() {
         alertType,
       );
 
+      if (pollEnabled && pollQuestion.trim().length > 0 && trimmedOptions.length >= 2) {
+        const createdPoll = await postsRepo.createPoll({
+          postId: created.id,
+          question: pollQuestion.trim(),
+          options: trimmedOptions,
+        });
+        setPolls((prev) => ({
+          ...prev,
+          [createdPoll.poll.id]: {
+            poll: createdPoll.poll,
+            options: createdPoll.options.map((o) => ({ ...o, votes: 0, percent: 0 })),
+            totalVotes: 0,
+            closed: Date.parse(createdPoll.poll.expires_at) <= Date.now(),
+          },
+        }));
+      }
+
       setPosts((prev) => [created, ...prev]);
       setPostTitle("");
       setPostBody("");
@@ -584,6 +717,9 @@ function HomeContent() {
       setImagePreviews([]);
       setAlertType(null);
       setCreatePostOpen(false);
+      setPollEnabled(false);
+      setPollQuestion("");
+      setPollOptions(["", ""]);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to create post. Please try again.");
     } finally {
@@ -1003,6 +1139,20 @@ function HomeContent() {
                     </div>
                   )}
 
+                  {post.poll ? (
+                    <PollResults
+                      question={post.poll.question}
+                      options={
+                        polls[post.poll.id]?.options ??
+                        (post.poll.options ?? []).map((o) => ({ id: o.id, text: o.text, votes: 0, percent: 0 }))
+                      }
+                      totalVotes={polls[post.poll.id]?.totalVotes ?? 0}
+                      closed={polls[post.poll.id]?.closed ?? false}
+                      votedOptionId={votedPolls[post.poll.id] ?? null}
+                      onVote={(optionId) => void handlePollVote(post.poll!.id, optionId)}
+                    />
+                  ) : null}
+
                   <div className="flex flex-wrap items-center gap-1 px-3 py-2.5">
                     <button
                       type="button"
@@ -1200,6 +1350,70 @@ function HomeContent() {
                 />
               </div>
 
+              <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3">
+                <button
+                  type="button"
+                  onClick={() => setPollEnabled((v) => !v)}
+                  className="btn btn-outline min-h-[40px] w-full justify-center text-[13px]"
+                  aria-pressed={pollEnabled}
+                >
+                  Add poll
+                </button>
+
+                {pollEnabled ? (
+                  <div className="space-y-2">
+                    <label htmlFor="poll-question" className="text-label block">
+                      Poll question
+                    </label>
+                    <input
+                      id="poll-question"
+                      type="text"
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      placeholder="Ask the community…"
+                      maxLength={160}
+                      className="field"
+                    />
+
+                    {pollOptions.map((option, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => setPollOptions((prev) => prev.map((o, i) => (i === index ? e.target.value : o)))}
+                          placeholder={`Option ${index + 1}`}
+                          maxLength={120}
+                          className="field"
+                        />
+                        {pollOptions.length > 2 ? (
+                          <button
+                            type="button"
+                            onClick={() => setPollOptions((prev) => prev.filter((_, i) => i !== index))}
+                            aria-label={`Remove option ${index + 1}`}
+                            className="btn btn-icon btn-secondary min-h-[40px] min-w-[40px] px-0 text-[var(--mute)]"
+                          >
+                            <X className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+
+                    {pollOptions.length < 4 ? (
+                      <button
+                        type="button"
+                        onClick={() => setPollOptions((prev) => [...prev, ""])}
+                        className="btn btn-tertiary min-h-[38px] text-[12px]"
+                      >
+                        Add option
+                      </button>
+                    ) : null}
+                    <p className="text-[11px] leading-relaxed text-[var(--ash)]">
+                      Polls stay open for 24 hours and stay anonymous.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
               {imagePreviews.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
                   {imagePreviews.map((url, index) => (
@@ -1241,7 +1455,12 @@ function HomeContent() {
 
                 <button
                   type="submit"
-                  disabled={posting || !postTitle.trim() || !postBody.trim()}
+                  disabled={
+                    posting ||
+                    !postTitle.trim() ||
+                    !postBody.trim() ||
+                    (pollEnabled && (pollQuestion.trim().length === 0 || pollOptions.filter((o) => o.trim().length > 0).length < 2))
+                  }
                   className="btn btn-primary min-w-[132px]"
                 >
                   {posting ? "Publishing…" : "Publish post"}

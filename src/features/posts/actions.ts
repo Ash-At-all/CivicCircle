@@ -1,5 +1,6 @@
 import type { PostDraft } from "./schema";
 import type { PostAlertType } from "./alerts";
+import type { Poll, PollOption, PollResult } from "./types";
 
 export type PersistedPost = {
   id: string;
@@ -22,6 +23,7 @@ export type PersistedPost = {
   helpful_count?: number;
   helpful_marked?: boolean;
   comments?: PersistedComment[];
+  poll?: Poll | null;
 };
 
 export type PersistedComment = {
@@ -41,6 +43,9 @@ export interface PostsRepo {
   createPost(post: PostDraft, imagePaths?: string[], anonId?: string, alertType?: PostAlertType | null): Promise<PersistedPost>;
   updatePost(id: string, post: PostEdit): Promise<PersistedPost>;
   deletePost(id: string): Promise<string | null>;
+  createPoll(input: { postId: string; question: string; options: string[] }): Promise<{ poll: Poll; options: PollOption[] }>;
+  getPoll(pollId: string): Promise<PollResult | null>;
+  votePoll(pollId: string, optionId: string): Promise<PollResult | null>;
 }
 
 async function readResponse<T>(response: Response): Promise<T> {
@@ -118,5 +123,46 @@ export const postsRepo: PostsRepo = {
       await fetch(`/api/posts/${encodeURIComponent(id)}`, { method: "DELETE" }),
     );
     return result.cleanupWarning;
+  },
+
+  async createPoll(input: { postId: string; question: string; options: string[] }): Promise<{ poll: Poll; options: PollOption[] }> {
+    const result = await readResponse<{ poll: Poll; options: PollOption[] }>(
+      await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId: input.postId,
+          question: input.question,
+          options: input.options,
+        }),
+      }),
+    );
+    return result;
+  },
+
+  async getPoll(pollId: string): Promise<PollResult | null> {
+    try {
+      const result = await readResponse<PollResult | null>(
+        await fetch(`/api/polls/${encodeURIComponent(pollId)}`, { cache: "no-store" }),
+      );
+      return result;
+    } catch {
+      return null;
+    }
+  },
+
+  async votePoll(pollId: string, optionId: string): Promise<PollResult | null> {
+    try {
+      const result = await readResponse<PollResult | null>(
+        await fetch(`/api/polls/${encodeURIComponent(pollId)}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ option_id: optionId }),
+        }),
+      );
+      return result;
+    } catch {
+      return null;
+    }
   },
 };

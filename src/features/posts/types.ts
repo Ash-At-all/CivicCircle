@@ -18,6 +18,7 @@ export type PersistedPost = {
   votes?: number;
   user_vote?: number;
   comments?: PersistedComment[];
+  poll?: Poll | null;
 };
 
 export type PersistedComment = {
@@ -31,4 +32,25 @@ export type PersistedComment = {
 export type PostEdit = {
   title: string;
   body: string;
+};
+
+export type PollOption = {
+  id: string;
+  text: string;
+};
+
+export type Poll = {
+  id: string;
+  post_id: string;
+  question: string;
+  created_at: string;
+  expires_at: string;
+  options?: PollOption[] | null;
+};
+
+export type PollResult = {
+  poll: Poll;
+  options: Array<PollOption & { votes: number; percent: number }>;
+  totalVotes: number;
+  closed: boolean;
 };
