@@ -25,6 +25,8 @@ export async function GET(request: Request) {
     const sinceDate = sinceParam ? new Date(sinceParam) : null;
     const since =
       sinceDate && !Number.isNaN(sinceDate.getTime()) ? sinceDate.toISOString() : null;
+    const room = url.searchParams.get("room") ?? "general";
+    const isGlobal = room === "general";
 
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
@@ -33,24 +35,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Sign in to load messages.", code: "auth_required" }, { status: 401 });
     }
 
-    // General chat is city-scoped: messages live in the viewer's city area.
-    const areaResult = await loadAreaScope(supabase, userResult.user.id, "city");
-    if (!areaResult.ok) return areaResult.response;
-    const { areaId } = areaResult.context;
+    // The general room is global and needs no area. Other rooms stay scoped to
+    // the viewer's city area.
+    let areaId: string | null = null;
+    if (!isGlobal) {
+      const areaResult = await loadAreaScope(supabase, userResult.user.id, "city");
+      if (!areaResult.ok) return areaResult.response;
+      areaId = areaResult.context.areaId;
+    }
 
     const base = supabase
       .from("messages")
-      .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
-      .eq("area_id", areaId);
+      .select("id, client_id, body, author_id, author_handle, created_at, deleted_at");
+    const scoped = isGlobal
+      ? base.eq("scope", "global").is("area_id", null)
+      : base.eq("area_id", areaId as string);
 
     // With a cursor, return only newer rows (append-only polling). Without one,
     // take the newest 50 and flip back to chronological order.
     const { data, error } = since
-      ? await base
+      ? await scoped
           .gt("created_at", since)
           .order("created_at", { ascending: true })
           .limit(100)
-      : await base
+      : await scoped
           .order("created_at", { ascending: false })
           .limit(50);
 
@@ -79,7 +87,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ messages, areaId, currentUserId });
+    return NextResponse.json({ messages, areaId, currentUserId, global: isGlobal });
   } catch (error) {
     console.error("Supabase message list is unavailable:", error);
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
@@ -93,6 +101,7 @@ export async function POST(request: Request) {
   const schema = z.object({
     city: z.string().min(1),
     channel: z.string().min(1),
+    room: z.string().min(1).optional(),
     body: messageDraftSchema.shape.body,
     // Per-message id used for idempotent retries. Must be unique per message,
     // never a stable device id, or the unique (author_id, client_id) index
@@ -117,24 +126,54 @@ export async function POST(request: Request) {
     const rateLimitResponse = await enforceRateLimit(supabase, "messages");
     if (rateLimitResponse) return rateLimitResponse;
 
-    // General chat is city-scoped: the insert must use the area-scoped columns
-    // granted to authenticated, with the viewer's own area on record.
-    const areaResult = await loadAreaScope(supabase, userResult.user.id, "city");
-    if (!areaResult.ok) return areaResult.response;
-    const { areaId, h3Cell } = areaResult.context;
+    const room = parsed.data.room ?? parsed.data.city;
+    const isGlobal = room === "general";
+
+    // The general room is global and needs no area. Other rooms stay scoped to
+    // the viewer's city area.
+    let areaContext: { areaId: string; h3Cell: string } | null = null;
+    if (!isGlobal) {
+      const areaResult = await loadAreaScope(supabase, userResult.user.id, "city");
+      if (!areaResult.ok) return areaResult.response;
+      areaContext = {
+        areaId: areaResult.context.areaId,
+        h3Cell: areaResult.context.h3Cell,
+      };
+    }
 
     const clientId = parsed.data.clientId ?? crypto.randomUUID();
+    const authorHandle = parsed.data.authorName?.trim().slice(0, 40) || "Ghost";
+    const insertRow: {
+      area_id: string | null;
+      scope: string;
+      h3_cell: string | null;
+      client_id: string;
+      author_id: string;
+      author_handle: string;
+      body: string;
+    } = isGlobal
+      ? {
+          area_id: null,
+          scope: "global",
+          h3_cell: null,
+          client_id: clientId,
+          author_id: userResult.user.id,
+          author_handle: authorHandle,
+          body: parsed.data.body,
+        }
+      : {
+          area_id: areaContext!.areaId,
+          scope: "city",
+          h3_cell: areaContext!.h3Cell,
+          client_id: clientId,
+          author_id: userResult.user.id,
+          author_handle: authorHandle,
+          body: parsed.data.body,
+        };
+
     const { data, error } = await supabase
       .from("messages")
-      .insert({
-        area_id: areaId,
-        scope: "city",
-        h3_cell: h3Cell,
-        client_id: clientId,
-        author_id: userResult.user.id,
-        author_handle: parsed.data.authorName?.trim().slice(0, 40) || "Ghost",
-        body: parsed.data.body,
-      })
+      .insert(insertRow)
       .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
       .single();
 

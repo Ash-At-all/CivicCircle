@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, use } from "react";
+import { useCallback, useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { ArrowLeft, Lock, Send, Paperclip, ShieldCheck, ChevronDown } from "lucide-react";
@@ -98,12 +98,15 @@ const [clientName] = useState(readClientName);
 const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
+  const isGlobal = roomId === "general";
 
-  const pollMessages = async () => {
+  const pollMessages = useCallback(async () => {
     // Only ask for messages newer than the last one we have. This keeps the
     // list append-only so polling can never wipe earlier messages.
     const since = lastMessageAtRef.current;
-    const url = since ? `/api/messages?since=${encodeURIComponent(since)}` : "/api/messages";
+    const params = new URLSearchParams({ room: roomId });
+    if (since) params.set("since", since);
+    const url = `/api/messages?${params.toString()}`;
     console.log("[poll] fetching messages...", since ? `since=${since}` : "initial");
     try {
       const res = await fetch(url, { cache: "no-store" });
@@ -146,7 +149,7 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     } catch (error) {
       console.log("[poll] error:", error);
     }
-  };
+  }, [roomId]);
 
   useEffect(() => {
     activeRef.current = true;
@@ -168,26 +171,29 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       intervalRef.current = null;
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [roomId]);
+  }, [pollMessages]);
 
   // Realtime is the fast path; polling stays as the fallback.
   useEffect(() => {
-    if (!areaId) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       console.log("[realtime] browser client unavailable");
       return;
     }
+    if (!isGlobal && !areaId) return;
+
+    const filter = isGlobal ? "scope=eq.global" : `area_id=eq.${areaId}`;
+    const channelName = isGlobal ? "global-chat" : `city-chat-${areaId}`;
 
     const channel = supabase
-      .channel(`city-chat-${areaId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `area_id=eq.${areaId}`,
+          filter,
         },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const message = mapRealtimeRow(
@@ -215,7 +221,7 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [areaId, currentUserId]);
+  }, [isGlobal, areaId, currentUserId]);
 
   function handleScroll() {
     if (!scrollRef.current) return;
@@ -274,6 +280,7 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
         body: JSON.stringify({
           city: roomId,
           channel: "chitchat",
+          room: roomId,
           body: fullBody,
           clientId: messageClientId,
           authorName: clientName,
@@ -322,9 +329,11 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
             </Link>
             <div className="min-w-0">
               <h1 className="truncate text-sm font-medium capitalize tracking-[0.2px] text-[var(--ink)]">
-                {roomTitle}
+                {isGlobal ? "General - Community chat" : roomTitle}
               </h1>
-              <p className="text-[11px] tracking-[0.3px] text-[var(--ash)]">Community chat</p>
+              <p className="text-[11px] tracking-[0.3px] text-[var(--ash)]">
+                {isGlobal ? "Everyone on CivicCircle" : "Community chat"}
+              </p>
             </div>
           </div>
 
@@ -339,7 +348,11 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       <div className="border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 text-center">
         <p className="inline-flex items-center justify-center gap-1.5 text-[11px] tracking-[0.3px] text-[var(--mute)]">
           <ShieldCheck className="h-3.5 w-3.5 text-[var(--ash)]" strokeWidth={1.8} />
-          <span>Messages are shared with others in this city.</span>
+          <span>
+            {isGlobal
+              ? "Messages are shared with everyone on CivicCircle."
+              : "Messages are shared with others in this city."}
+          </span>
         </p>
       </div>
 
