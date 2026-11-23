@@ -32,11 +32,12 @@ export async function GET() {
     if (!areaResult.ok) return areaResult.response;
     const { areaId } = areaResult.context;
 
+    // Take the newest 50, then flip back to chronological order for display.
     const { data, error } = await supabase
       .from("messages")
       .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
       .eq("area_id", areaId)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(50);
 
     if (error) {
@@ -44,7 +45,8 @@ export async function GET() {
       return NextResponse.json({ error: "Could not load messages. Please try again." }, { status: 502 });
     }
 
-    const messages = (data ?? []).map((row: MessageRow) => {
+    const rows = ((data ?? []) as MessageRow[]).slice().reverse();
+    const messages = rows.map((row: MessageRow) => {
       const isMine = row.author_id === currentUserId;
       const authorName = (row.author_handle ?? "").trim() || "Community member";
       return {
@@ -74,6 +76,10 @@ export async function POST(request: Request) {
     city: z.string().min(1),
     channel: z.string().min(1),
     body: messageDraftSchema.shape.body,
+    // Per-message id used for idempotent retries. Must be unique per message,
+    // never a stable device id, or the unique (author_id, client_id) index
+    // would collapse every message into the first one.
+    clientId: z.string().min(1).max(120).optional(),
     anonId: z.string().max(120).optional(),
     authorName: z.string().max(80).optional(),
   }).strict();
@@ -99,7 +105,7 @@ export async function POST(request: Request) {
     if (!areaResult.ok) return areaResult.response;
     const { areaId, h3Cell } = areaResult.context;
 
-    const clientId = parsed.data.anonId ?? crypto.randomUUID();
+    const clientId = parsed.data.clientId ?? crypto.randomUUID();
     const { data, error } = await supabase
       .from("messages")
       .insert({

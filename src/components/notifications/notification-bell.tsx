@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Bell, BellRing, CheckCheck, MapPin, MessageSquare, ShieldCheck, X } from "lucide-react";
 
 type Digest = {
@@ -42,6 +43,11 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const openRef = useRef(false);
   const lastSeenRef = useRef<string | null>(null);
   const serverTimeRef = useRef<string | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches,
+  );
+  const [desktopPos, setDesktopPos] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -62,6 +68,53 @@ export function NotificationBell({ className = "" }: { className?: string }) {
 
   useEffect(() => {
     openRef.current = open;
+  }, [open]);
+
+  const placePanel = useCallback(() => {
+    const el = buttonRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const width = Math.min(336, window.innerWidth - 24);
+    // Keep the desktop dropdown inside the viewport even though the bell is
+    // not the rightmost header control.
+    const left = Math.min(
+      Math.max(12, rect.right - width),
+      Math.max(12, window.innerWidth - width - 12),
+    );
+    setDesktopPos({ top: rect.bottom + 8, left });
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const syncViewport = () => {
+      const desktop = mq.matches;
+      setIsDesktop(desktop);
+      // Re-anchor when growing to desktop while the panel is open.
+      if (desktop && openRef.current) placePanel();
+    };
+    mq.addEventListener("change", syncViewport);
+    return () => mq.removeEventListener("change", syncViewport);
+  }, [placePanel]);
+
+  useEffect(() => {
+    if (!open || !isDesktop) return;
+    const onReflow = () => placePanel();
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
+    return () => {
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
+    };
+  }, [open, isDesktop, placePanel]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePanel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const fetchDigest = useCallback(
@@ -174,6 +227,9 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   }
 
   function openPanel() {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches) {
+      placePanel();
+    }
     setOpen(true);
     setStatus(null);
     if (enabled) void fetchDigest();
@@ -235,6 +291,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label={enabled ? `Notifications, ${badge} new` : "Notification settings"}
         aria-expanded={open}
@@ -251,135 +308,152 @@ export function NotificationBell({ className = "" }: { className?: string }) {
         ) : null}
       </button>
 
-      {open ? (
-        <>
-          <button
-            type="button"
-            aria-label="Close notifications"
-            className="fixed inset-0 z-40 cursor-default bg-black/30"
-            onClick={closePanel}
-          />
-          <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(21rem,calc(100vw-1.5rem))] rounded-[22px] border border-white/12 bg-[rgba(18,18,20,0.9)] p-3.5 shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl backdrop-saturate-150">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
-                  <BellRing className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="text-[13px] font-semibold text-white">Notifications</p>
-                  <p className="text-[11px] text-white/55">
-                    {enabled ? (fetching ? "Checking activity..." : "Lightweight activity alerts") : "Opt in any time"}
-                  </p>
-                </div>
-              </div>
+      {open && typeof document !== "undefined" && (!isDesktop || desktopPos)
+        ? createPortal(
+            <>
               <button
                 type="button"
                 aria-label="Close notifications"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                className="fixed inset-0 z-[55] cursor-default bg-black/40 backdrop-blur-[2px] sm:bg-black/20"
                 onClick={closePanel}
-              >
-                <X className="h-4 w-4" strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/6 p-3">
-              <div className="min-w-0">
-                <p className="text-[13px] font-medium text-white">Alerts on this device</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-white/55">
-                  Replies and area chat spikes. No message contents.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={enabled}
-                aria-label={enabled ? "Turn off notifications" : "Turn on notifications"}
-                disabled={!hydrated || busy}
-                onClick={() => (enabled ? disableNotifications() : void enableNotifications())}
-                className={`relative h-6 w-11 flex-none rounded-full border transition-colors ${
-                  enabled ? "border-[var(--accent-green)]/50 bg-[var(--accent-green)]/35" : "border-white/15 bg-white/10"
-                }`}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Notifications"
+                style={
+                  isDesktop && desktopPos
+                    ? { top: desktopPos.top, left: desktopPos.left }
+                    : undefined
+                }
+                className="fixed inset-x-4 bottom-4 z-[60] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-[22px] border border-white/12 bg-[rgba(18,18,20,0.97)] px-4 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-150 sm:inset-x-auto sm:bottom-auto sm:max-h-[min(80dvh,calc(100dvh-96px))] sm:w-[21rem] sm:rounded-[22px] sm:p-3.5 sm:pb-3.5 sm:shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                    enabled ? "translate-x-5" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {!hydrated ? (
-              <p className="mt-3 text-[12px] text-white/55">Loading preferences...</p>
-            ) : !supported ? (
-              <p className="mt-3 text-[12px] leading-relaxed text-white/60">
-                This browser does not support notifications. You can still check activity on Home and Nearby.
-              </p>
-            ) : !enabled ? (
-              <div className="mt-3 space-y-2">
-                <button
-                  type="button"
-                  className="btn btn-primary min-h-[42px] w-full justify-center rounded-xl"
-                  disabled={busy}
-                  onClick={() => void enableNotifications()}
-                >
-                  {busy ? "Turning on..." : "Turn on alerts"}
-                </button>
-                {permission === "denied" ? (
-                  <p className="text-[11px] leading-relaxed text-[var(--accent-yellow)]">
-                    Notifications are blocked. Allow them in your browser settings, then try again.
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="mt-3 space-y-1.5">
-                <ActivityRow
-                  icon={<MessageSquare className="h-3.5 w-3.5" strokeWidth={1.8} />}
-                  label="Replies to your posts"
-                  count={digest.replies}
-                />
-                <ActivityRow
-                  icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />}
-                  label={
-                    digest.chatBusy
-                      ? `Area chat is busy${digest.localityName ? ` in ${digest.localityName}` : ""}`
-                      : "Area chat"
-                  }
-                  count={digest.chatNew}
-                  detail={digest.chatRecent > 0 ? `${digest.chatRecent} messages in the last 30 minutes` : undefined}
+                  className="mx-auto mb-2 block h-1 w-10 rounded-full bg-white/20 sm:hidden"
+                  aria-hidden="true"
                 />
 
-
-                {totalNew > 0 ? (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
+                      <BellRing className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-white">Notifications</p>
+                      <p className="break-words text-[11px] leading-snug text-white/55">
+                        {enabled ? (fetching ? "Checking activity..." : "Lightweight activity alerts") : "Opt in any time"}
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    className="btn btn-sm btn-tertiary mt-2 w-full justify-center"
-                    onClick={() => {
-                      rememberSeen();
-                      setStatus("Marked as seen.");
-                    }}
+                    aria-label="Close notifications"
+                    className="flex h-8 w-8 flex-none items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                    onClick={closePanel}
                   >
-                    <CheckCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    Mark all seen
+                    <X className="h-4 w-4" strokeWidth={2} />
                   </button>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/6 p-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-[13px] font-medium text-white">Alerts on this device</p>
+                    <p className="mt-0.5 break-words text-[11px] leading-relaxed text-white/55">
+                      Replies and area chat spikes. No message contents.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    aria-label={enabled ? "Turn off notifications" : "Turn on notifications"}
+                    disabled={!hydrated || busy}
+                    onClick={() => (enabled ? disableNotifications() : void enableNotifications())}
+                    className={`relative h-6 w-11 flex-none rounded-full border transition-colors ${
+                      enabled ? "border-[var(--accent-green)]/50 bg-[var(--accent-green)]/35" : "border-white/15 bg-white/10"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                        enabled ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {!hydrated ? (
+                  <p className="mt-3 break-words text-[12px] text-white/55">Loading preferences...</p>
+                ) : !supported ? (
+                  <p className="mt-3 break-words text-[12px] leading-relaxed text-white/60">
+                    This browser does not support notifications. You can still check activity on Home and Nearby.
+                  </p>
+                ) : !enabled ? (
+                  <div className="mt-3 space-y-2">
+                    <button
+                      type="button"
+                      className="btn btn-primary min-h-[42px] w-full justify-center rounded-xl"
+                      disabled={busy}
+                      onClick={() => void enableNotifications()}
+                    >
+                      {busy ? "Turning on..." : "Turn on alerts"}
+                    </button>
+                    {permission === "denied" ? (
+                      <p className="break-words text-[11px] leading-relaxed text-[var(--accent-yellow)]">
+                        Notifications are blocked. Allow them in your browser settings, then try again.
+                      </p>
+                    ) : null}
+                  </div>
                 ) : (
-                  <p className="pt-1 text-center text-[12px] text-white/55">You are all caught up.</p>
+                  <div className="mt-3 space-y-1.5">
+                    <ActivityRow
+                      icon={<MessageSquare className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                      label="Replies to your posts"
+                      count={digest.replies}
+                    />
+                    <ActivityRow
+                      icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                      label={
+                        digest.chatBusy
+                          ? `Area chat is busy${digest.localityName ? ` in ${digest.localityName}` : ""}`
+                          : "Area chat"
+                      }
+                      count={digest.chatNew}
+                      detail={digest.chatRecent > 0 ? `${digest.chatRecent} messages in the last 30 minutes` : undefined}
+                    />
+
+                    {totalNew > 0 ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-tertiary mt-2 w-full justify-center"
+                        onClick={() => {
+                          rememberSeen();
+                          setStatus("Marked as seen.");
+                        }}
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        Mark all seen
+                      </button>
+                    ) : (
+                      <p className="break-words pt-1 text-center text-[12px] text-white/55">You are all caught up.</p>
+                    )}
+                  </div>
                 )}
+
+                {status ? (
+                  <p className="mt-2 break-words text-[11px] leading-relaxed text-[var(--accent-yellow)]" role="status">
+                    {status}
+                  </p>
+                ) : null}
+
+                <p className="mt-3 flex items-start gap-1.5 break-words border-t border-white/8 pt-2.5 text-[10px] leading-relaxed text-white/45">
+                  <ShieldCheck className="mt-0.5 h-3 w-3 flex-none" strokeWidth={1.8} aria-hidden="true" />
+                  Alerts stay on this device and only work while CivicCircle is open. No accounts, no exact location, no message contents.
+                </p>
               </div>
-            )}
-
-            {status ? (
-              <p className="mt-2 text-[11px] leading-relaxed text-[var(--accent-yellow)]" role="status">
-                {status}
-              </p>
-            ) : null}
-
-            <p className="mt-3 flex items-start gap-1.5 border-t border-white/8 pt-2.5 text-[10px] leading-relaxed text-white/45">
-              <ShieldCheck className="mt-0.5 h-3 w-3 flex-none" strokeWidth={1.8} aria-hidden="true" />
-              Alerts stay on this device and only work while CivicCircle is open. No accounts, no exact location, no message contents.
-            </p>
-          </div>
-        </>
-      ) : null}
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

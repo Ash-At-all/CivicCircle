@@ -16,6 +16,15 @@ type Message = {
   delivery?: "sending" | "failed";
 };
 
+function readClientName(): string {
+  try {
+    if (typeof window === "undefined") return "Anonymous";
+    return localStorage.getItem("civiccircle-client-name") || "Anonymous";
+  } catch {
+    return "Anonymous";
+  }
+}
+
 export default function ChatRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = use(params);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -29,20 +38,20 @@ const isNearBottomRef = useRef(true);
 const activeRef = useRef(true);
 const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const attachRef = useRef<HTMLInputElement>(null);
-const clientId = typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-id") || crypto.randomUUID() : "";
-const clientName = typeof window !== "undefined" ? localStorage.getItem("civiccircle-client-name") || "Anonymous" : "Anonymous";
-
-if (typeof window !== "undefined" && !localStorage.getItem("civiccircle-client-id")) {
-  localStorage.setItem("civiccircle-client-id", clientId);
-}
-
+const fetchGenRef = useRef(0);
+const pendingIdsRef = useRef<Set<string>>(new Set());
+const [clientName] = useState(readClientName);
 const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
 
   const loadMessages = async () => {
+    // Any send bumps the generation, so a poll that started before the send
+    // cannot overwrite the optimistic message when it resolves.
+    const gen = fetchGenRef.current;
     try {
-      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat&anon=${encodeURIComponent(clientId)}`, { cache: "no-store" });
+      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat`, { cache: "no-store" });
+      if (gen !== fetchGenRef.current) return;
       if (!res.ok) {
         const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
         if (activeRef.current) {
@@ -55,16 +64,24 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       }
       const data = await res.json();
       if (!activeRef.current || !data.messages) return;
+      if (gen !== fetchGenRef.current) return;
 
       setChatError(null);
       setMessages((prev) => {
-        if (prev.length > 0 && data.messages.length > prev.length && !isNearBottomRef.current) {
+        const server = data.messages as Message[];
+        const serverIds = new Set(server.map((m) => m.id));
+        // Keep messages still being sent so polling never drops them.
+        const pending = prev.filter(
+          (m) => pendingIdsRef.current.has(m.id) && !serverIds.has(m.id),
+        );
+        const next = [...server, ...pending];
+        if (prev.length > 0 && next.length > prev.length && !isNearBottomRef.current) {
           setHasNewMessages(true);
         }
-        return data.messages;
+        return next;
       });
     } catch {
-      // silent
+      // silent; the next poll retries
     }
   };
 
@@ -79,7 +96,8 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       clearInterval(intervalRef.current ?? 0);
       intervalRef.current = null;
     };
-  }, [roomId, clientId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   function handleScroll() {
     if (!scrollRef.current) return;
@@ -113,7 +131,10 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       intervalRef.current = null;
     }
 
-    const tempId = `temp-${Date.now()}`;
+    // Invalidate any poll already in flight so it cannot drop the new message.
+    fetchGenRef.current += 1;
+
+    const tempId = `temp-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: tempId,
       body: text,
@@ -122,7 +143,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       author: clientName,
       author_username: null,
       initials: clientName.slice(0, 2).toUpperCase(),
+      delivery: "sending",
     };
+    pendingIdsRef.current.add(tempId);
 
     setMessages((prev) => [...prev, optimisticMessage]);
     setInput("");
@@ -130,6 +153,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     isNearBottomRef.current = true;
 
     const fullBody = pendingImageUrl ? `${pendingImageUrl}\n${text}` : text;
+    // A fresh id per message keeps retries idempotent without collapsing every
+    // message from this device into the first one via the unique index.
+    const messageClientId = crypto.randomUUID();
 
     try {
       const res = await fetch("/api/messages", {
@@ -139,17 +165,20 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
           city: roomId,
           channel: "chitchat",
           body: fullBody,
-          anonId: clientId,
+          clientId: messageClientId,
           authorName: clientName,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
+        const saved = { ...data.message, fromYou: true, delivery: undefined } as Message;
         setChatError(null);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...data.message, fromYou: true } : m))
-        );
+        setMessages((prev) => {
+          const exists = prev.some((m) => m.id === tempId);
+          if (!exists) return [...prev, saved];
+          return prev.map((m) => (m.id === tempId ? saved : m));
+        });
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -159,13 +188,17 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
         });
       }
     } catch {
-      // optimistic keeps message
+      // Roll back on network failure so the UI never shows a message that was
+      // not saved.
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setChatError({ message: "Could not send your message. Check your connection and try again." });
     } finally {
+      pendingIdsRef.current.delete(tempId);
       setSending(false);
       setPendingImageUrl(null);
       scrollToBottom();
-      // Restart polling
-      if (!intervalRef.current) {
+      // Restart polling unless the room unmounted mid-send.
+      if (activeRef.current && !intervalRef.current) {
         intervalRef.current = setInterval(loadMessages, 3000);
       }
     }
@@ -275,7 +308,7 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
                       m.fromYou ? "text-black/55" : "text-[var(--ash)]"
                     }`}
                   >
-                    {m.time}
+                    {m.delivery === "sending" ? "Sending..." : m.time}
                   </div>
                 </div>
               </div>
