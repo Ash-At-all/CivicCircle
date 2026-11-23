@@ -28,7 +28,8 @@ export type RateLimitAction =
   | "shopPhoto"
   | "shopRating"
   | "shopReview"
-  | "areaCreate";
+  | "areaCreate"
+  | "gifSearch";
 
 type Policy = {
   action: string;
@@ -73,4 +74,5 @@ export const RATE_LIMIT_POLICIES: Record<RateLimitAction, Policy> = {
   shopRating: { action: "shop-rating", limit: 20, windowSeconds: 3600, label: "rating shops" },
   shopReview: { action: "shop-review", limit: 10, windowSeconds: 3600, label: "reviewing shops" },
   areaCreate: { action: "area-create", limit: 60, windowSeconds: 86400, label: "area updates" },
+  gifSearch: { action: "gif-search", limit: 10, windowSeconds: 3600, label: "searching GIFs" },
 };

@@ -15,6 +15,9 @@ function friendlyMessage(label: string, retryAfter: number) {
   if (label === "reviewing shops") {
     return `You are reviewing too often. Try again in ${retryAfter} ${unit}.`;
   }
+  if (label === "searching GIFs") {
+    return `You are searching GIFs too often. Try again in ${retryAfter} ${unit}.`;
+  }
   return `You are doing that too quickly. Try again in ${retryAfter} ${unit}.`;
 }
 

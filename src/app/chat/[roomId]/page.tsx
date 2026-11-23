@@ -2,8 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { ArrowLeft, Lock, Send, Paperclip, ShieldCheck, ChevronDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Lock,
+  Send,
+  Paperclip,
+  ShieldCheck,
+  ChevronDown,
+  Film,
+  Loader2,
+  Search,
+  X,
+} from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -20,7 +32,33 @@ type Message = {
   clientId?: string;
 };
 
+type GifResult = {
+  id: string;
+  title: string;
+  preview: string;
+  url: string;
+  width: number;
+  height: number;
+};
+
 const POLL_MS = 3000;
+const GIF_PREFIX = "gif::";
+const GIPHY_MEDIA_HOST = /^media\d*\.giphy\.com$/;
+
+// GIF messages store the media URL in the body behind a prefix. Only Giphy
+// media hosts are rendered, so a hand-crafted body cannot load another site.
+function parseGifUrl(body: string): string | null {
+  if (!body.startsWith(GIF_PREFIX)) return null;
+  const raw = body.slice(GIF_PREFIX.length).trim();
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:") return null;
+    if (!GIPHY_MEDIA_HOST.test(url.hostname)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 
 function messageTime(createdAt: string): string {
   return new Date(createdAt).toLocaleString();
@@ -96,6 +134,13 @@ const [areaId, setAreaId] = useState<string | null>(null);
 const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 const [clientName] = useState(readClientName);
 const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+const [gifOpen, setGifOpen] = useState(false);
+const [gifQuery, setGifQuery] = useState("");
+const [gifs, setGifs] = useState<GifResult[]>([]);
+const [gifLoading, setGifLoading] = useState(false);
+const [gifError, setGifError] = useState<string | null>(null);
+const gifRequestRef = useRef(0);
+const lastGifQueryRef = useRef<string | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
   const isGlobal = roomId === "general";
@@ -223,6 +268,47 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     };
   }, [isGlobal, areaId, currentUserId]);
 
+  const loadGifs = useCallback(async (query: string) => {
+    const requestId = ++gifRequestRef.current;
+    setGifLoading(true);
+    setGifError(null);
+    try {
+      const params = new URLSearchParams();
+      if (query) params.set("q", query);
+      const search = params.toString();
+      const res = await fetch(`/api/giphy${search ? `?${search}` : ""}`, { cache: "no-store" });
+      const data = (await res.json().catch(() => null)) as
+        | { gifs?: GifResult[]; error?: string }
+        | null;
+      if (requestId !== gifRequestRef.current) return;
+      if (!res.ok) {
+        setGifError(data?.error || "Could not load GIFs.");
+        setGifs([]);
+        return;
+      }
+      setGifs(Array.isArray(data?.gifs) ? data.gifs : []);
+      lastGifQueryRef.current = query;
+    } catch {
+      if (requestId !== gifRequestRef.current) return;
+      setGifError("Could not load GIFs. Check your connection and try again.");
+      setGifs([]);
+    } finally {
+      if (requestId === gifRequestRef.current) setGifLoading(false);
+    }
+  }, []);
+
+  // Load trending GIFs when the sheet opens, then debounce typed searches.
+  useEffect(() => {
+    if (!gifOpen) return;
+    const term = gifQuery.trim();
+    if (term.length === 1) return;
+    if (lastGifQueryRef.current === term) return;
+    const handle = setTimeout(() => {
+      void loadGifs(term);
+    }, term ? 450 : 0);
+    return () => clearTimeout(handle);
+  }, [gifOpen, gifQuery, loadGifs]);
+
   function handleScroll() {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
@@ -244,10 +330,8 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     }
   }, [messages]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || sending) return;
+  async function deliver(body: string) {
+    if (!body || sending) return;
 
     // A fresh id per message keeps retries idempotent without collapsing every
     // message from this device into the first one via the unique index.
@@ -255,7 +339,7 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     const tempId = `temp-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: tempId,
-      body: text,
+      body,
       time: "Just now",
       fromYou: true,
       author: clientName,
@@ -267,11 +351,8 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
-    setInput("");
     setSending(true);
     isNearBottomRef.current = true;
-
-    const fullBody = pendingImageUrl ? `${pendingImageUrl}\n${text}` : text;
 
     try {
       const res = await fetch("/api/messages", {
@@ -281,7 +362,7 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
           city: roomId,
           channel: "chitchat",
           room: roomId,
-          body: fullBody,
+          body,
           clientId: messageClientId,
           authorName: clientName,
         }),
@@ -309,9 +390,26 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       setChatError({ message: "Could not send your message. Check your connection and try again." });
     } finally {
       setSending(false);
-      setPendingImageUrl(null);
       scrollToBottom();
     }
+  }
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || sending) return;
+
+    // Photo sharing stays in area chat only. General chat is text and GIFs.
+    const fullBody = !isGlobal && pendingImageUrl ? `${pendingImageUrl}\n${text}` : text;
+    setInput("");
+    setPendingImageUrl(null);
+    await deliver(fullBody);
+  }
+
+  async function handleGifSelect(gif: GifResult) {
+    if (sending) return;
+    setGifOpen(false);
+    await deliver(`${GIF_PREFIX}${gif.url}`);
   }
 
   return (
@@ -392,7 +490,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
             </div>
           </div>
         ) : (
-          messages.map((m) => (
+          messages.map((m) => {
+            const gifUrl = parseGifUrl(m.body);
+            return (
             <div
               key={m.id}
               className={`flex w-full ${m.fromYou ? "justify-end" : "justify-start"}`}
@@ -418,7 +518,17 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
                       : "border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--body-text)]"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  {gifUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={gifUrl}
+                      alt="GIF"
+                      loading="lazy"
+                      className="max-h-56 w-full rounded-[10px] object-cover"
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  )}
                   <div
                     className={`mt-1 text-right text-[10px] tracking-[0.2px] ${
                       m.fromYou ? "text-black/55" : "text-[var(--ash)]"
@@ -429,7 +539,8 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
                 </div>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -448,45 +559,58 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       {/* Input Bar */}
       <footer className="border-t border-[var(--hairline)] bg-[rgba(7,8,10,0.94)] p-3 pb-[max(env(safe-area-inset-bottom),12px)] backdrop-blur-xl">
         <form onSubmit={handleSend} className="flex items-center gap-2">
+          {!isGlobal ? (
+            <>
+              <button
+                type="button"
+                onClick={() => attachRef.current?.click()}
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+                aria-label="Attach file"
+              >
+                <Paperclip className="h-4 w-4" strokeWidth={1.8} />
+              </button>
+              <input
+                ref={attachRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setSending(true);
+                  try {
+                    const formData = new FormData();
+                    formData.append("imagePaths", file);
+                    const res = await fetch("/api/posts/images", {
+                      method: "POST",
+                      body: formData,
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      const url = Array.isArray(data.imagePaths) ? data.imagePaths[0] : data.imagePaths;
+                      if (url) {
+                        setPendingImageUrl(url);
+                      }
+                    }
+                  } catch {
+                    // silent
+                  } finally {
+                    setSending(false);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </>
+          ) : null}
+
           <button
             type="button"
-            onClick={() => attachRef.current?.click()}
+            onClick={() => setGifOpen(true)}
             className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
-            aria-label="Attach file"
+            aria-label="Search GIFs"
           >
-            <Paperclip className="h-4 w-4" strokeWidth={1.8} />
+            <Film className="h-4 w-4" strokeWidth={1.8} />
           </button>
-          <input
-            ref={attachRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setSending(true);
-              try {
-                const formData = new FormData();
-                formData.append("imagePaths", file);
-                const res = await fetch("/api/posts/images", {
-                  method: "POST",
-                  body: formData,
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  const url = Array.isArray(data.imagePaths) ? data.imagePaths[0] : data.imagePaths;
-                  if (url) {
-                    setPendingImageUrl(url);
-                  }
-                }
-              } catch {
-                // silent
-              } finally {
-                setSending(false);
-                e.target.value = "";
-              }
-            }}
-          />
 
           <input
             type="text"
@@ -506,6 +630,103 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
           </button>
         </form>
       </footer>
+
+      {gifOpen && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                aria-label="Close GIF search"
+                className="fixed inset-0 z-[80] cursor-default bg-black/60 backdrop-blur-[2px]"
+                onClick={() => setGifOpen(false)}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Search GIFs"
+                className="fixed inset-x-0 bottom-0 z-[81] mx-auto flex max-h-[78dvh] w-full max-w-[820px] flex-col rounded-t-[22px] border-t border-white/12 bg-[rgba(14,14,16,0.98)] pb-[max(env(safe-area-inset-bottom),12px)] shadow-[0_-12px_40px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+              >
+                <span
+                  className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20"
+                  aria-hidden="true"
+                />
+
+                <div className="flex items-center gap-2 px-4 pb-2 pt-3">
+                  <div className="relative flex-1">
+                    <Search
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ash)]"
+                      strokeWidth={1.8}
+                      aria-hidden="true"
+                    />
+                    <input
+                      type="text"
+                      value={gifQuery}
+                      onChange={(e) => setGifQuery(e.target.value)}
+                      placeholder="Search GIFs"
+                      className="field h-10 min-h-0 w-full rounded-full pl-9 pr-9"
+                      aria-label="Search GIFs"
+                    />
+                    {gifLoading ? (
+                      <Loader2
+                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--ash)]"
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGifOpen(false)}
+                    className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:text-[var(--ink)]"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.8} />
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-2">
+                  {gifError ? (
+                    <p className="py-8 text-center text-[13px] text-[var(--mute)]">{gifError}</p>
+                  ) : gifLoading && gifs.length === 0 ? (
+                    <div className="flex h-40 items-center justify-center text-[var(--mute)]">
+                      <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.8} />
+                    </div>
+                  ) : gifs.length === 0 ? (
+                    <p className="py-8 text-center text-[13px] text-[var(--mute)]">
+                      No GIFs found.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {gifs.map((gif) => (
+                        <button
+                          key={gif.id}
+                          type="button"
+                          disabled={sending}
+                          onClick={() => void handleGifSelect(gif)}
+                          className="relative overflow-hidden rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-card)] transition-opacity hover:opacity-90 disabled:opacity-60"
+                          aria-label={`Send ${gif.title}`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={gif.preview}
+                            alt={gif.title}
+                            loading="lazy"
+                            className="h-32 w-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <p className="px-4 pb-1 pt-2 text-center text-[10px] tracking-[0.3px] text-[var(--ash)]">
+                  Powered by GIPHY
+                </p>
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
