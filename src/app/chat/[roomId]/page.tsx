@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { ArrowLeft, Lock, Send, Paperclip, ShieldCheck, ChevronDown } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Message = {
   id: string;
@@ -14,7 +16,58 @@ type Message = {
   author_username: string | null;
   initials: string;
   delivery?: "sending" | "failed";
+  createdAt?: string;
+  clientId?: string;
 };
+
+const POLL_MS = 3000;
+
+function messageTime(createdAt: string): string {
+  return new Date(createdAt).toLocaleString();
+}
+
+// Merge by id so a poll or a realtime event never wipes older messages, and
+// drop the optimistic placeholder once its saved row arrives.
+function mergeMessages(base: Message[], incoming: Message[]): Message[] {
+  const byId = new Map(base.map((message) => [message.id, message]));
+  for (const next of incoming) {
+    if (next.clientId) {
+      for (const [id, existing] of byId) {
+        if (id.startsWith("temp-") && existing.clientId === next.clientId) {
+          byId.delete(id);
+        }
+      }
+    }
+    byId.set(next.id, next);
+  }
+  return Array.from(byId.values()).sort((a, b) => {
+    const at = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bt = b.createdAt ? Date.parse(b.createdAt) : 0;
+    return at - bt;
+  });
+}
+
+function mapRealtimeRow(
+  row: Record<string, unknown>,
+  currentUserId: string | null,
+): Message | null {
+  const id = String(row.id ?? "");
+  if (!id) return null;
+  const createdAt = String(row.created_at ?? new Date().toISOString());
+  const isMine = Boolean(currentUserId) && String(row.author_id ?? "") === currentUserId;
+  const handle = String(row.author_handle ?? "").trim() || "Community member";
+  return {
+    id,
+    body: row.deleted_at ? "" : String(row.body ?? ""),
+    time: messageTime(createdAt),
+    fromYou: isMine,
+    author: isMine ? "You" : handle,
+    author_username: isMine ? null : String(row.author_handle ?? "") || null,
+    initials: isMine ? "YO" : handle.slice(0, 2).toUpperCase(),
+    createdAt,
+    clientId: row.client_id ? String(row.client_id) : undefined,
+  };
+}
 
 function readClientName(): string {
   try {
@@ -38,20 +91,22 @@ const isNearBottomRef = useRef(true);
 const activeRef = useRef(true);
 const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const attachRef = useRef<HTMLInputElement>(null);
-const fetchGenRef = useRef(0);
-const pendingIdsRef = useRef<Set<string>>(new Set());
+const lastMessageAtRef = useRef<string | null>(null);
+const [areaId, setAreaId] = useState<string | null>(null);
+const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 const [clientName] = useState(readClientName);
 const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
 
-  const loadMessages = async () => {
-    // Any send bumps the generation, so a poll that started before the send
-    // cannot overwrite the optimistic message when it resolves.
-    const gen = fetchGenRef.current;
+  const pollMessages = async () => {
+    // Only ask for messages newer than the last one we have. This keeps the
+    // list append-only so polling can never wipe earlier messages.
+    const since = lastMessageAtRef.current;
+    const url = since ? `/api/messages?since=${encodeURIComponent(since)}` : "/api/messages";
+    console.log("[poll] fetching messages...", since ? `since=${since}` : "initial");
     try {
-      const res = await fetch(`/api/messages?city=${encodeURIComponent(roomId)}&channel=chitchat`, { cache: "no-store" });
-      if (gen !== fetchGenRef.current) return;
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) {
         const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
         if (activeRef.current) {
@@ -60,44 +115,107 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
             code: err?.code,
           });
         }
+        console.log("[poll] failed:", res.status, err?.code ?? "");
         return;
       }
       const data = await res.json();
-      if (!activeRef.current || !data.messages) return;
-      if (gen !== fetchGenRef.current) return;
+      if (!activeRef.current) return;
+
+      const incoming = Array.isArray(data.messages) ? (data.messages as Message[]) : [];
+      console.log("[poll] new messages:", incoming.length, "area:", data.areaId ?? null);
+
+      if (typeof data.areaId === "string") setAreaId(data.areaId);
+      if (typeof data.currentUserId === "string") setCurrentUserId(data.currentUserId);
 
       setChatError(null);
+
+      const newest = incoming.reduce(
+        (max, message) =>
+          message.createdAt && message.createdAt > max ? message.createdAt : max,
+        lastMessageAtRef.current ?? "",
+      );
+      if (newest) lastMessageAtRef.current = newest;
+
       setMessages((prev) => {
-        const server = data.messages as Message[];
-        const serverIds = new Set(server.map((m) => m.id));
-        // Keep messages still being sent so polling never drops them.
-        const pending = prev.filter(
-          (m) => pendingIdsRef.current.has(m.id) && !serverIds.has(m.id),
-        );
-        const next = [...server, ...pending];
-        if (prev.length > 0 && next.length > prev.length && !isNearBottomRef.current) {
+        const merged = mergeMessages(prev, incoming);
+        if (prev.length > 0 && merged.length > prev.length && !isNearBottomRef.current) {
           setHasNewMessages(true);
         }
-        return next;
+        return merged;
       });
-    } catch {
-      // silent; the next poll retries
+    } catch (error) {
+      console.log("[poll] error:", error);
     }
   };
 
   useEffect(() => {
     activeRef.current = true;
+    lastMessageAtRef.current = null;
 
-    const initial = setTimeout(() => { void loadMessages(); }, 0);
-    intervalRef.current = setInterval(loadMessages, 3000);
+    const initial = setTimeout(() => { void pollMessages(); }, 0);
+    // Always poll while the room is mounted. No visibility pause.
+    intervalRef.current = setInterval(() => { void pollMessages(); }, POLL_MS);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void pollMessages();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       activeRef.current = false;
       clearTimeout(initial);
       clearInterval(intervalRef.current ?? 0);
       intervalRef.current = null;
+      document.removeEventListener("visibilitychange", onVisible);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
+
+  // Realtime is the fast path; polling stays as the fallback.
+  useEffect(() => {
+    if (!areaId) return;
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      console.log("[realtime] browser client unavailable");
+      return;
+    }
+
+    const channel = supabase
+      .channel(`city-chat-${areaId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `area_id=eq.${areaId}`,
+        },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const message = mapRealtimeRow(
+            payload.new as Record<string, unknown>,
+            currentUserId,
+          );
+          if (!message) return;
+          console.log("[realtime] message:", message.id);
+          // Do not move the poll cursor here. Only the ordered poll response
+          // advances it, otherwise a message from another device could be
+          // skipped between polls.
+          setMessages((prev) => {
+            const merged = mergeMessages(prev, [message]);
+            if (merged.length > prev.length && !isNearBottomRef.current) {
+              setHasNewMessages(true);
+            }
+            return merged;
+          });
+        },
+      )
+      .subscribe((status: string) => {
+        console.log("[realtime] status:", status);
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [areaId, currentUserId]);
 
   function handleScroll() {
     if (!scrollRef.current) return;
@@ -125,15 +243,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     const text = input.trim();
     if (!text || sending) return;
 
-    // Stop polling while sending to avoid overwriting optimistic messages
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    // Invalidate any poll already in flight so it cannot drop the new message.
-    fetchGenRef.current += 1;
-
+    // A fresh id per message keeps retries idempotent without collapsing every
+    // message from this device into the first one via the unique index.
+    const messageClientId = crypto.randomUUID();
     const tempId = `temp-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: tempId,
@@ -144,8 +256,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       author_username: null,
       initials: clientName.slice(0, 2).toUpperCase(),
       delivery: "sending",
+      createdAt: new Date().toISOString(),
+      clientId: messageClientId,
     };
-    pendingIdsRef.current.add(tempId);
 
     setMessages((prev) => [...prev, optimisticMessage]);
     setInput("");
@@ -153,9 +266,6 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
     isNearBottomRef.current = true;
 
     const fullBody = pendingImageUrl ? `${pendingImageUrl}\n${text}` : text;
-    // A fresh id per message keeps retries idempotent without collapsing every
-    // message from this device into the first one via the unique index.
-    const messageClientId = crypto.randomUUID();
 
     try {
       const res = await fetch("/api/messages", {
@@ -174,11 +284,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
         const data = await res.json();
         const saved = { ...data.message, fromYou: true, delivery: undefined } as Message;
         setChatError(null);
-        setMessages((prev) => {
-          const exists = prev.some((m) => m.id === tempId);
-          if (!exists) return [...prev, saved];
-          return prev.map((m) => (m.id === tempId ? saved : m));
-        });
+        // Keep the cursor where it is; the next ordered poll advances it and
+        // also picks up messages from other devices that came before this one.
+        setMessages((prev) => mergeMessages(prev.filter((m) => m.id !== tempId), [saved]));
       } else {
         const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -193,14 +301,9 @@ const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setChatError({ message: "Could not send your message. Check your connection and try again." });
     } finally {
-      pendingIdsRef.current.delete(tempId);
       setSending(false);
       setPendingImageUrl(null);
       scrollToBottom();
-      // Restart polling unless the room unmounted mid-send.
-      if (activeRef.current && !intervalRef.current) {
-        intervalRef.current = setInterval(loadMessages, 3000);
-      }
     }
   }
 

@@ -18,8 +18,14 @@ type MessageRow = {
   deleted_at: string | null;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const sinceParam = url.searchParams.get("since");
+    const sinceDate = sinceParam ? new Date(sinceParam) : null;
+    const since =
+      sinceDate && !Number.isNaN(sinceDate.getTime()) ? sinceDate.toISOString() : null;
+
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
     const currentUserId = userResult?.user?.id ?? null;
@@ -32,20 +38,30 @@ export async function GET() {
     if (!areaResult.ok) return areaResult.response;
     const { areaId } = areaResult.context;
 
-    // Take the newest 50, then flip back to chronological order for display.
-    const { data, error } = await supabase
+    const base = supabase
       .from("messages")
       .select("id, client_id, body, author_id, author_handle, created_at, deleted_at")
-      .eq("area_id", areaId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .eq("area_id", areaId);
+
+    // With a cursor, return only newer rows (append-only polling). Without one,
+    // take the newest 50 and flip back to chronological order.
+    const { data, error } = since
+      ? await base
+          .gt("created_at", since)
+          .order("created_at", { ascending: true })
+          .limit(100)
+      : await base
+          .order("created_at", { ascending: false })
+          .limit(50);
 
     if (error) {
       console.error("Supabase area message list failed:", error.message);
       return NextResponse.json({ error: "Could not load messages. Please try again." }, { status: 502 });
     }
 
-    const rows = ((data ?? []) as MessageRow[]).slice().reverse();
+    const rows = ((data ?? []) as MessageRow[]).slice();
+    if (!since) rows.reverse();
+
     const messages = rows.map((row: MessageRow) => {
       const isMine = row.author_id === currentUserId;
       const authorName = (row.author_handle ?? "").trim() || "Community member";
@@ -58,10 +74,12 @@ export async function GET() {
         author_username: row.author_handle ?? null,
         initials: isMine ? "YO" : authorName.slice(0, 2).toUpperCase(),
         anon_id: row.client_id ?? "",
+        createdAt: row.created_at,
+        clientId: row.client_id ?? undefined,
       };
     });
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({ messages, areaId, currentUserId });
   } catch (error) {
     console.error("Supabase message list is unavailable:", error);
     return NextResponse.json({ error: "Supabase is not available. Check server configuration and try again." }, { status: 503 });
@@ -143,6 +161,8 @@ export async function POST(request: Request) {
               author: "You",
               author_username: null,
               initials: "YO",
+              createdAt: existingRow.created_at,
+              clientId: existingRow.client_id ?? undefined,
             },
           }, { status: 200 });
         }
@@ -162,6 +182,8 @@ export async function POST(request: Request) {
         author: "You",
         author_username: null,
         initials: "YO",
+        createdAt: created.created_at,
+        clientId: created.client_id ?? undefined,
       },
     }, { status: 201 });
   } catch (error) {
