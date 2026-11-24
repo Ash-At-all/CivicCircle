@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Trash2, Bookmark, Flag } from "lucide-react";
+import { Shield, Key, Copy, Check, Info, ArrowLeft, RefreshCw, FileText, Bookmark, Flag } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 
 export default function ProfilePage() {
@@ -17,7 +17,6 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
 
   useEffect(() => {
@@ -63,22 +62,6 @@ export default function ProfilePage() {
     navigator.clipboard.writeText(backupData);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
-  }
-
-  function deleteAccount() {
-    if (!confirm("Are you sure you want to delete your account? This will permanently remove your nickname, client ID, and all local preferences. This cannot be undone.")) return;
-    setDeleting(true);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("civiccircle-client-id");
-      localStorage.removeItem("civiccircle-client-name");
-      localStorage.removeItem("civiccircle-onboarded");
-      localStorage.removeItem("civiccircle-age-verified");
-      localStorage.removeItem("civiccircle-joined-cities");
-    }
-    setTimeout(() => {
-      setDeleting(false);
-      window.location.href = "/";
-    }, 500);
   }
 
   function resetIdentity() {
@@ -226,13 +209,6 @@ export default function ProfilePage() {
         <section className="card p-5">
           <h3 className="text-label mb-2">About CivicCircle</h3>
           <div className="divide-y divide-[var(--hairline)]">
-            <div className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)]">
-              <span className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.8} />
-                <span>Version</span>
-              </span>
-              <span className="text-[var(--mute)]">1.0.0 (login-free)</span>
-            </div>
             <Link
               href="/privacy"
               className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
@@ -264,17 +240,6 @@ export default function ProfilePage() {
         >
           <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.8} />
           <span>Generate new identity / reset</span>
-        </button>
-
-        {/* Delete Account */}
-        <button
-          type="button"
-          onClick={deleteAccount}
-          disabled={deleting}
-          className="btn btn-danger w-full"
-        >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-          <span>{deleting ? "Deleting..." : "Delete account"}</span>
         </button>
 
         <p className="pt-1 text-center text-[11px] tracking-[0.3px] text-[var(--ash)]">

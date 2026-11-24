@@ -9,7 +9,7 @@ type DefaultAvatarProps = {
 };
 
 const SIZE_CLASSES: Record<NonNullable<DefaultAvatarProps["size"]>, string> = {
-  xs: "h-6 w-6 text-[10px]",
+  xs: "h-6 w-6 text-[12px]",
   sm: "h-8 w-8 text-[11px]",
   md: "h-10 w-10 text-[13px]",
   lg: "h-12 w-12 text-[15px]",

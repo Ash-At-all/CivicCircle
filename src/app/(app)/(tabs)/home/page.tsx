@@ -213,7 +213,7 @@ function PollResults({
                 />
               </div>
               {votedOptionId === option.id ? (
-                <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--accent-green)]">
+                <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent-green)]">
                   <span className="h-1 w-1 rounded-full bg-[var(--accent-green)]" aria-hidden="true" />
                   Your vote
                 </span>

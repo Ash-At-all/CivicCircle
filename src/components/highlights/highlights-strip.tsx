@@ -72,7 +72,7 @@ export function HighlightsStrip({
           ) : null}
         </div>
         <span
-          className={`inline-flex flex-none items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.3px] ${
+          className={`inline-flex flex-none items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium uppercase tracking-[0.3px] ${
             glass
               ? "border-white/10 bg-white/6 text-white/60"
               : "border-[var(--hairline)] bg-[var(--surface)] text-[var(--ash)]"

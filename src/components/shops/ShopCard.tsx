@@ -470,7 +470,7 @@ export function ShopCard({
                     </span>
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--body-text)]">{review.body}</p>
-                  <p className="mt-1 text-[10px] text-[var(--ash)]">
+                  <p className="mt-1 text-[12px] text-[var(--ash)]">
                     {new Date(review.createdAt).toLocaleDateString()}
                     {review.edited ? " · edited" : ""}
                   </p>

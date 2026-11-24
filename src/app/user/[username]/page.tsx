@@ -153,7 +153,7 @@ export default async function UserProfilePage({
             <div className="mt-4 space-y-2.5">
               {posts.map((post) => (
                 <article key={post.id} className="feed-card flex gap-2.5 p-4">
-                  <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] text-[10px] font-semibold text-[var(--mute)]">
+                  <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] text-[12px] font-semibold text-[var(--mute)]">
                     {initials}
                   </div>
                   <div className="min-w-0 flex-1">

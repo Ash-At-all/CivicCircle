@@ -35,7 +35,7 @@ export function BottomNav() {
                 href={href}
                 aria-label={label}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[46px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium tracking-[0.2px] transition-colors ${
+                className={`flex min-h-[46px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[12px] font-medium tracking-[0.2px] transition-colors ${
                   active
                     ? `${activeBg} text-white`
                     : "text-white/65 hover:text-white"
@@ -50,7 +50,7 @@ export function BottomNav() {
           <Link
             href="/home?compose=1"
             aria-label="Create post"
-            className="mx-0.5 flex h-12 w-12 flex-none items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-green)] text-white shadow-[0_8px_24px_rgba(87,193,255,0.25)] transition-transform active:scale-95"
+            className="mx-0.5 flex h-12 w-12 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
           >
             <Plus className="h-5 w-5" strokeWidth={2.6} />
           </Link>
@@ -63,7 +63,7 @@ export function BottomNav() {
                 href={href}
                 aria-label={label}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[46px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium tracking-[0.2px] transition-colors ${
+                className={`flex min-h-[46px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[12px] font-medium tracking-[0.2px] transition-colors ${
                   active
                     ? `${activeBg} text-white`
                     : "text-white/65 hover:text-white"

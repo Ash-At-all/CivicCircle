@@ -1038,7 +1038,7 @@ export function AreaChat({
               title="Attach a photo"
             >
               {photoBusy ? (
-                <span className="text-[10px]">...</span>
+                <span className="text-[12px]">...</span>
               ) : (
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />

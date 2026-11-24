@@ -302,7 +302,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
       >
         <BellIcon className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
         {badge > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[17px] items-center justify-center rounded-full bg-[var(--accent-red)] px-1 text-[10px] font-semibold leading-[17px] text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-red)] px-1 text-[12px] font-semibold leading-[18px] text-white">
             {badge > 9 ? "9+" : badge}
           </span>
         ) : null}
@@ -445,7 +445,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                   </p>
                 ) : null}
 
-                <p className="mt-3 flex items-start gap-1.5 break-words border-t border-white/8 pt-2.5 text-[10px] leading-relaxed text-white/45">
+                <p className="mt-3 flex items-start gap-1.5 break-words border-t border-white/8 pt-2.5 text-[12px] leading-relaxed text-white/45">
                   <ShieldCheck className="mt-0.5 h-3 w-3 flex-none" strokeWidth={1.8} aria-hidden="true" />
                   Alerts stay on this device and only work while CivicCircle is open. No accounts, no exact location, no message contents.
                 </p>
@@ -476,7 +476,7 @@ function ActivityRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[12px] font-medium text-white/85">{label}</p>
-        {detail ? <p className="mt-0.5 text-[10px] text-white/45">{detail}</p> : null}
+        {detail ? <p className="mt-0.5 text-[12px] text-white/45">{detail}</p> : null}
       </div>
       <span
         className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${

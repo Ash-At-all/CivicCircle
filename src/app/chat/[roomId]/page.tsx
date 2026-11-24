@@ -530,7 +530,7 @@ const lastGifQueryRef = useRef<string | null>(null);
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                   )}
                   <div
-                    className={`mt-1 text-right text-[10px] tracking-[0.2px] ${
+                    className={`mt-1 text-right text-[12px] tracking-[0.2px] ${
                       m.fromYou ? "text-black/55" : "text-[var(--ash)]"
                     }`}
                   >
@@ -719,7 +719,7 @@ const lastGifQueryRef = useRef<string | null>(null);
                   )}
                 </div>
 
-                <p className="px-4 pb-1 pt-2 text-center text-[10px] tracking-[0.3px] text-[var(--ash)]">
+                <p className="px-4 pb-1 pt-2 text-center text-[12px] tracking-[0.3px] text-[var(--ash)]">
                   Powered by GIPHY
                 </p>
               </div>

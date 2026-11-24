@@ -300,7 +300,7 @@ export default function ModerationPage() {
                       </p>
                     ) : null}
 
-                    <p className="mt-2 truncate font-mono text-[10px] text-[var(--stone)]">Target {report.targetId}</p>
+                    <p className="mt-2 truncate font-mono text-[12px] text-[var(--stone)]">Target {report.targetId}</p>
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button

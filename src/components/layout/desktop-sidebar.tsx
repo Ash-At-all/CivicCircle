@@ -115,7 +115,18 @@ function SidebarContent() {
 
 export function DesktopSidebar() {
   return (
-    <Suspense fallback={<div className="p-4 text-xs text-[var(--ash)]">Loading sidebar...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-3" aria-hidden="true">
+          <div className="h-14 rounded-2xl bg-white/[0.04]" />
+          <div className="mt-6 space-y-1.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-10 rounded-2xl bg-white/[0.03]" />
+            ))}
+          </div>
+        </div>
+      }
+    >
       <SidebarContent />
     </Suspense>
   );
