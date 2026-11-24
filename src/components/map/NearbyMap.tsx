@@ -16,8 +16,8 @@ const CITY_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
-const MAP_BACKGROUND_COLOR = "#0f0e0c";
-const WATER_COLOR = "#16283f";
+const MAP_BACKGROUND_COLOR = "#121212";
+const WATER_COLOR = "#1a2330";
 
 const SHOP_CATEGORY_INDEX: Record<string, number> = {
   food: 0,
@@ -115,7 +115,7 @@ class MapFloatControl implements maplibregl.IControl {
       btn.style.height = "38px";
       btn.style.borderRadius = "8px";
       btn.style.border = "1px solid rgba(242,236,225,0.14)";
-      btn.style.backgroundColor = "#211d19";
+      btn.style.backgroundColor = "#282828";
       
       btn.style.color = "#f2ece1";
       btn.style.display = "flex";
@@ -272,13 +272,13 @@ export function NearbyMap({
           id: "radius-fill",
           type: "fill",
           source: "radius",
-          paint: { "fill-color": "#e2683f", "fill-opacity": 0.07 },
+          paint: { "fill-color": "#1db954", "fill-opacity": 0.07 },
         });
         map.addLayer({
           id: "radius-line",
           type: "line",
           source: "radius",
-          paint: { "line-color": "#e2683f", "line-width": 2, "line-opacity": 0.5 },
+          paint: { "line-color": "#1db954", "line-width": 2, "line-opacity": 0.5 },
         });
       }
       if (!map.getSource("shops")) {
@@ -300,13 +300,13 @@ export function NearbyMap({
               ["linear"],
               ["get", "point_count"],
               1,
-              "#e2683f",
+              "#1db954",
               8,
-              "#d6a24a",
+              "#22c55e",
               20,
-              "#f0a07c",
+              "#4ade80",
               40,
-              "#d6a24a",
+              "#86efac",
             ],
             "circle-stroke-color": MAP_BACKGROUND_COLOR,
             "circle-stroke-width": 2,
@@ -327,7 +327,7 @@ export function NearbyMap({
             // down with them.
             "text-font": ["Noto Sans Regular"],
           },
-          paint: { "text-color": "#f2ece1" },
+          paint: { "text-color": "#ffffff" },
         });
         map.addLayer({
           id: "unclustered-point",
@@ -340,15 +340,15 @@ export function NearbyMap({
               ["linear"],
               ["get", "categoryIndex"],
               0,
-              "#e2683f",
+              "#1db954",
               2,
-              "#d6a24a",
+              "#22c55e",
               4,
-              "#f0a07c",
+              "#4ade80",
               6,
-              "#d6a24a",
+              "#86efac",
               8,
-              "#f2ece1",
+              "#ffffff",
             ],
             "circle-stroke-color": MAP_BACKGROUND_COLOR,
             "circle-stroke-width": 2,
@@ -371,7 +371,7 @@ export function NearbyMap({
           },
           paint: {
             "text-color": "#f2ece1",
-            "text-halo-color": "#0f0e0c",
+            "text-halo-color": "#121212",
             "text-halo-width": 2,
           },
         });

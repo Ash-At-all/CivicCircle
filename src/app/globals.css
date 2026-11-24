@@ -8,49 +8,50 @@
 :root {
   color-scheme: dark;
 
-  --canvas: #0f0e0c;
-  --surface: #151310;
-  --surface-elevated: #1a1714;
-  --surface-card: #211d19;
-  --button-fg: #1a1714;
+  --canvas: #121212;
+  --surface: #181818;
+  --surface-elevated: #282828;
+  --surface-card: #232323;
+  --button-fg: #000000;
 
-  --hairline: #2e2a24;
-  --hairline-soft: rgba(239, 233, 222, 0.08);
-  --hairline-strong: rgba(239, 233, 222, 0.18);
+  --hairline: #2a2a2a;
+  --hairline-soft: rgba(255, 255, 255, 0.06);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
 
-  --primary: #efe9de;
-  --primary-pressed: #ded6c7;
-  --on-primary: #171410;
+  --primary: #1db954;
+  --primary-pressed: #1ed760;
+  --on-primary: #000000;
 
-  --ink: #f2ece1;
-  --body-text: #d2c9ba;
-  --charcoal-tone: #c8bfb0;
-  --mute: #a1978a;
-  --ash: #7a7164;
-  --stone: #4c453c;
-  --on-dark: #f2ece1;
-  --on-dark-mute: rgba(242, 236, 225, 0.72);
+  --ink: #ffffff;
+  --body-text: #b3b3b3;
+  --charcoal-tone: #a7a7a7;
+  --mute: #a7a7a7;
+  --ash: #6a6a6a;
+  --stone: #3d3d3d;
+  --on-dark: #ffffff;
+  --on-dark-mute: rgba(255, 255, 255, 0.72);
 
-  /* Ember is the only accent. It marks the notice square, the active
-     state and the leading poll option. Nothing else gets a colour. */
-  --accent-ember: #e2683f;
-  --accent-ember-soft: rgba(226, 104, 63, 0.14);
-  --accent-ember-ink: #f0a07c;
+  /* Spotify green is the only accent. It marks the brand square, the primary
+     action, the active state and the leading poll option. Nothing else gets a
+     colour. */
+  --accent-ember: #1db954;
+  --accent-ember-soft: rgba(29, 185, 84, 0.16);
+  --accent-ember-ink: #1ed760;
 
-  /* Semantic colours, toned down to sit inside the warm ramp. */
-  --accent-blue: #8b9cae;
-  --accent-blue-soft: rgba(139, 156, 174, 0.12);
-  --accent-red: #d96a60;
-  --accent-red-soft: rgba(217, 106, 96, 0.12);
-  --accent-green: #86b08d;
-  --accent-green-soft: rgba(134, 176, 141, 0.12);
-  --accent-yellow: #d6a24a;
-  --accent-yellow-soft: rgba(214, 162, 74, 0.12);
+  /* Semantic colours, kept muted so they sit inside the dark ramp. */
+  --accent-blue: #53a8ff;
+  --accent-blue-soft: rgba(83, 168, 255, 0.14);
+  --accent-red: #e91429;
+  --accent-red-soft: rgba(233, 20, 41, 0.14);
+  --accent-green: #1db954;
+  --accent-green-soft: rgba(29, 185, 84, 0.16);
+  --accent-yellow: #fbbf24;
+  --accent-yellow-soft: rgba(251, 191, 36, 0.14);
 
-  --hero-stripe-start: #e2683f;
-  --hero-stripe-end: #e2683f;
-  --key-bg-start: #1a1714;
-  --key-bg-end: #151310;
+  --hero-stripe-start: #1db954;
+  --hero-stripe-end: #1db954;
+  --key-bg-start: #282828;
+  --key-bg-end: #232323;
 
   /* ---- legacy aliases (kept so older markup resolves to the new system) ---- */
   --charcoal: var(--canvas);
@@ -79,8 +80,8 @@
   --text-muted: var(--mute);
   --dim: var(--mute);
   --accent: var(--accent-ember);
-  --accent-hover: #ef7a52;
-  --accent-ink: var(--on-primary);
+  --accent-hover: #1ed760;
+  --accent-ink: #000000;
   --accent-soft: var(--accent-ember-soft);
   --danger: var(--accent-red);
   --danger-soft: var(--accent-red-soft);
@@ -89,17 +90,17 @@
 
   /* Radius ladder */
   --radius-xs: 4px;
-  --radius-sm: 6px;
+  --radius-sm: 9999px;
   --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
-  --radius-2xl: 18px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
   --radius-full: 9999px;
   /* legacy names */
-  --radius-card: 14px;
-  --radius-sheet: 18px;
-  --radius-button: 8px;
-  --radius-pill: 6px;
+  --radius-card: 16px;
+  --radius-sheet: 20px;
+  --radius-button: 9999px;
+  --radius-pill: 9999px;
 
   /* Motion */
   --motion-fast: 150ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -108,8 +109,8 @@
   /* Type */
   --font-sans: var(--font-instrument), "Instrument Sans", ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-instrument-serif), "Instrument Serif", Georgia,
-    "Times New Roman", serif;
+  --font-display: var(--font-instrument), "Instrument Sans", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --nav-height: 56px;
@@ -362,7 +363,7 @@ input[type="checkbox"] {
   font-family: var(--font-display);
   font-size: clamp(2.5rem, 6vw, 3.75rem);
   line-height: 1.02;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
@@ -371,7 +372,7 @@ input[type="checkbox"] {
   font-family: var(--font-display);
   font-size: 32px;
   line-height: 1.08;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--ink);
 }
@@ -380,7 +381,7 @@ input[type="checkbox"] {
   font-family: var(--font-display);
   font-size: 26px;
   line-height: 1.12;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--ink);
 }
@@ -388,7 +389,7 @@ input[type="checkbox"] {
 .text-h3 {
   font-size: 17px;
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0;
   color: var(--ink);
 }
@@ -509,13 +510,13 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
+  min-height: 40px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
   border: 1px solid transparent;
   font-size: 14px;
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0;
   color: var(--on-dark);
   background: transparent;
@@ -538,9 +539,9 @@ input[type="checkbox"] {
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: var(--on-primary);
-  border-color: var(--primary);
+  background: var(--accent);
+  color: #000000;
+  border-color: var(--accent);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -600,19 +601,20 @@ input[type="checkbox"] {
 }
 
 .btn-icon {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
   padding: 0;
+  border-radius: 9999px;
 }
 
 /* legacy aliases */
 .gradient-btn,
 .yellow-btn {
-  background: var(--primary);
-  color: var(--on-primary);
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #000000;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-full);
 }
 
 .gradient-btn:hover,
@@ -1129,7 +1131,7 @@ textarea.field {
 }
 
 .nearby-map .maplibregl-ctrl-attrib {
-  background: rgba(15, 14, 12, 0.82);
+  background: rgba(18, 18, 18, 0.82);
   color: var(--mute);
   font-size: 10px;
   border-radius: var(--radius-xs);
@@ -1142,5 +1144,5 @@ textarea.field {
 .nearby-map .maplibregl-ctrl-scale {
   border-color: var(--hairline-strong);
   color: var(--mute);
-  background: rgba(15, 14, 12, 0.62);
+  background: rgba(18, 18, 18, 0.62);
 }
