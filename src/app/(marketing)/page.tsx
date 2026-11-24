@@ -111,9 +111,6 @@ export default function RootPage() {
             <Link href="/privacy" className="btn btn-sm btn-secondary text-[var(--mute)]">
               Privacy
             </Link>
-            <Link href="/onboarding" className="btn btn-sm btn-primary">
-              Get started
-            </Link>
           </nav>
         </header>
 

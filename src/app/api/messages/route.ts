@@ -53,14 +53,24 @@ export async function GET(request: Request) {
 
     // With a cursor, return only newer rows (append-only polling). Without one,
     // take the newest 50 and flip back to chronological order.
-    const { data, error } = since
+    const beforeParam = url.searchParams.get("before");
+    const beforeDate = beforeParam ? new Date(beforeParam) : null;
+    const before =
+      beforeDate && !Number.isNaN(beforeDate.getTime()) ? beforeDate.toISOString() : null;
+
+    const { data, error } = before
       ? await scoped
-          .gt("created_at", since)
+          .lt("created_at", before)
           .order("created_at", { ascending: true })
-          .limit(100)
-      : await scoped
-          .order("created_at", { ascending: false })
-          .limit(50);
+          .limit(50)
+      : since
+          ? await scoped
+              .gt("created_at", since)
+              .order("created_at", { ascending: true })
+              .limit(100)
+          : await scoped
+              .order("created_at", { ascending: false })
+              .limit(50);
 
     if (error) {
       console.error("Supabase area message list failed:", error.message);
@@ -68,7 +78,7 @@ export async function GET(request: Request) {
     }
 
     const rows = ((data ?? []) as MessageRow[]).slice();
-    if (!since) rows.reverse();
+    if (!before && !since) rows.reverse();
 
     const messages = rows.map((row: MessageRow) => {
       const isMine = row.author_id === currentUserId;

@@ -122,6 +122,8 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasOlder, setHasOlder] = useState(true);
   const [chatError, setChatError] = useState<{ message: string; code?: string } | null>(null);
 
 const scrollRef = useRef<HTMLDivElement>(null);
@@ -130,6 +132,7 @@ const activeRef = useRef(true);
 const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const attachRef = useRef<HTMLInputElement>(null);
 const lastMessageAtRef = useRef<string | null>(null);
+const didInitialLoadRef = useRef(false);
 const [areaId, setAreaId] = useState<string | null>(null);
 const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 const [clientName] = useState(readClientName);
@@ -188,6 +191,13 @@ const lastGifQueryRef = useRef<string | null>(null);
         const merged = mergeMessages(prev, incoming);
         if (prev.length > 0 && merged.length > prev.length && !isNearBottomRef.current) {
           setHasNewMessages(true);
+        }
+        // First load keeps only the latest couple of messages on screen. Earlier
+        // history is lazy-loaded when the reader scrolls up to the top.
+        if (since === null && !didInitialLoadRef.current) {
+          didInitialLoadRef.current = true;
+          setHasOlder(true);
+          return merged.length > 2 ? merged.slice(-2) : merged;
         }
         return merged;
       });
@@ -310,17 +320,60 @@ const lastGifQueryRef = useRef<string | null>(null);
   }, [gifOpen, gifQuery, loadGifs]);
 
   function handleScroll() {
-    if (!scrollRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
     const isBottom = scrollHeight - scrollTop - clientHeight < 80;
     isNearBottomRef.current = isBottom;
     if (isBottom) setHasNewMessages(false);
+    if (scrollTop < 48 && hasOlder && !loadingOlder) void handleLoadOlder();
   }
 
   function scrollToBottom() {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
       setHasNewMessages(false);
+    }
+  }
+
+  async function handleLoadOlder() {
+    if (loadingOlder || !hasOlder || !messages.length) return;
+    const before = messages[0]?.createdAt;
+    if (!before) {
+      setHasOlder(false);
+      return;
+    }
+    setLoadingOlder(true);
+    try {
+      const res = await fetch(`/api/messages?room=${roomId}&before=${encodeURIComponent(before)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
+        if (activeRef.current) {
+          setChatError({
+            message: err?.error || "Could not load earlier messages.",
+            code: err?.code,
+          });
+        }
+        return;
+      }
+      const data = (await res.json()) as { messages?: Message[] };
+      const older = Array.isArray(data.messages) ? data.messages : [];
+      if (older.length > 0) {
+        setMessages((prev) => [...older, ...prev]);
+        setHasOlder(older.length >= 50);
+      } else {
+        setHasOlder(false);
+      }
+      const el = scrollRef.current;
+      if (el) el.scrollTop = 0;
+    } catch {
+      if (activeRef.current) {
+        setChatError({ message: "Could not load earlier messages. Check your connection and try again." });
+      }
+    } finally {
+      if (activeRef.current) setLoadingOlder(false);
     }
   }
 
@@ -493,7 +546,19 @@ const lastGifQueryRef = useRef<string | null>(null);
             </div>
           </div>
         ) : (
-          messages.map((m) => {
+          <>
+            {loadingOlder ? (
+              <div className="space-y-2.5" aria-label="Loading earlier messages">
+                {[0, 1].map((i) => (
+                  <div key={i} className="flex w-full justify-start">
+                    <div className="mr-2 mt-5 flex h-9 w-40 max-w-[82%] items-center rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-card)] p-2.5">
+                      <div className="h-2.5 w-full animate-pulse rounded bg-[var(--surface-elevated)]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {messages.map((m) => {
             const gifUrl = parseGifUrl(m.body);
             return (
             <div
@@ -543,7 +608,8 @@ const lastGifQueryRef = useRef<string | null>(null);
               </div>
             </div>
             );
-          })
+          })}
+          </>
         )}
       </div>
 
