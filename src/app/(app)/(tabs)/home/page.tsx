@@ -15,6 +15,7 @@ import {
   Bookmark,
   Lightbulb,
   Flag,
+  Trash2,
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -281,6 +282,7 @@ function HomeContent() {
   const [reportDetails, setReportDetails] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
   const [reportNotice, setReportNotice] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [heroPlace, setHeroPlace] = useState<string | null>(null);
   const [heroTick, setHeroTick] = useState(0);
@@ -616,6 +618,17 @@ function HomeContent() {
       }));
     } catch {
       setHelpful((prev) => ({ ...prev, [postId]: current }));
+    }
+  }
+
+  async function handleDeletePost(postId: string) {
+    setDeleteError(null);
+    try {
+      const cleanupWarning = await postsRepo.deletePost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      if (cleanupWarning) setDeleteError(cleanupWarning);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Could not delete this post. Please try again.");
     }
   }
 
@@ -1035,6 +1048,15 @@ function HomeContent() {
 
         {/* Post feed */}
         <section className="px-4 pb-10 pt-4 sm:px-6">
+          {deleteError ? (
+            <div
+              className="mb-3 rounded-[var(--radius-md)] border border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] px-4 py-3 text-[13px] text-[var(--accent-red)]"
+              role="alert"
+            >
+              {deleteError}
+            </div>
+          ) : null}
+
           <div className="mb-3 flex items-center justify-between gap-2">
             <span className="dateline">
               <span className="dateline-mark" aria-hidden="true" />
@@ -1207,6 +1229,18 @@ function HomeContent() {
                       <MessageSquare className="h-[18px] w-[18px] text-[var(--ash)]" strokeWidth={1.7} aria-hidden="true" />
                       <span className="text-[13px] font-medium">Discuss</span>
                     </Link>
+
+                    {post.mine ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleDeletePost(post.id)}
+                        className="action-pill gap-1.5 border-[rgba(217,106,96,0.32)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]"
+                        aria-label={`Delete ${post.title}`}
+                      >
+                        <Trash2 className="h-[18px] w-[18px]" strokeWidth={1.7} aria-hidden="true" />
+                        <span className="text-[13px] font-medium">Delete</span>
+                      </button>
+                    ) : null}
 
                     <SavePostButton
                       className="ml-auto"

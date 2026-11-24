@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Lock, MapPin, MessageSquare, ShieldCheck, ThumbsUp } from "lucide-react";
 
 const HERO_MESSAGES = [
@@ -102,12 +103,21 @@ export default function RootPage() {
         {/* Masthead */}
         <header className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] py-4">
           <Link href="/" className="flex items-center gap-2.5" aria-label="CivicCircle home">
-            <span className="h-2 w-2 flex-none bg-[var(--accent-ember)]" aria-hidden="true" />
+            <Image
+              src="/brand/logo.png"
+              alt=""
+              width={40}
+              height={40}
+              className="h-9 w-9 flex-none rounded-[9px]"
+            />
             <span className="font-display text-[21px] leading-none text-[var(--ink)]">
               CivicCircle
             </span>
           </Link>
           <nav className="flex items-center gap-1" aria-label="Account">
+            <Link href="/onboarding" className="btn btn-sm btn-primary">
+              Get started
+            </Link>
             <Link href="/privacy" className="btn btn-sm btn-secondary text-[var(--mute)]">
               Privacy
             </Link>
