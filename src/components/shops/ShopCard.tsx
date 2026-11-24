@@ -52,7 +52,7 @@ function StarRow({
               aria-checked={active}
               aria-label={`Rate ${starValue} star${starValue === 1 ? "" : "s"}`}
               disabled={disabled}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors ${active ? "text-[var(--accent-yellow)]" : "text-white/30 hover:text-[var(--accent-yellow)]"} disabled:opacity-50`}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors ${active ? "text-[var(--accent-ember)]" : "text-[var(--stone)] hover:text-[var(--accent-ember)]"} disabled:opacity-50`}
               onClick={() => onSelect?.(starValue)}
             >
               <Star className="h-4 w-4" strokeWidth={1.8} fill={active ? "currentColor" : "none"} />
@@ -62,7 +62,7 @@ function StarRow({
         return (
           <Star
             key={starValue}
-            className={`h-3.5 w-3.5 ${filled ? "text-[var(--accent-yellow)]" : "text-white/20"}`}
+            className={`h-3.5 w-3.5 ${filled ? "text-[var(--accent-ember)]" : "text-[var(--stone)]"}`}
             strokeWidth={1.8}
             fill={filled ? "currentColor" : "none"}
             aria-hidden="true"
@@ -297,13 +297,13 @@ export function ShopCard({
               </span>
             ) : null}
           </h3>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.4px] text-[var(--ash)]">{category}</p>
+          <p className="mt-1 text-[12px] text-[var(--ash)]">{category}</p>
         </div>
         <span className="badge flex-none">{sourceLabel(shop.source)}</span>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-2.5 py-1 text-[12px] text-[var(--body-text)]">
+        <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[12px] text-[var(--body-text)]">
           <StarRow value={ratingSummary?.average ?? null} interactive={false} />
           <span className="tabular-nums text-[var(--mute)]">{ratingLoading ? "…" : ratingText}</span>
         </span>
@@ -392,7 +392,7 @@ export function ShopCard({
       </div>
 
       {notice ? (
-        <p className="mt-2 text-[12px] tracking-[0.2px] text-[var(--accent-green)]" role="status">
+        <p className="mt-2 text-[12px] text-[var(--accent-ember-ink)]" role="status">
           {notice}
         </p>
       ) : null}
@@ -405,7 +405,7 @@ export function ShopCard({
           </div>
 
           <div className="mt-2">
-            <p className="mb-1 text-[11px] uppercase tracking-[0.35px] text-[var(--mute)]">Your rating</p>
+            <p className="mb-1 text-[12px] text-[var(--mute)]">Your rating</p>
             <div className="flex items-center gap-2">
               <StarRow
                 value={ratingSummary?.myRating ?? null}
@@ -419,7 +419,7 @@ export function ShopCard({
           </div>
 
           <div className="mt-3 border-t border-[var(--hairline)] pt-3">
-            <label className="block text-[11px] uppercase tracking-[0.35px] text-[var(--mute)]">
+            <label className="block text-[12px] text-[var(--mute)]">
               Write a review
               <textarea
                 className="field mt-1"
@@ -448,7 +448,7 @@ export function ShopCard({
           </div>
 
           {ratingNotice || reviewNotice ? (
-            <p className="mt-2 text-[12px] text-[var(--accent-yellow)]" role="status">
+            <p className="mt-2 text-[12px] text-[var(--accent-ember)]" role="status">
               {reviewNotice || ratingNotice}
             </p>
           ) : null}
@@ -487,21 +487,21 @@ export function ShopCard({
           <p className="mt-1 text-[12px] leading-relaxed text-[var(--mute)]">
             Tell us what looks wrong. We&apos;ll copy the details so you can share them with the CivicCircle team.
           </p>
-          <label className="mt-3 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+          <label className="mt-3 block text-[12px] text-[var(--mute)]">
             Issue
             <select
-              className="field mt-1 text-white"
+              className="field mt-1 text-[var(--ink)]"
               value={issue}
               onChange={(e) => setIssue(e.target.value as (typeof ISSUE_OPTIONS)[number])}
             >
               {ISSUE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt} className="bg-[#141416] text-white">
+                <option key={opt} value={opt} className="bg-[var(--surface-elevated)] text-[var(--ink)]">
                   {opt}
                 </option>
               ))}
             </select>
           </label>
-          <label className="mt-2 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+          <label className="mt-2 block text-[12px] text-[var(--mute)]">
             Details (optional)
             <textarea
               className="field mt-1"

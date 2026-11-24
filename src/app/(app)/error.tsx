@@ -6,7 +6,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
   return (
     <div className="mobile-container items-center justify-center px-4 py-16">
       <div className="card w-full max-w-md p-6 text-center">
-        <span className="app-tile mx-auto mb-4 h-12 w-12 border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]">
+        <span className="app-tile mx-auto mb-4 h-12 w-12 border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]">
           <span className="text-sm font-semibold">!</span>
         </span>
         <h2 className="text-h3">Something went wrong</h2>

@@ -69,14 +69,14 @@ export default function SavedPage() {
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col bg-[var(--canvas)]">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
-          <Link href="/home" className="btn btn-icon btn-secondary text-white/80" aria-label="Back to home">
-            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--canvas)]">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] sm:px-6">
+          <Link href="/home" className="btn btn-icon btn-secondary text-[var(--mute)]" aria-label="Back to home">
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.7} />
           </Link>
           <div className="flex items-center gap-2">
-            <Bookmark className="h-4 w-4 text-[var(--accent-yellow)]" strokeWidth={1.8} aria-hidden="true" />
-            <h1 className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">Saved</h1>
+            <span className="h-1.5 w-1.5 bg-[var(--accent-ember)]" aria-hidden="true" />
+            <h1 className="text-[14px] font-medium text-[var(--ink)]">Saved</h1>
           </div>
           <button
             type="button"
@@ -102,29 +102,41 @@ export default function SavedPage() {
         <div
           role="tablist"
           aria-label="Saved sections"
-          className="mt-4 grid grid-cols-2 gap-1.5 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-1.5"
+          className="mt-4 grid grid-cols-2 border-b border-[var(--hairline)]"
         >
           <button
             type="button"
             role="tab"
             aria-selected={tab === "posts"}
-            className={`flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition-colors ${
-              tab === "posts" ? "bg-[var(--surface-elevated)] text-[var(--ink)]" : "text-[var(--mute)] hover:text-[var(--ink)]"
+            className={`relative flex min-h-[44px] items-center justify-center gap-1.5 text-[13px] font-medium transition-colors ${
+              tab === "posts" ? "text-[var(--ink)]" : "text-[var(--mute)] hover:text-[var(--ink)]"
             }`}
             onClick={() => setTab("posts")}
           >
-            Posts <span className="tabular-nums text-[11px] text-[var(--ash)]">{posts.length}</span>
+            {tab === "posts" ? (
+              <span
+                className="absolute inset-x-4 bottom-0 h-[2px] bg-[var(--accent-ember)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            Posts <span className="tabular-nums text-[12px] text-[var(--ash)]">{posts.length}</span>
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={tab === "shops"}
-            className={`flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition-colors ${
-              tab === "shops" ? "bg-[var(--surface-elevated)] text-[var(--ink)]" : "text-[var(--mute)] hover:text-[var(--ink)]"
+            className={`relative flex min-h-[44px] items-center justify-center gap-1.5 text-[13px] font-medium transition-colors ${
+              tab === "shops" ? "text-[var(--ink)]" : "text-[var(--mute)] hover:text-[var(--ink)]"
             }`}
             onClick={() => setTab("shops")}
           >
-            Places <span className="tabular-nums text-[11px] text-[var(--ash)]">{shops.length}</span>
+            {tab === "shops" ? (
+              <span
+                className="absolute inset-x-4 bottom-0 h-[2px] bg-[var(--accent-ember)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            Places <span className="tabular-nums text-[12px] text-[var(--ash)]">{shops.length}</span>
           </button>
         </div>
 
@@ -133,9 +145,9 @@ export default function SavedPage() {
             <div className="space-y-3" aria-label="Loading saved items" role="status">
               {[1, 2].map((item) => (
                 <div key={item} className="card space-y-3 p-4">
-                  <div className="h-3 w-24 rounded bg-white/8" />
-                  <div className="h-4 w-3/4 rounded bg-white/10" />
-                  <div className="h-3 w-full rounded bg-white/8" />
+                  <div className="h-3 w-24 rounded bg-[var(--surface-elevated)]" />
+                  <div className="h-4 w-3/4 rounded bg-[var(--surface-card)]" />
+                  <div className="h-3 w-full rounded bg-[var(--surface-elevated)]" />
                 </div>
               ))}
             </div>
@@ -153,19 +165,19 @@ export default function SavedPage() {
                 <article key={post.id} className="card overflow-hidden">
                   <div className="flex items-center gap-2 px-4 pt-3.5">
                     <span className="tag-chip !px-2 !py-0.5">{post.tag || "General"}</span>
-                    <span className="text-[11px] text-[var(--ash)]">
+                    <span className="text-[12px] text-[var(--ash)]">
                       Saved {new Date(post.savedAt).toLocaleDateString()}
                     </span>
                     <button
                       type="button"
-                      className="ml-auto text-[11px] font-medium text-[var(--accent-red)] hover:underline"
+                      className="ml-auto text-[12px] font-medium text-[var(--accent-red)] hover:underline"
                       onClick={() => removePost(post.id)}
                     >
                       Remove
                     </button>
                   </div>
                   <div className="px-4 pb-3 pt-2">
-                    <h3 className="text-[16px] font-semibold leading-snug text-[var(--ink)]">{post.title}</h3>
+                    <h3 className="font-display text-[20px] leading-tight text-[var(--ink)]">{post.title}</h3>
                     {post.body ? (
                       <p className="mt-1 line-clamp-3 text-[13px] leading-relaxed text-[var(--body-text)]">
                         {post.body}
@@ -221,11 +233,11 @@ export default function SavedPage() {
                           {shop.name_hi}
                         </p>
                       ) : null}
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.4px] text-[var(--ash)]">{category}</p>
+                      <p className="mt-1 text-[12px] text-[var(--ash)]">{category}</p>
                     </div>
                     <button
                       type="button"
-                      className="text-[11px] font-medium text-[var(--accent-red)] hover:underline"
+                      className="text-[12px] font-medium text-[var(--accent-red)] hover:underline"
                       onClick={() => removeShop(shop.id)}
                     >
                       Remove
@@ -284,7 +296,7 @@ function EmptyState({
 }) {
   return (
     <div className="card px-5 py-10 text-center">
-      <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--accent-yellow)]">{icon}</span>
+      <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--ash)]">{icon}</span>
       <p className="text-[15px] font-medium text-[var(--ink)]">{title}</p>
       <p className="mt-1 text-[13px] text-[var(--mute)]">{detail}</p>
       <Link href={href} className="btn btn-primary mx-auto mt-5">

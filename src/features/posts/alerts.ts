@@ -15,13 +15,13 @@ export type PostAlertType = (typeof POST_ALERT_TYPES)[number];
 export const postAlertTypeSchema = z.enum(POST_ALERT_TYPES).nullable().optional();
 
 export const POST_ALERT_LABELS: Record<PostAlertType, string> = {
-  water_cut: "💧 Water Cut",
-  power_cut: "⚡ Power Cut",
-  road_closed: "🚧 Road Closed",
-  traffic_jam: "🚗 Traffic Jam",
-  shop_closed: "🏪 Shop Closed",
-  event: "📅 Event",
-  safety_notice: "⚠️ Safety Notice",
+  water_cut: "Water cut",
+  power_cut: "Power cut",
+  road_closed: "Road closed",
+  traffic_jam: "Traffic jam",
+  shop_closed: "Shop closed",
+  event: "Event",
+  safety_notice: "Safety notice",
 };
 
 export const POST_ALERT_BADGE_CLASS: Record<PostAlertType, string> = {

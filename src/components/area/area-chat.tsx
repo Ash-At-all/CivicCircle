@@ -774,12 +774,12 @@ export function AreaChat({
         </p>
       ) : null}
       {room.rateLimitMessage ? (
-        <p className="mt-2 rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] px-3 py-2 text-[13px] text-[var(--accent-red)]" role="alert">
+        <p className="mt-2 rounded-[var(--radius-md)] border border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] px-3 py-2 text-[13px] text-[var(--accent-red)]" role="alert">
           {room.rateLimitMessage}
         </p>
       ) : null}
       {room.error ? (
-        <div className="mt-2 rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] px-3 py-2 text-[13px] text-[var(--accent-red)]" role="alert">
+        <div className="mt-2 rounded-[var(--radius-md)] border border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] px-3 py-2 text-[13px] text-[var(--accent-red)]" role="alert">
           <p>{room.error}</p>
           <button
             type="button"
@@ -901,7 +901,7 @@ export function AreaChat({
                       <div className="relative shrink-0 pt-1">
                         <button
                           type="button"
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ash)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+                          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ash)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
                           aria-label="Message actions"
                           onClick={() =>
                             setMenuFor((current) => (current === message.id ? null : message.id))
@@ -1031,7 +1031,7 @@ export function AreaChat({
             />
             <button
               type="button"
-              className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-[var(--hairline)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => fileInputRef.current?.click()}
               disabled={!online || photoBusy || Boolean(photo)}
               aria-label="Attach a photo"
@@ -1067,7 +1067,7 @@ export function AreaChat({
             />
             <button
               type="submit"
-              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)]"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)]"
               disabled={(!draft.trim() && !photo) || !online || photoBusy}
               aria-label="Send message"
             >
@@ -1094,7 +1094,7 @@ export function AreaChat({
 
       {lightbox ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/85 p-3 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/85 p-3 "
           role="dialog"
           aria-modal="true"
           aria-label="Photo full size"
@@ -1126,7 +1126,7 @@ export function AreaChat({
 
       {reportTarget ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0  sm:items-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Report message"
@@ -1136,7 +1136,7 @@ export function AreaChat({
             <p className="mt-1 text-[13px] text-[var(--mute)]">
               Reports help keep area rooms safe. Only include details needed to review this message.
             </p>
-            <label className="mt-3 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+            <label className="mt-3 block text-[12px] text-[var(--mute)]">
               Reason
               <select
                 className="field mt-1"
@@ -1151,7 +1151,7 @@ export function AreaChat({
                 <option value="other">Other</option>
               </select>
             </label>
-            <label className="mt-3 block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+            <label className="mt-3 block text-[12px] text-[var(--mute)]">
               Details (optional)
               <textarea
                 className="field mt-1"

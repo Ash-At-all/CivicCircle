@@ -28,7 +28,7 @@ export function SaveShopButton({
     <button
       type="button"
       aria-pressed={hydrated ? saved : undefined}
-      className={`btn btn-sm btn-tertiary gap-1.5 ${saved ? "text-[var(--accent-yellow)]" : ""} ${className}`}
+      className={`btn btn-sm btn-tertiary gap-1.5 ${saved ? "text-[var(--accent-ember-ink)]" : ""} ${className}`}
       onClick={() => setSaved(toggleSavedShop(shop))}
     >
       {saved ? (

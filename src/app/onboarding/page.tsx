@@ -131,13 +131,13 @@ export default function OnboardingPage() {
         >
           <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
-        <span className="text-[11px] uppercase tracking-[0.4px] text-[var(--ash)]">CivicCircle</span>
+        <span className="text-[12px] text-[var(--ash)]">CivicCircle</span>
         <div className="w-9" aria-hidden="true" />
       </header>
 
       {!ageVerified ? (
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center sm:px-6">
-          <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/12 bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] text-[var(--accent-blue)] backdrop-blur-xl">
+          <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ink)]">
             <ShieldCheck className="h-7 w-7" strokeWidth={1.6} />
           </span>
           <h2 className="max-w-[22ch] text-display text-balance">Are you 18 or older?</h2>
@@ -156,8 +156,11 @@ export default function OnboardingPage() {
       ) : (
         <div className="flex flex-1 flex-col px-4 pb-6 sm:px-6">
           <div className="mx-auto mt-4 w-full max-w-xl">
-            <p className="text-label">Welcome to your mohalla</p>
-            <h1 className="mt-1 text-h1">{stepTitle}</h1>
+            <p className="dateline">
+              <span className="dateline-mark" aria-hidden="true" />
+              Welcome to your mohalla
+            </p>
+            <h1 className="mt-2 font-display text-[clamp(1.9rem,5vw,2.6rem)] leading-[1.05] text-[var(--ink)]">{stepTitle}</h1>
             <p className="mt-1.5 text-body-sm text-[var(--mute)]">
               {step === 1
                 ? "Pick an approximate area so you can see what's happening nearby."
@@ -170,18 +173,18 @@ export default function OnboardingPage() {
           <div className="mx-auto mt-5 w-full max-w-xl" aria-label="Setup progress">
             <div className="flex gap-2">
               {[1, 2, 3].map((n) => (
-                <div key={n} className={`h-[3px] flex-1 rounded-full ${step >= n ? "bg-[var(--primary)]" : "bg-[var(--hairline)]"}`} />
+                <div key={n} className={`h-[3px] flex-1 ${step >= n ? "bg-[var(--accent-ember)]" : "bg-[var(--hairline)]"}`} />
               ))}
             </div>
-            <p className="mt-2 text-[11px] uppercase tracking-[0.35px] text-[var(--ash)]">Step {step} of 3</p>
+            <p className="mt-2 text-[12px] text-[var(--ash)]">Step {step} of 3</p>
           </div>
 
           <div className="mx-auto mt-6 w-full max-w-xl">
             {step === 1 ? (
               <div className="card space-y-3 p-4">
                 {areaLabel ? (
-                  <div className="rounded-[var(--radius-md)] border border-[rgba(89,212,153,0.28)] bg-[var(--accent-green-soft)] p-3 text-[13px] text-[var(--accent-green)]">
-                    <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4" strokeWidth={2} /> Area set: {areaLabel}</span>
+                  <div className="rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3 text-[13px] text-[var(--body-text)]">
+                    <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-[var(--accent-ember)]" strokeWidth={2} /> Area set: {areaLabel}</span>
                   </div>
                 ) : null}
 
@@ -221,7 +224,7 @@ export default function OnboardingPage() {
 
             {step === 2 ? (
               <div className="card p-5 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/12 bg-gradient-to-br from-[var(--accent-yellow-soft)] to-[var(--accent-blue-soft)] text-[var(--accent-yellow)]">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ink)]">
                   <Sparkles className="h-7 w-7" strokeWidth={1.7} />
                 </div>
 
@@ -237,8 +240,8 @@ export default function OnboardingPage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-[12px] uppercase tracking-[0.4px] text-[var(--ash)]">Your ghost name</p>
-                    <p className="mt-3 animate-[fadeIn_400ms_ease-out] text-[clamp(1.8rem,6vw,2.6rem)] font-semibold tracking-[-0.02em] text-[var(--ink)]">
+                    <p className="text-[12px] font-medium text-[var(--ash)]">Your ghost name</p>
+                    <p className="mt-3 animate-[fadeIn_400ms_ease-out] font-display text-[clamp(2rem,6vw,2.8rem)] leading-none text-[var(--ink)]">
                       {ghostName}
                     </p>
                     <p className="mt-3 text-[13px] leading-relaxed text-[var(--mute)]">
@@ -255,7 +258,7 @@ export default function OnboardingPage() {
 
             {step === 3 ? (
               <div className="card p-5 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/12 bg-gradient-to-br from-[var(--accent-green-soft)] to-[var(--accent-blue-soft)] text-[var(--accent-green)]">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] text-[var(--accent-ember)]">
                   <Check className="h-7 w-7" strokeWidth={2} />
                 </div>
                 <p className="text-[15px] font-medium text-[var(--ink)]">Your mohalla is waiting</p>
@@ -263,7 +266,7 @@ export default function OnboardingPage() {
                   Say hi in area chat, check nearby shops, or browse what people are posting.
                 </p>
                 {ghostName ? (
-                  <p className="mt-3 inline-flex rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[12px] text-white/75">
+                  <p className="mt-3 inline-flex rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-1.5 text-[12px] text-[var(--body-text)]">
                     Posting as <span className="ml-1 font-medium text-[var(--ink)]">{ghostName}</span>
                   </p>
                 ) : null}

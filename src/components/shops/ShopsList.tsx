@@ -70,33 +70,33 @@ export function ShopsList({
   return (
     <section aria-label="Nearby shops">
       <div className="grid gap-2 sm:grid-cols-3">
-        <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+        <label className="block text-[12px] text-[var(--mute)]">
           Category
           <select
-            className="field mt-1 text-white"
+            className="field mt-1 text-[var(--ink)]"
             value={category}
             onChange={(e) => setCategory(e.target.value as ShopCategory | "all")}
           >
-            <option value="all" className="bg-[#141416] text-white">{SHOP_CATEGORY_LABELS.all}</option>
+            <option value="all" className="bg-[var(--surface-elevated)] text-[var(--ink)]">{SHOP_CATEGORY_LABELS.all}</option>
             {SHOP_CATEGORIES.map((c) => (
-              <option key={c} value={c} className="bg-[#141416] text-white">
+              <option key={c} value={c} className="bg-[var(--surface-elevated)] text-[var(--ink)]">
                 {SHOP_CATEGORY_LABELS[c]}
               </option>
             ))}
           </select>
         </label>
-        <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+        <label className="block text-[12px] text-[var(--mute)]">
           Sort
           <select
-            className="field mt-1 text-white"
+            className="field mt-1 text-[var(--ink)]"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortMode)}
           >
-            <option value="nearest" className="bg-[#141416] text-white">Nearest first</option>
-            <option value="name" className="bg-[#141416] text-white">Name A to Z</option>
+            <option value="nearest" className="bg-[var(--surface-elevated)] text-[var(--ink)]">Nearest first</option>
+            <option value="name" className="bg-[var(--surface-elevated)] text-[var(--ink)]">Name A to Z</option>
           </select>
         </label>
-        <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+        <label className="block text-[12px] text-[var(--mute)]">
           Search
           <input
             type="search"
@@ -114,13 +114,13 @@ export function ShopsList({
 
       {recentSearches.length > 0 && !query.trim() ? (
         <div className="mt-3">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.35px] text-[var(--mute)]">Recent searches</p>
+          <p className="mb-2 text-[12px] font-medium text-[var(--mute)]">Recent searches</p>
           <div className="flex flex-wrap gap-2">
             {recentSearches.map((term) => (
               <button
                 key={term}
                 type="button"
-                className="inline-flex min-h-[32px] items-center rounded-full border border-white/10 bg-white/6 px-3 text-[12px] text-[var(--body-text)] hover:bg-white/10"
+                className="inline-flex min-h-8 items-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 text-[12px] text-[var(--body-text)] transition-colors hover:border-[var(--hairline-strong)]"
                 onClick={() => setQuery(term)}
               >
                 {term}
@@ -130,7 +130,7 @@ export function ShopsList({
         </div>
       ) : null}
 
-      <p className="mt-3 text-[12px] tracking-[0.3px] text-[var(--mute)]" aria-live="polite">
+      <p className="mt-3 text-[12px] text-[var(--mute)]" aria-live="polite">
         {filtered.length} of {shops.length} shop{shops.length === 1 ? "" : "s"} shown
       </p>
 

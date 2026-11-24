@@ -449,8 +449,8 @@ export default function NearbyPage() {
     return (
       <main className="grid min-h-[100dvh] place-items-center bg-[var(--canvas)] p-4">
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-xl">
-            <MapPin className="h-6 w-6 text-[var(--accent-blue)]" strokeWidth={1.8} aria-hidden="true" />
+          <span className="flex h-14 w-14 items-center justify-center rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface)]">
+            <MapPin className="h-6 w-6 text-[var(--mute)]" strokeWidth={1.7} aria-hidden="true" />
           </span>
           <p className="text-sm font-medium text-[var(--ink)]">Loading area…</p>
         </div>
@@ -461,21 +461,24 @@ export default function NearbyPage() {
   if (!data) {
     return (
       <main className="relative min-h-[100dvh] overflow-hidden bg-[var(--canvas)]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_20%_0%,rgba(87,193,255,0.16),transparent_60%),radial-gradient(ellipse_60%_40%_at_100%_20%,rgba(255,255,255,0.06),transparent_55%)]" aria-hidden="true" />
         <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col px-4 pb-8 pt-[max(env(safe-area-inset-top),16px)]">
           <header className="flex items-center gap-3 py-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-xl">
-              <MapPin className="h-5 w-5 text-[var(--ink)]" strokeWidth={1.8} aria-hidden="true" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface)]">
+              <MapPin className="h-5 w-5 text-[var(--ink)]" strokeWidth={1.7} aria-hidden="true" />
             </span>
             <div>
-              <h1 className="text-[15px] font-semibold tracking-[0.1px] text-[var(--ink)]">Nearby</h1>
+              <h1 className="text-[15px] font-medium text-[var(--ink)]">Nearby</h1>
               <p className="text-[12px] text-[var(--mute)]">Chhatrapati Sambhajinagar</p>
             </div>
           </header>
 
           <div className="flex flex-1 flex-col justify-center py-6">
             <div className="mb-5">
-              <h2 className="max-w-[16ch] text-balance text-[clamp(1.75rem,5vw,2.4rem)] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]">
+              <p className="dateline mb-3">
+                <span className="dateline-mark" aria-hidden="true" />
+                Around you
+              </p>
+              <h2 className="max-w-[16ch] text-balance font-display text-[clamp(1.9rem,5vw,2.6rem)] leading-[1.06] text-[var(--ink)]">
                 Shops, chat, and reviews nearby
               </h2>
               <p className="mt-2 max-w-md text-[14px] leading-relaxed text-[var(--body-text)]">
@@ -540,42 +543,42 @@ export default function NearbyPage() {
 
         {isResolvingArea ? (
           <div
-            className="absolute inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
+            className="absolute inset-0 z-40 flex items-center justify-center bg-black/40"
             role="status"
             aria-live="polite"
           >
-            <div className="w-[min(22rem,calc(100vw-2rem))] rounded-[24px] border border-white/12 bg-[rgba(20,20,22,0.85)] p-4 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-[var(--accent-blue)]" />
+            <div className="w-[min(22rem,calc(100vw-2rem))] rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-center">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)]">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--hairline-strong)] border-t-[var(--accent-ember)]" />
               </span>
-              <p className="mt-2.5 text-[13px] font-medium text-white">{AREA_RESOLVE_STEPS[areaProgressStep] ?? "Setting up your area..."}</p>
+              <p className="mt-2.5 text-[13px] font-medium text-[var(--ink)]">{AREA_RESOLVE_STEPS[areaProgressStep] ?? "Setting up your area..."}</p>
             </div>
           </div>
         ) : null}
 
         {isMapLoading ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0b1020]" role="status" aria-label="Loading map tiles">
-            <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/12 border-t-[var(--accent-blue)]" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--canvas)]" role="status" aria-label="Loading map tiles">
+            <span className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--hairline)] border-t-[var(--accent-ember)]" />
           </div>
         ) : null}
       </div>
 
       {/* Floating top bar */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-gradient-to-b from-black/55 via-black/15 to-transparent px-3 pb-16 pt-[max(env(safe-area-inset-top),12px)]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 bg-gradient-to-b from-black/70 via-black/20 to-transparent px-3 pb-16 pt-[max(env(safe-area-inset-top),12px)]">
         <button
           type="button"
-          className="pointer-events-auto flex min-w-0 max-w-[68%] items-center gap-2 rounded-full border border-white/15 bg-white/10 p-1.5 pr-3 text-left shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 active:scale-[0.99]"
+          className="pointer-events-auto flex min-w-0 max-w-[68%] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--surface-card)] p-1.5 pr-3 text-left transition-transform active:scale-[0.99]"
           onClick={() => setSnap((s) => (s === "peek" ? "mid" : s))}
           aria-label={`Area ${data.localityName || "Your area"}. ${displayedShops.length} places nearby. Tap to show details.`}
         >
-          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] text-[var(--accent-blue)] ring-1 ring-white/15">
-            <MapPin className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--ink)]">
+            <MapPin className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[13px] font-semibold text-[var(--ink)]">
+            <span className="block truncate text-[13px] font-medium text-[var(--ink)]">
               {data.localityName || "Your area"}
             </span>
-            <span className="block truncate text-[11px] text-white/70">
+            <span className="block truncate text-[12px] text-[var(--mute)]">
               {displayedShops.length} places nearby
             </span>
           </span>
@@ -585,35 +588,35 @@ export default function NearbyPage() {
           <NotificationBell />
           <button
             type="button"
-            className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white shadow-[0_8px_32px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 transition-colors ${settingsOpen ? "bg-white/20" : "hover:bg-white/15"}`}
+            className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--surface-card)] text-[var(--ink)] transition-colors ${settingsOpen ? "bg-[var(--surface-elevated)]" : "hover:bg-[var(--surface-elevated)]"}`}
             aria-label={settingsOpen ? "Close map settings" : "Map and area settings"}
             aria-expanded={settingsOpen}
             onClick={() => setSettingsOpen((v) => !v)}
           >
-            <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
+            <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={1.7} aria-hidden="true" />
           </button>
 
           {settingsOpen ? (
-            <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[min(19rem,calc(100vw-1.5rem))] rounded-[22px] border border-white/12 bg-[rgba(20,20,22,0.72)] p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150">
+            <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[min(19rem,calc(100vw-1.5rem))] rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-3">
               <div className="mb-2 flex items-center justify-between gap-2 px-1">
-                <p className="text-[13px] font-medium text-white">Map settings</p>
+                <p className="text-[13px] font-medium text-[var(--ink)]">Map settings</p>
                 <button
                   type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--mute)] transition-colors hover:bg-[var(--surface-card)] hover:text-[var(--ink)]"
                   aria-label="Close settings"
                   onClick={() => setSettingsOpen(false)}
                 >
-                  <X className="h-4 w-4" strokeWidth={2} />
+                  <X className="h-4 w-4" strokeWidth={1.9} />
                 </button>
               </div>
 
               <div className="space-y-3">
-                <div className="rounded-2xl border border-white/10 bg-white/6 p-2.5">
-                  <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.35px] text-white/55">Map labels</p>
-                  <div className="grid grid-cols-2 gap-1 rounded-xl bg-white/6 p-1" role="group" aria-label="Map label language">
+                <div className="rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-2.5">
+                  <p className="mb-2 text-[12px] font-medium text-[var(--mute)]">Map labels</p>
+                  <div className="grid grid-cols-2 gap-1 rounded-[var(--radius-sm)] bg-[var(--surface)] p-1" role="group" aria-label="Map label language">
                     <button
                       type="button"
-                      className={`min-h-[38px] rounded-lg px-3 text-[13px] font-medium transition-colors ${language === "en" ? "bg-white/18 text-white" : "text-white/70"}`}
+                      className={`min-h-[38px] rounded-[var(--radius-sm)] px-3 text-[13px] font-medium transition-colors ${language === "en" ? "bg-[var(--surface-card)] text-[var(--ink)]" : "text-[var(--mute)]"}`}
                       aria-pressed={language === "en"}
                       onClick={() => setLanguage("en")}
                     >
@@ -621,7 +624,7 @@ export default function NearbyPage() {
                     </button>
                     <button
                       type="button"
-                      className={`min-h-[38px] rounded-lg px-3 text-[13px] font-medium transition-colors ${language === "hi" ? "bg-white/18 text-white" : "text-white/70"}`}
+                      className={`min-h-[38px] rounded-[var(--radius-sm)] px-3 text-[13px] font-medium transition-colors ${language === "hi" ? "bg-[var(--surface-card)] text-[var(--ink)]" : "text-[var(--mute)]"}`}
                       aria-pressed={language === "hi"}
                       onClick={() => setLanguage("hi")}
                     >
@@ -630,22 +633,22 @@ export default function NearbyPage() {
                   </div>
                 </div>
 
-                <label className="block rounded-2xl border border-white/10 bg-white/6 p-2.5">
-                  <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.35px] text-white/55">Search radius</span>
+                <label className="block rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-2.5">
+                  <span className="mb-2 block text-[12px] font-medium text-[var(--mute)]">Search radius</span>
                   <select
-                    className="field min-h-[42px] w-full rounded-xl border-white/12 bg-white/8 text-[14px] text-white"
+                    className="field min-h-[42px] w-full text-[14px] text-[var(--ink)]"
                     value={effectiveRadius}
                     onChange={(e) => setSelectedRadius(Number(e.target.value))}
                   >
                     {RADIUS_STEPS_M.map((r) => (
-                      <option key={r} value={r} className="bg-[#141416] text-white">
+                      <option key={r} value={r} className="bg-[var(--surface-elevated)] text-[var(--ink)]">
                         {formatRadiusLabel(r)}
                       </option>
                     ))}
                   </select>
                 </label>
 
-                <div className="rounded-2xl border border-white/10 bg-white/6 p-2.5">
+                <div className="rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-2.5">
                   <PresenceOptIn
                     checked={Boolean(data.showPresence)}
                     onChange={(next) => void togglePresence(next)}
@@ -656,7 +659,7 @@ export default function NearbyPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    className="btn btn-tertiary min-h-[42px] justify-center rounded-xl border-white/12 bg-white/8 text-[13px]"
+                    className="btn btn-tertiary min-h-[42px] justify-center text-[13px]"
                     onClick={() => {
                       setSettingsOpen(false);
                       setData(null);
@@ -671,14 +674,14 @@ export default function NearbyPage() {
                   </button>
                   <button
                     type="button"
-                    className="btn btn-tertiary min-h-[42px] justify-center rounded-xl border-white/12 bg-white/8 text-[13px] text-[var(--accent-red)]"
+                    className="btn btn-tertiary min-h-[42px] justify-center text-[13px] text-[var(--accent-red)]"
                     onClick={() => {
                       setSettingsOpen(false);
                       void clearArea();
                     }}
                     disabled={busy}
                   >
-                    <RotateCcw className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                    <RotateCcw className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
                     Clear
                   </button>
                 </div>
@@ -706,7 +709,7 @@ export default function NearbyPage() {
       <section
         id="nearby-sheet"
         aria-label="Nearby area"
-        className="absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-3xl flex-col rounded-t-[28px] border border-b-0 border-white/12 bg-[rgba(20,20,22,0.62)] shadow-[0_-18px_50px_rgba(0,0,0,0.42)] backdrop-blur-2xl backdrop-saturate-150"
+        className="absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-3xl flex-col rounded-t-[var(--radius-2xl)] border border-b-0 border-[var(--hairline)] bg-[var(--surface)]"
         style={{
           height: `${sheetHeight}dvh`,
           transition: dragHeight != null ? "none" : "height 280ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -736,13 +739,13 @@ export default function NearbyPage() {
               });
             }}
           >
-            <span className="h-1.5 w-12 rounded-full bg-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" aria-hidden="true" />
+            <span className="h-1.5 w-12 rounded-full bg-[var(--hairline-strong)]" aria-hidden="true" />
             <span className="sr-only">{isPeek ? "Expand panel" : "Change panel size"}</span>
           </button>
 
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-2xl px-1 pb-2 pt-1 text-left"
+            className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-sm)] px-1 pb-2 pt-1 text-left"
             onClick={() => {
               if (suppressClickRef.current) {
                 suppressClickRef.current = false;
@@ -752,39 +755,39 @@ export default function NearbyPage() {
             }}
           >
             <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold text-white">
+              <span className="block truncate font-display text-[21px] leading-tight text-[var(--ink)]">
                 {tab === "shops" ? "Nearby places" : "Area chat"}
               </span>
-              <span className="block truncate text-[12px] text-white/65">{peekSummary}</span>
+              <span className="block truncate text-[12px] text-[var(--mute)]">{peekSummary}</span>
             </span>
-            <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/8 text-white/70 transition-transform ${isPeek ? "" : "rotate-180"}`}>
-              <ChevronDown className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-transform ${isPeek ? "" : "rotate-180"}`}>
+              <ChevronDown className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
             </span>
           </button>
 
           <div
             role="tablist"
             aria-label="Nearby sections"
-            className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/10 bg-white/8 p-1.5 backdrop-blur-xl"
+            className="grid grid-cols-2 gap-1.5 rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-1.5"
           >
             <button
               type="button"
               role="tab"
               aria-selected={tab === "shops"}
-              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors ${tab === "shops" ? "bg-white/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "text-white/65 hover:text-white/85"}`}
+              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-[13px] font-medium transition-colors ${tab === "shops" ? "bg-[var(--surface-card)] text-[var(--ink)]" : "text-[var(--mute)] hover:text-[var(--ink)]"}`}
               onClick={() => onTabChange("shops")}
             >
-              <Store className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+              <Store className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
               Shops
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={tab === "chat"}
-              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors ${tab === "chat" ? "bg-white/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "text-white/65 hover:text-white/85"}`}
+              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-[13px] font-medium transition-colors ${tab === "chat" ? "bg-[var(--surface-card)] text-[var(--ink)]" : "text-[var(--mute)] hover:text-[var(--ink)]"}`}
               onClick={() => onTabChange("chat")}
             >
-              <MessageCircle className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+              <MessageCircle className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
               Chat
             </button>
           </div>
@@ -798,7 +801,7 @@ export default function NearbyPage() {
         >
           {isPeek ? (
             <div className="pt-2">
-              <p className="text-[13px] text-white/65">
+              <p className="text-[13px] text-[var(--mute)]">
                 {tab === "shops"
                   ? "Swipe up to browse places and details."
                   : "Open chat to talk with people in this area."}
@@ -807,19 +810,19 @@ export default function NearbyPage() {
           ) : tab === "shops" && !isResolvingArea ? (
             <>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[12px] text-white/80">
+                <span className="inline-flex items-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-1.5 text-[12px] text-[var(--body-text)]">
                   {shopResult ? shopRadiusMessage(shopResult) : "Loading shops..."}
                 </span>
                 <button
                   type="button"
-                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 text-[12px] font-medium text-white/85 hover:bg-white/12"
+                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 text-[12px] font-medium text-[var(--ink)] transition-colors hover:border-[var(--hairline-strong)]"
                   onClick={() => setSettingsOpen(true)}
                 >
-                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                   Radius &amp; area
                 </button>
               </div>
-              <p className="mt-2 text-[12px] tracking-[0.2px] text-white/55">
+              <p className="mt-2 text-[12px] tracking-[0.2px] text-[var(--mute)]">
                 {peopleChoice ? peopleMessage(peopleChoice, Boolean(data.showPresence)) : "Checking nearby activity..."}
               </p>
 
@@ -835,17 +838,17 @@ export default function NearbyPage() {
                 />
               </div>
 
-              <p className="mt-4 pb-2 text-[11px] leading-relaxed tracking-[0.2px] text-white/45">
+              <p className="mt-4 pb-2 text-[11px] leading-relaxed tracking-[0.2px] text-[var(--ash)]">
                 Distances are approximate from your area centre. Map data © OpenStreetMap contributors.
               </p>
             </>
           ) : tab === "shops" && isResolvingArea ? (
             <div className="space-y-3" role="status" aria-label="Loading nearby places">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="rounded-[22px] border border-white/10 bg-white/6 p-4">
-                  <div className="h-3 w-2/3 rounded-full bg-white/10 shimmer" />
-                  <div className="mt-2 h-3 w-1/3 rounded-full bg-white/10 shimmer" />
-                  <div className="mt-3 h-3 w-full rounded-full bg-white/8 shimmer" />
+                <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-4">
+                  <div className="h-3 w-2/3 rounded-full bg-[var(--surface-card)] shimmer" />
+                  <div className="mt-2 h-3 w-1/3 rounded-full bg-[var(--surface-card)] shimmer" />
+                  <div className="mt-3 h-3 w-full rounded-full bg-[var(--surface-elevated)] shimmer" />
                 </div>
               ))}
             </div>
@@ -873,29 +876,29 @@ export default function NearbyPage() {
 
       {showRadiusPrompt ? (
         <div
-          className="absolute inset-0 z-50 flex items-end justify-center bg-black/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center"
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]  sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="radius-prompt-title"
         >
-          <div className="w-full max-w-sm rounded-[24px] border border-white/12 bg-[rgba(20,20,22,0.82)] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-            <h2 id="radius-prompt-title" className="text-[16px] font-semibold text-white">
+          <div className="w-full max-w-sm rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-4">
+            <h2 id="radius-prompt-title" className="font-display text-[22px] leading-tight text-[var(--ink)]">
               Area set
             </h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-white/75">
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--body-text)]">
               Want to change the search radius? Default is 1 km.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                className="btn btn-tertiary min-h-[44px] justify-center rounded-xl border-white/12 bg-white/8"
+                className="btn btn-tertiary min-h-[44px] justify-center"
                 onClick={() => setShowRadiusPrompt(false)}
               >
                 Keep 1 km
               </button>
               <button
                 type="button"
-                className="btn btn-primary min-h-[44px] justify-center rounded-xl"
+                className="btn btn-primary min-h-[44px] justify-center"
                 onClick={() => {
                   setShowRadiusPrompt(false);
                   setSettingsOpen(true);

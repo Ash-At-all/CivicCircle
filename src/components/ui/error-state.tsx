@@ -11,7 +11,7 @@ interface ErrorStateProps {
 export function ErrorState({ title, description, onRetry }: ErrorStateProps) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-      <div className="app-tile mb-4 h-12 w-12 border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]">
+      <div className="app-tile mb-4 h-12 w-12 border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]">
         <span className="text-sm font-semibold">!</span>
       </div>
       <h2 className="text-h3">{title}</h2>

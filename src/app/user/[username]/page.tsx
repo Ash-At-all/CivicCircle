@@ -95,8 +95,8 @@ export default async function UserProfilePage({
 
   return (
     <div className="mobile-container">
-      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.85)] backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--canvas)]">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] sm:px-6">
           <Link
             href="/"
             className="btn btn-icon btn-secondary text-[var(--mute)]"
@@ -104,7 +104,7 @@ export default async function UserProfilePage({
           >
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </Link>
-          <span className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+          <span className="text-[14px] font-medium text-[var(--ink)]">
             @{profile.username}
           </span>
           <div className="w-9" aria-hidden="true" />
@@ -113,7 +113,7 @@ export default async function UserProfilePage({
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6">
         <header className="card flex items-center gap-4 p-5">
-          <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] text-[16px] font-semibold text-[var(--body-text)]">
+          <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] text-[20px] font-semibold text-[var(--ink)]">
             {profile.avatar_url ? (
               <Image
                 src={profile.avatar_url}
@@ -136,15 +136,18 @@ export default async function UserProfilePage({
               )}
               {profile.tag && <span className="badge">{profile.tag}</span>}
             </div>
-            <p className="mt-1 text-[11px] tracking-[0.3px] text-[var(--ash)]">
+            <p className="mt-1 text-[12px] text-[var(--ash)]">
               Member of CivicCircle
             </p>
           </div>
         </header>
 
         <section className="mt-6">
-          <p className="text-label">Activity</p>
-          <h2 className="mt-1 text-h2">Posts by {profile.username}</h2>
+          <p className="dateline">
+            <span className="dateline-mark" aria-hidden="true" />
+            Activity
+          </p>
+          <h2 className="mt-2 text-h2">Posts by {profile.username}</h2>
           {posts.length === 0 ? (
             <div className="card mt-4 px-4 py-10 text-center text-[13px] text-[var(--mute)]">
               No posts yet.

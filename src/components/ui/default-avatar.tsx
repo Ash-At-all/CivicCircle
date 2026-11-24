@@ -16,24 +16,6 @@ const SIZE_CLASSES: Record<NonNullable<DefaultAvatarProps["size"]>, string> = {
   xl: "h-16 w-16 text-[18px]",
 };
 
-const PALETTES = [
-  "from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] text-white",
-  "from-[var(--accent-yellow-soft)] to-[var(--accent-red-soft)] text-white",
-  "from-[var(--accent-green-soft)] to-[var(--accent-blue-soft)] text-white",
-  "from-[var(--accent-red-soft)] to-[var(--accent-yellow-soft)] text-white",
-  "from-[var(--accent-blue-soft)] to-[var(--accent-yellow-soft)] text-white",
-  "from-[var(--accent-green-soft)] to-[var(--accent-yellow-soft)] text-white",
-] as const;
-
-function hashString(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
 function getInitial(name?: string | null) {
   const trimmed = (name ?? "").trim();
   if (!trimmed) return "?";
@@ -43,14 +25,11 @@ function getInitial(name?: string | null) {
 
 export function DefaultAvatar({
   name,
-  seed,
   size = "md",
   className = "",
   title,
 }: DefaultAvatarProps) {
   const label = (name ?? "").trim() || "Anonymous";
-  const key = (seed ?? label).trim() || label;
-  const palette = PALETTES[hashString(key) % PALETTES.length];
   const initial = getInitial(label);
 
   return (
@@ -58,9 +37,8 @@ export function DefaultAvatar({
       aria-hidden="true"
       title={title ?? label}
       className={[
-        "inline-flex flex-none select-none items-center justify-center rounded-full border border-white/12 bg-gradient-to-br font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-white/10",
+        "inline-flex flex-none select-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-card)] font-medium text-[var(--ink)]",
         SIZE_CLASSES[size],
-        palette,
         className,
       ]
         .filter(Boolean)

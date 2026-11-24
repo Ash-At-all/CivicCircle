@@ -76,16 +76,16 @@ export default function ProfilePage() {
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--canvas)]">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
           <Link
             href="/home"
-            className="btn btn-icon btn-secondary text-white/80"
+            className="btn btn-icon btn-secondary text-[var(--body-text)]"
             aria-label="Back to feed"
           >
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </Link>
-          <h1 className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+          <h1 className="text-[14px] font-medium text-[var(--ink)]">
             Profile &amp; settings
           </h1>
           <div className="w-9" aria-hidden="true" />
@@ -103,8 +103,8 @@ export default function ProfilePage() {
               className="h-16 w-16 text-[20px]"
             />
             <h2 className="mt-3 text-h3">{nickname}</h2>
-            <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] tracking-[0.3px] text-[var(--mute)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+            <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] text-[var(--mute)]">
+              <span className="h-1.5 w-1.5 bg-[var(--accent-ember)]" />
               Anonymous identity
             </p>
           </div>
@@ -138,7 +138,7 @@ export default function ProfilePage() {
 
           <div className="rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3.5">
             <div className="flex items-center justify-between gap-2 text-[12px]">
-              <span className="tracking-[0.3px] text-[var(--mute)]">Client ID</span>
+              <span className="text-[var(--mute)]">Client ID</span>
               <button
                 type="button"
                 onClick={copyClientId}
@@ -148,7 +148,7 @@ export default function ProfilePage() {
                 <span>{copiedId ? "Copied" : "Copy"}</span>
               </button>
             </div>
-            <p className="mt-1.5 truncate font-mono text-[11px] text-[var(--body-text)]">
+            <p className="mt-1.5 truncate font-mono text-[12px] text-[var(--body-text)]">
               {clientId || "..."}
             </p>
           </div>
@@ -175,7 +175,7 @@ export default function ProfilePage() {
               className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
             >
               <span className="flex items-center gap-2">
-                <Bookmark className="h-4 w-4 text-[var(--accent-yellow)]" strokeWidth={1.8} />
+                <Bookmark className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.7} />
                 <span>Saved posts &amp; places</span>
               </span>
               <span className="text-[var(--ash)]">→</span>
@@ -185,7 +185,7 @@ export default function ProfilePage() {
               className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
             >
               <span className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-[var(--accent-blue)]" strokeWidth={1.8} />
+                <Info className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.7} />
                 <span>Nearby area</span>
               </span>
               <span className="text-[var(--ash)]">→</span>
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                 className="flex items-center justify-between gap-2 py-2.5 text-[13px] text-[var(--body-text)] transition-colors hover:text-[var(--ink)]"
               >
                 <span className="flex items-center gap-2">
-                  <Flag className="h-4 w-4 text-[var(--accent-red)]" strokeWidth={1.8} />
+                  <Flag className="h-4 w-4 text-[var(--mute)]" strokeWidth={1.7} />
                   <span>Moderation queue</span>
                 </span>
                 <span className="text-[var(--ash)]">→</span>

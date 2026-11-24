@@ -5,7 +5,6 @@ import {
   Flame,
   MapPin,
   MessageCircle,
-  Sparkles,
   Star,
   Store,
   TrendingUp,
@@ -32,20 +31,12 @@ const ICONS = {
   trend: TrendingUp,
 } as const;
 
-const ACCENTS: Record<HighlightAccent, string> = {
-  blue: "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]",
-  green: "bg-[var(--accent-green-soft)] text-[var(--accent-green)]",
-  yellow: "bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]",
-  red: "bg-[var(--accent-red-soft)] text-[var(--accent-red)]",
-};
-
 export function HighlightsStrip({
   items,
-  title = "What's happening now",
+  title = "What's happening",
   subtitle,
   onSelect,
   className = "",
-  glass = false,
 }: {
   items: HighlightItem[];
   title?: string;
@@ -56,49 +47,28 @@ export function HighlightsStrip({
 }) {
   return (
     <section className={className} aria-labelledby="highlights-title">
-      <div className="mb-2.5 flex items-end justify-between gap-3">
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
         <div className="min-w-0">
           <h2
             id="highlights-title"
-            className={`inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.4px] ${
-              glass ? "text-white/80" : "text-[var(--mute)]"
-            }`}
+            className="dateline"
           >
-            <TrendingUp className="h-3.5 w-3.5 text-[var(--accent-green)]" strokeWidth={1.8} aria-hidden="true" />
+            <span className="dateline-mark" aria-hidden="true" />
             {title}
           </h2>
           {subtitle ? (
-            <p className={`mt-1 text-[11px] ${glass ? "text-white/55" : "text-[var(--ash)]"}`}>{subtitle}</p>
+            <p className="mt-1 text-[12px] text-[var(--ash)]">{subtitle}</p>
           ) : null}
         </div>
-        <span
-          className={`inline-flex flex-none items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium uppercase tracking-[0.3px] ${
-            glass
-              ? "border-white/10 bg-white/6 text-white/60"
-              : "border-[var(--hairline)] bg-[var(--surface)] text-[var(--ash)]"
-          }`}
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" aria-hidden="true" />
-          Live
-        </span>
+        <span className="flex-none text-[12px] text-[var(--ash)]">Live</span>
       </div>
 
       {items.length === 0 ? (
-        <div
-          className={`flex items-start gap-3 rounded-[var(--radius-lg)] border p-3.5 ${
-            glass
-              ? "border-white/10 bg-white/6"
-              : "border-[var(--hairline)] bg-[var(--surface)]"
-          }`}
-        >
-          <span className="app-tile h-9 w-9 flex-none text-[var(--accent-blue)]">
-            <Sparkles className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-          </span>
+        <div className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-3.5">
+          <span className="mt-0.5 h-1.5 w-1.5 flex-none bg-[var(--accent-ember)]" aria-hidden="true" />
           <div className="min-w-0">
-            <p className={`text-[13px] font-medium ${glass ? "text-white" : "text-[var(--ink)]"}`}>
-              Quiet right now
-            </p>
-            <p className={`mt-0.5 text-[12px] leading-relaxed ${glass ? "text-white/60" : "text-[var(--mute)]"}`}>
+            <p className="text-[13px] font-medium text-[var(--ink)]">Quiet right now</p>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--mute)]">
               Start a post or check nearby to get things moving.
             </p>
           </div>
@@ -107,26 +77,17 @@ export function HighlightsStrip({
         <div className="no-scrollbar -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
           {items.map((item) => {
             const Icon = ICONS[item.icon ?? "trend"];
-            const accent = ACCENTS[item.accent ?? "blue"];
             const body = (
               <>
-                <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${accent}`}>
-                  <Icon className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--ash)]">
+                  <Icon className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
                 </span>
                 <span className="min-w-0">
-                  <span
-                    className={`block truncate text-[13px] font-semibold ${
-                      glass ? "text-white" : "text-[var(--ink)]"
-                    }`}
-                  >
+                  <span className="block truncate text-[13px] font-medium text-[var(--ink)]">
                     {item.title}
                   </span>
                   {item.detail ? (
-                    <span
-                      className={`mt-0.5 block line-clamp-2 text-[11px] leading-relaxed ${
-                        glass ? "text-white/60" : "text-[var(--mute)]"
-                      }`}
-                    >
+                    <span className="mt-0.5 block line-clamp-2 text-[12px] leading-relaxed text-[var(--mute)]">
                       {item.detail}
                     </span>
                   ) : null}
@@ -134,11 +95,8 @@ export function HighlightsStrip({
               </>
             );
 
-            const cardClass = `flex min-h-[74px] w-[228px] flex-none snap-start items-start gap-2.5 rounded-[var(--radius-lg)] border p-3 text-left transition-colors ${
-              glass
-                ? "border-white/10 bg-white/6 hover:bg-white/10"
-                : "border-[var(--hairline)] bg-[var(--surface)] hover:border-[var(--hairline-strong)]"
-            }`;
+            const cardClass =
+              "flex min-h-[70px] w-[228px] flex-none snap-start items-start gap-2.5 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-3 text-left transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-elevated)]";
 
             if (onSelect) {
               return (

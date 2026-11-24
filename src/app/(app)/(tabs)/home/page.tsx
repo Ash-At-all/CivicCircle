@@ -2,10 +2,8 @@
 
 import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Flame,
   MessageSquare,
   ThumbsUp,
   Plus,
@@ -83,13 +81,6 @@ function seededShuffle<T>(items: readonly T[], seed: number): T[] {
   return out;
 }
 
-function getGreeting(hour: number) {
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 17) return "Good afternoon";
-  if (hour >= 17 && hour < 21) return "Good evening";
-  return "Hey night owl";
-}
-
 function daySeed(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 }
@@ -142,7 +133,7 @@ function HelpfulButton({
       aria-label={`${marked ? "Remove helpful mark" : "Mark as helpful"}, ${count} helpful marks`}
       className={`action-pill min-h-[38px] touch-manipulation gap-1.5 !px-2.5 ${
         marked
-          ? "border-[rgba(255,197,51,0.32)] bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]"
+          ? "border-[rgba(214,162,74,0.32)] bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]"
           : ""
       }`}
     >
@@ -175,63 +166,78 @@ function PollResults({
 }) {
   const voted = Boolean(votedOptionId);
   const sorted = [...options].sort((a, b) => b.votes - a.votes);
+  const showResults = closed || voted;
 
   return (
-    <div className="border-t border-[var(--hairline)] px-4 py-3">
-      <p className="text-[13px] font-semibold tracking-[0.1px] text-[var(--ink)]">{question}</p>
+    <div className="border-t border-[var(--hairline)] px-4 py-4">
+      <p className="dateline mb-2">
+        <span className="dateline-mark" aria-hidden="true" />
+        Ballot
+      </p>
+      <p className="text-[15px] font-medium leading-snug text-[var(--ink)]">{question}</p>
 
-      {closed ? (
-        <div className="mt-2">
-          {sorted.map((option) => (
-            <div key={option.id} className="mb-1.5 last:mb-0">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <span className="truncate text-[12px] text-[var(--body-text)]">{option.text}</span>
-                <span className="tabular-nums text-[11px] text-[var(--ash)]">{option.percent}%</span>
+      {showResults ? (
+        <div className="mt-3 space-y-2.5">
+          {sorted.map((option, i) => {
+            const isMine = votedOptionId === option.id;
+            const leads = i === 0 && option.percent > 0;
+            return (
+              <div key={option.id}>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span
+                    className={`truncate text-[13px] ${
+                      isMine
+                        ? "font-medium text-[var(--ink)]"
+                        : "text-[var(--body-text)]"
+                    }`}
+                  >
+                    {option.text}
+                  </span>
+                  <span className="flex-none tabular-nums text-[12px] text-[var(--ash)]">
+                    {closed
+                      ? `${option.percent}%`
+                      : `${option.votes} ${option.votes === 1 ? "vote" : "votes"}`}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 w-full bg-[var(--surface-card)]">
+                  <div
+                    className={`h-full ${
+                      leads ? "bg-[var(--accent-ember)]" : "bg-[var(--stone)]"
+                    }`}
+                    style={{ width: `${option.percent}%` }}
+                  />
+                </div>
+                {isMine && !closed ? (
+                  <span className="mt-1 inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--accent-ember-ink)]">
+                    <span
+                      className="h-1.5 w-1.5 bg-[var(--accent-ember)]"
+                      aria-hidden="true"
+                    />
+                    Your vote
+                  </span>
+                ) : null}
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-elevated)]">
-                <div
-                  className="h-full rounded-full bg-[var(--accent-blue)]"
-                  style={{ width: `${option.percent}%` }}
-                />
-              </div>
-            </div>
-          ))}
-          <p className="mt-2 text-[11px] text-[var(--ash)]">{totalVotes} votes</p>
-        </div>
-      ) : voted ? (
-        <div className="mt-2">
-          {sorted.map((option) => (
-            <div key={option.id} className="mb-1.5 last:mb-0">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <span className="truncate text-[12px] text-[var(--body-text)]">{option.text}</span>
-                <span className="tabular-nums text-[11px] text-[var(--ash)]">{option.votes} votes</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-elevated)]">
-                <div
-                  className="h-full rounded-full bg-[var(--accent-green)]"
-                  style={{ width: `${option.percent}%` }}
-                />
-              </div>
-              {votedOptionId === option.id ? (
-                <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent-green)]">
-                  <span className="h-1 w-1 rounded-full bg-[var(--accent-green)]" aria-hidden="true" />
-                  Your vote
-                </span>
-              ) : null}
-            </div>
-          ))}
-          <p className="mt-2 text-[11px] text-[var(--ash)]">{totalVotes} votes</p>
+            );
+          })}
+          <p className="pt-0.5 text-[12px] text-[var(--ash)]">
+            {totalVotes} {totalVotes === 1 ? "vote" : "votes"}
+            {closed ? " · Closed" : " · Open"}
+          </p>
         </div>
       ) : (
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-3 space-y-1.5">
           {options.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => onVote(option.id)}
-              className="field w-full text-left text-[13px] font-medium text-[var(--body-text)]"
+              className="flex min-h-10 w-full items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-2 text-left text-[13px] text-[var(--body-text)] transition-colors hover:border-[var(--accent-ember)] hover:text-[var(--ink)]"
             >
-              {option.text}
+              <span
+                className="h-3 w-3 flex-none border border-[var(--hairline-strong)]"
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1">{option.text}</span>
             </button>
           ))}
         </div>
@@ -387,13 +393,15 @@ function HomeContent() {
     };
   }, []);
 
-  const heroGreeting = useMemo(() => {
+  const datelineLabel = useMemo(() => {
     void heroTick;
-    if (!heroReady) return "Your mohalla, right now.";
-    const now = new Date();
-    const base = getGreeting(now.getHours());
-    return heroPlace ? `${base}, ${heroPlace}!` : `${base}!`;
-  }, [heroReady, heroPlace, heroTick]);
+    if (!heroReady) return "Today";
+    return new Date().toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }, [heroReady, heroTick]);
 
   const heroMessage = useMemo(() => {
     void heroTick;
@@ -739,39 +747,35 @@ function HomeContent() {
   return (
     <div className="flex min-h-[100dvh] w-full min-w-0 flex-col bg-[var(--canvas)]">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
+      <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[var(--canvas)]">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
-            <Link href="/home" className="flex min-w-0 items-center gap-2" aria-label="CivicCircle home">
-              <Image
-                src="/brand/logo.png"
-                alt=""
-                width={35}
-                height={22}
-                className="h-[22px] w-auto"
-                priority
+            <Link href="/home" className="flex min-w-0 items-center gap-2.5" aria-label="CivicCircle home">
+              <span
+                className="h-2 w-2 flex-none bg-[var(--accent-ember)]"
+                aria-hidden="true"
               />
-              <span className="truncate text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+              <span className="truncate font-display text-[19px] leading-none text-[var(--ink)]">
                 CivicCircle
               </span>
             </Link>
           </div>
 
-          <div className="flex flex-none items-center gap-1">
+          <div className="flex flex-none items-center gap-0.5">
             <NotificationBell />
             <Link
               href="/saved"
               aria-label="Saved posts and places"
-              className="btn btn-icon btn-secondary text-[var(--accent-yellow)]"
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
             >
-              <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </Link>
             <Link
               href="/nearby"
               aria-label="Nearby"
-              className="btn btn-icon btn-secondary text-[var(--accent-blue)]"
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
             >
-              <MapPin className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <MapPin className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </Link>
             <button
               type="button"
@@ -779,9 +783,9 @@ function HomeContent() {
               aria-expanded={searchOpen}
               aria-controls="post-search"
               onClick={() => setSearchOpen((v) => !v)}
-              className="btn btn-icon btn-secondary text-[var(--accent-yellow)]"
+              className="btn btn-icon btn-secondary text-[var(--mute)]"
             >
-              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
+              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
               </svg>
@@ -790,7 +794,7 @@ function HomeContent() {
         </div>
 
         {searchOpen && (
-          <div className="space-y-3 border-t border-[var(--hairline)] px-3 pb-3 pt-2.5 sm:px-5">
+          <div className="space-y-3 border-t border-[var(--hairline)] px-4 pb-4 pt-3 sm:px-6">
             <label className="sr-only" htmlFor="post-search">
               Search posts
             </label>
@@ -810,11 +814,11 @@ function HomeContent() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.35px] text-[var(--mute)]">Filter by tag</p>
+                <p className="text-[12px] font-medium text-[var(--mute)]">Filter by tag</p>
                 {(searchQuery || postTagFilter !== "all") ? (
                   <button
                     type="button"
-                    className="text-[12px] font-medium text-[var(--accent-blue)]"
+                    className="text-[12px] font-medium text-[var(--accent-ember-ink)]"
                     onClick={() => {
                       setSearchQuery("");
                       setPostTagFilter("all");
@@ -847,13 +851,13 @@ function HomeContent() {
 
             {recentSearches.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.35px] text-[var(--mute)]">Recent searches</p>
+                <p className="text-[12px] font-medium text-[var(--mute)]">Recent searches</p>
                 <div className="flex flex-wrap gap-2">
                   {recentSearches.map((term) => (
                     <button
                       key={term}
                       type="button"
-                      className="inline-flex min-h-[32px] items-center rounded-full border border-white/10 bg-white/6 px-3 text-[12px] text-[var(--body-text)] hover:bg-white/10"
+                      className="inline-flex min-h-8 items-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 text-[12px] text-[var(--body-text)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
                       onClick={() => setSearchQuery(term)}
                     >
                       {term}
@@ -867,57 +871,64 @@ function HomeContent() {
       </header>
 
       <div className="flex-1">
-        {/* Hero band */}
+        {/* Masthead */}
         <section className="hero-band">
-          <div className="hero-stripes" aria-hidden="true" />
-          <div className="px-4 pb-8 pt-8 sm:px-6 sm:pb-12 sm:pt-10">
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
+          <div className="px-4 pb-8 pt-8 sm:px-6 sm:pb-10 sm:pt-10">
+            <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
               <div className="min-w-0">
-                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1 text-[12px] font-medium text-[var(--mute)]">
-                  <span className="h-2 w-2 rounded-full bg-[var(--accent-green)]" />
-                  {activeTopic === "general" ? "Your mohalla, right now" : `${activeTopicName} board`}
+                <p className="dateline">
+                  <span className="dateline-mark" aria-hidden="true" />
+                  <span className="truncate">{heroPlace ?? activeTopicName}</span>
+                  <span className="dateline-sep" aria-hidden="true">·</span>
+                  <span>{datelineLabel}</span>
                 </p>
 
-                <h1 className="text-display max-w-[18ch] text-balance">
-                  <span className="transition-opacity duration-500 ease-out">{heroGreeting}</span>
+                <h1 className="mt-3 max-w-[17ch] text-balance text-display">
+                  {activeTopic === "general"
+                    ? "Your mohalla, right now."
+                    : `${activeTopicName}, right now.`}
                 </h1>
 
-                <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
-                  <span className="transition-opacity duration-500 ease-out">{heroMessage}</span>
+                <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[var(--body-text)]">
+                  {heroMessage}
                 </p>
 
-                <div className="mt-5 flex flex-wrap items-center gap-2.5">
-                  <a href="#community-feed" className="btn btn-primary btn-lg">
-                    See what&apos;s new
+                <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                  <a href="#community-feed" className="btn btn-primary">
+                    Read the board
                   </a>
-                  <Link href="/nearby" className="btn btn-tertiary btn-lg">
-                    <MapPin className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                  <Link href="/nearby" className="btn btn-tertiary">
+                    <MapPin className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
                     Nearby
                   </Link>
                 </div>
 
-                <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-[0.2px] text-[var(--ash)]">
+                <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--ash)]">
                   <span className="inline-flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+                    <Lock className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                     No account needed
                   </span>
-                  <span aria-hidden="true">·</span>
+                  <span className="dateline-sep" aria-hidden="true">·</span>
                   <span>Approximate area only</span>
                 </p>
               </div>
 
-              {/* Quick actions */}
+              {/* Start here */}
               <div className="min-w-0">
-                <div className="card mx-auto w-full max-w-md overflow-hidden p-3 sm:p-4">
-                  <p className="px-1 text-[13px] font-medium text-[var(--ink)]">Jump in</p>
-                  <div className="mt-3 space-y-2">
+                <div className="mx-auto w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[13px] font-medium text-[var(--ink)]">Start here</p>
+                    <span className="text-[12px] text-[var(--ash)]">Three ways in</span>
+                  </div>
+
+                  <div className="mt-3 divide-y divide-[var(--hairline)]">
                     <button
                       type="button"
                       onClick={() => setCreatePostOpen(true)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-3 text-left transition-colors hover:border-[var(--hairline-strong)]"
+                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface-elevated)]"
                     >
-                      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]">
-                        <Plus className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
+                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
+                        <Plus className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[14px] font-medium text-[var(--ink)]">Share a post</span>
@@ -927,10 +938,10 @@ function HomeContent() {
 
                     <Link
                       href="/nearby"
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-3 text-left transition-colors hover:border-[var(--hairline-strong)]"
+                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface-elevated)]"
                     >
-                      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
-                        <Store className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
+                        <Store className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[14px] font-medium text-[var(--ink)]">Explore nearby</span>
@@ -940,10 +951,10 @@ function HomeContent() {
 
                     <Link
                       href={`/chat/${activeTopic}`}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-3 py-3 text-left transition-colors hover:border-[var(--hairline-strong)]"
+                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface-elevated)]"
                     >
-                      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
-                        <MessageSquare className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
+                        <MessageSquare className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[14px] font-medium text-[var(--ink)]">Join the conversation</span>
@@ -952,15 +963,15 @@ function HomeContent() {
                     </Link>
                   </div>
 
-                  <div className="mt-4 border-t border-[var(--hairline)] pt-3">
-                    <p className="px-1 text-[11px] uppercase tracking-[0.35px] text-[var(--ash)]">Quick ask</p>
+                  <div className="mt-3">
+                    <p className="text-[12px] font-medium text-[var(--ash)]">Quick ask</p>
                     <div className="no-scrollbar -mx-1 mt-2 flex items-center gap-2 overflow-x-auto px-1 pb-1">
                       {promptChips.map((prompt) => (
                         <button
                           key={prompt}
                           type="button"
                           onClick={() => startPromptPost(prompt)}
-                          className="flex-none rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[12px] text-[var(--body-text)] transition-colors hover:border-white/20 hover:bg-white/10"
+                          className="flex-none rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-[12px] text-[var(--body-text)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
                         >
                           {prompt}
                         </button>
@@ -977,15 +988,18 @@ function HomeContent() {
 
         {/* Board controls */}
         <section id="community-feed" className="scroll-mt-24 px-4 pb-2 pt-7 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-label">Explore your city</p>
-              <h2 className="mt-1 text-h2">{activeTopicName}</h2>
+              <p className="dateline">
+                <span className="dateline-mark" aria-hidden="true" />
+                Board
+              </p>
+              <h2 className="mt-2 font-display text-[30px] leading-none text-[var(--ink)]">
+                {activeTopicName}
+              </h2>
             </div>
 
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-[13px] text-[var(--body-text)]">
-              Latest posts
-            </span>
+            <span className="pb-1 text-[12px] text-[var(--ash)]">Latest posts</span>
           </div>
 
           {/* Topic chips */}
@@ -1022,11 +1036,11 @@ function HomeContent() {
         {/* Post feed */}
         <section className="px-4 pb-10 pt-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--mute)]">
-              <Flame className="h-3.5 w-3.5 text-[var(--stone)]" strokeWidth={1.8} />
+            <span className="dateline">
+              <span className="dateline-mark" aria-hidden="true" />
               Community feed
             </span>
-            <span className="text-[12px] tabular-nums tracking-[0.3px] text-[var(--ash)]">
+            <span className="text-[12px] tabular-nums text-[var(--ash)]">
               {filteredPosts.length} {filteredPosts.length === 1 ? "post" : "posts"}
             </span>
           </div>
@@ -1035,19 +1049,19 @@ function HomeContent() {
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="feed-card animate-[skeleton-pulse_1.6s_ease-in-out_infinite] space-y-3 p-4">
-                  <div className="h-3 w-24 rounded bg-[rgba(255,255,255,0.07)]" />
-                  <div className="h-4 w-3/4 rounded bg-[rgba(255,255,255,0.09)]" />
-                  <div className="h-3 w-full rounded bg-[rgba(255,255,255,0.07)]" />
-                  <div className="h-3 w-1/2 rounded bg-[rgba(255,255,255,0.07)]" />
+                  <div className="h-3 w-24 rounded bg-[var(--surface-card)]" />
+                  <div className="h-4 w-3/4 rounded bg-[var(--hairline)]" />
+                  <div className="h-3 w-full rounded bg-[var(--surface-card)]" />
+                  <div className="h-3 w-1/2 rounded bg-[var(--surface-card)]" />
                 </div>
               ))}
             </div>
           ) : postsError && posts.length === 0 ? (
             <div className="feed-card px-5 py-10 text-center">
-              <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--accent-red)]">
-                <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
+              <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--ash)]">
+                <MessageSquare className="h-5 w-5" strokeWidth={1.7} />
               </span>
-              <p className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">Couldn&apos;t load posts</p>
+              <p className="text-[15px] font-medium text-[var(--ink)]">Couldn&apos;t load posts</p>
               <p className="mt-1 text-[13px] text-[var(--mute)]">{postsError}</p>
               <button
                 onClick={() => setFeedVersion((v) => v + 1)}
@@ -1058,10 +1072,10 @@ function HomeContent() {
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className="feed-card px-5 py-10 text-center">
-              <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--mute)]">
-                <MessageSquare className="h-5 w-5" strokeWidth={1.8} />
+              <span className="app-tile mx-auto mb-4 h-11 w-11 text-[var(--ash)]">
+                <MessageSquare className="h-5 w-5" strokeWidth={1.7} />
               </span>
-              <p className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
+              <p className="text-[15px] font-medium text-[var(--ink)]">
                 {searchQuery || postTagFilter !== "all" ? "No posts match your filters" : "No posts here yet"}
               </p>
               <p className="mt-1 text-[13px] text-[var(--mute)]">
@@ -1093,19 +1107,19 @@ function HomeContent() {
           ) : (
             <div className="space-y-4">
               {filteredPosts.map((post) => (
-                <article key={post.id} className={`feed-card overflow-hidden ${post.alert_type ? "border-[rgba(255,197,51,0.3)]" : ""}`}>
+                <article key={post.id} className={`feed-card overflow-hidden ${post.alert_type ? "border-[rgba(214,162,74,0.32)]" : ""}`}>
                   <div className="flex items-center gap-3 px-4 pt-4">
                     <DefaultAvatar name="Anonymous" size="md" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-[14px] font-semibold tracking-[0.1px] text-[var(--ink)]">
+                        <span className="truncate text-[13px] font-medium text-[var(--ink)]">
                           Anonymous
                         </span>
-                        <span className="text-[11px] text-[var(--ash)]">·</span>
+                        <span className="text-[11px] text-[var(--stone)]" aria-hidden="true">·</span>
                         <span className="truncate text-[12px] text-[var(--mute)]">{activeTopicName}</span>
                       </div>
-                      <div className="mt-0.5 flex items-center gap-2 text-[11px] tracking-[0.2px] text-[var(--ash)]">
-                        <span className="tag-chip !px-2 !py-0.5">{post.tag || "General"}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--ash)]">
+                        <span className="tag-chip">{post.tag || "General"}</span>
                         {post.alert_type && isPostAlertType(post.alert_type) ? (
                           <span className={`badge ${POST_ALERT_BADGE_CLASS[post.alert_type]}`}>
                             {POST_ALERT_LABELS[post.alert_type]}
@@ -1117,7 +1131,7 @@ function HomeContent() {
                   </div>
 
                   <div className="px-4 pb-3 pt-3">
-                    <h3 className="text-[17px] font-semibold leading-snug tracking-[0.1px] text-[var(--ink)]">
+                    <h3 className="font-display text-[23px] leading-[1.18] text-[var(--ink)]">
                       {post.title}
                     </h3>
                     {post.body && (
@@ -1160,7 +1174,7 @@ function HomeContent() {
                       className="action-pill gap-1.5"
                       aria-label={`Like post, ${votes[post.id] ?? post.votes ?? 0} likes`}
                     >
-                      <ThumbsUp className="h-[18px] w-[18px] text-[var(--accent-green)]" strokeWidth={1.8} aria-hidden="true" />
+                      <ThumbsUp className="h-[18px] w-[18px] text-[var(--ash)]" strokeWidth={1.7} aria-hidden="true" />
                       <span className="tabular-nums text-[13px] font-medium text-[var(--ink)]">
                         {votes[post.id] ?? post.votes ?? 0}
                       </span>
@@ -1177,7 +1191,7 @@ function HomeContent() {
                       <button
                         type="button"
                         onClick={() => setReportTarget({ postId: post.id, title: post.title })}
-                        className="action-pill gap-1.5 border-[rgba(255,97,97,0.32)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]"
+                        className="action-pill gap-1.5 border-[rgba(217,106,96,0.32)] bg-[var(--accent-red-soft)] text-[var(--accent-red)]"
                         aria-label={`Report ${post.title} as a local alert`}
                       >
                         <Flag className="h-[17px] w-[17px]" strokeWidth={1.8} aria-hidden="true" />
@@ -1190,7 +1204,7 @@ function HomeContent() {
                       className="action-pill gap-1.5"
                       aria-label={`Discuss in ${activeTopicName} chat`}
                     >
-                      <MessageSquare className="h-[18px] w-[18px] text-[var(--accent-blue)]" strokeWidth={1.8} aria-hidden="true" />
+                      <MessageSquare className="h-[18px] w-[18px] text-[var(--ash)]" strokeWidth={1.7} aria-hidden="true" />
                       <span className="text-[13px] font-medium">Discuss</span>
                     </Link>
 
@@ -1216,7 +1230,7 @@ function HomeContent() {
       {/* Create Post sheet */}
       {createPostOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
           role="presentation"
           onClick={() => setCreatePostOpen(false)}
         >
@@ -1246,7 +1260,7 @@ function HomeContent() {
 
             {errorMsg && (
               <div
-                className="mt-4 rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] p-3 text-[13px] text-[var(--accent-red)]"
+                className="mt-4 rounded-[var(--radius-md)] border border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] p-3 text-[13px] text-[var(--accent-red)]"
                 role="alert"
               >
                 {errorMsg}
@@ -1270,6 +1284,32 @@ function HomeContent() {
                     </option>
                   ))}
                 </select>
+                {showTagSuggestion && tagSuggestion ? (
+                  <div className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[rgba(226,104,63,0.28)] bg-[var(--accent-ember-soft)] p-3">
+                    <Lightbulb className="mt-0.5 h-4 w-4 flex-none text-[var(--accent-ember-ink)]" strokeWidth={1.7} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-medium text-[var(--ink)]">
+                        Suggested tag: {tagSuggestion.tag}
+                      </p>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--body-text)]">
+                        {tagSuggestion.reason}
+                      </p>
+                      <button
+                        type="button"
+                        className="mt-1.5 text-[12px] font-medium text-[var(--accent-ember-ink)] hover:underline"
+                        onClick={() => {
+                          setSelectedTag(tagSuggestion.tag);
+                        }}
+                      >
+                        Use {tagSuggestion.tag}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[12px] leading-relaxed text-[var(--ash)]">
+                    Pick the closest tag so neighbours can find your post.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -1289,35 +1329,10 @@ function HomeContent() {
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] leading-relaxed text-[var(--ash)]">
+                <p className="text-[12px] leading-relaxed text-[var(--ash)]">
                   Optional. Use it for local alerts like water cuts or road closures.
                 </p>
               </div>
-
-              {showTagSuggestion && tagSuggestion ? (
-                <div className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[rgba(255,197,51,0.24)] bg-[var(--accent-yellow-soft)] p-3">
-                  <Lightbulb className="mt-0.5 h-4 w-4 flex-none text-[var(--accent-yellow)]" strokeWidth={1.8} aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-medium text-[var(--ink)]">
-                      Suggested tag: {tagSuggestion.tag}
-                    </p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--body-text)]">
-                      {tagSuggestion.reason}
-                    </p>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-tertiary mt-2"
-                      onClick={() => setSelectedTag(tagSuggestion.tag)}
-                    >
-                      Use {tagSuggestion.tag}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-[11px] leading-relaxed text-[var(--ash)]">
-                  Pick the closest tag so neighbours can find your post.
-                </p>
-              )}
 
               <div className="space-y-1.5">
                 <label htmlFor="post-title" className="text-label block">
@@ -1426,7 +1441,7 @@ function HomeContent() {
                         type="button"
                         onClick={() => removeImage(index)}
                         aria-label="Remove image"
-                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur"
+                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-[var(--radius-xs)] bg-black/70 text-[var(--ink)]"
                       >
                         <X className="h-3 w-3" strokeWidth={2} />
                       </button>
@@ -1473,7 +1488,7 @@ function HomeContent() {
 
       {reportTarget ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
           role="presentation"
           onClick={() => setReportTarget(null)}
         >
@@ -1531,7 +1546,7 @@ function HomeContent() {
               />
 
               {reportNotice ? (
-                <p className="rounded-[var(--radius-md)] border border-[rgba(89,212,153,0.28)] bg-[var(--accent-green-soft)] p-3 text-[13px] text-[var(--accent-green)]" role="status">
+                <p className="rounded-[var(--radius-md)] border border-[rgba(134,176,141,0.28)] bg-[var(--accent-green-soft)] p-3 text-[13px] text-[var(--accent-green)]" role="status">
                   {reportNotice}
                 </p>
               ) : null}

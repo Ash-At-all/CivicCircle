@@ -415,7 +415,7 @@ const lastGifQueryRef = useRef<string | null>(null);
   return (
     <div className="mobile-container chat-page relative h-[100dvh] overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[rgba(7,8,10,0.88)] backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--canvas)]">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)]">
           <div className="flex min-w-0 items-center gap-2">
             <Link
@@ -426,17 +426,17 @@ const lastGifQueryRef = useRef<string | null>(null);
               <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </Link>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-medium capitalize tracking-[0.2px] text-[var(--ink)]">
+              <h1 className="truncate text-[14px] font-medium text-[var(--ink)]">
                 {isGlobal ? "General - Community chat" : roomTitle}
               </h1>
-              <p className="text-[11px] tracking-[0.3px] text-[var(--ash)]">
+              <p className="text-[12px] text-[var(--ash)]">
                 {isGlobal ? "Everyone on CivicCircle" : "Community chat"}
               </p>
             </div>
           </div>
 
-          <span className="badge badge-success flex-none">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
+          <span className="inline-flex flex-none items-center gap-1.5 text-[12px] text-[var(--ash)]">
+            <span className="h-1.5 w-1.5 bg-[var(--accent-ember)]" />
             Live
           </span>
         </div>
@@ -444,8 +444,8 @@ const lastGifQueryRef = useRef<string | null>(null);
 
       {/* Encryption banner */}
       <div className="border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 text-center">
-        <p className="inline-flex items-center justify-center gap-1.5 text-[11px] tracking-[0.3px] text-[var(--mute)]">
-          <ShieldCheck className="h-3.5 w-3.5 text-[var(--ash)]" strokeWidth={1.8} />
+        <p className="inline-flex items-center justify-center gap-1.5 text-[12px] text-[var(--mute)]">
+          <ShieldCheck className="h-3.5 w-3.5 text-[var(--ash)]" strokeWidth={1.7} />
           <span>
             {isGlobal
               ? "Messages are shared with everyone on CivicCircle."
@@ -455,14 +455,17 @@ const lastGifQueryRef = useRef<string | null>(null);
       </div>
 
       {chatError ? (
-        <div className="border-b border-[var(--hairline)] bg-[var(--accent-red-soft)] px-4 py-3 text-center">
-          <p className="text-[13px] text-[var(--ink)]">{chatError.message}</p>
+        <div className="flex flex-col items-center gap-1.5 border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-3 text-center">
+          <p className="flex items-center gap-2 text-[13px] text-[var(--body-text)]">
+            <span className="h-1.5 w-1.5 flex-none bg-[var(--accent-red)]" aria-hidden="true" />
+            {chatError.message}
+          </p>
           {chatError.code === "invalid_area" ? (
-            <Link href="/nearby" className="mt-2 inline-flex text-[12px] font-medium text-[var(--accent-blue)] underline-offset-2 hover:underline">
+            <Link href="/nearby" className="text-[12px] font-medium text-[var(--accent-ember-ink)] underline-offset-2 hover:underline">
               Set your area in Nearby
             </Link>
           ) : chatError.code === "auth_required" ? (
-            <Link href="/profile" className="mt-2 inline-flex text-[12px] font-medium text-[var(--accent-blue)] underline-offset-2 hover:underline">
+            <Link href="/profile" className="text-[12px] font-medium text-[var(--accent-ember-ink)] underline-offset-2 hover:underline">
               Sign in to continue
             </Link>
           ) : null}
@@ -557,14 +560,14 @@ const lastGifQueryRef = useRef<string | null>(null);
       )}
 
       {/* Input Bar */}
-      <footer className="border-t border-[var(--hairline)] bg-[rgba(7,8,10,0.94)] p-3 pb-[max(env(safe-area-inset-bottom),12px)] backdrop-blur-xl">
+      <footer className="border-t border-[var(--hairline)] bg-[var(--canvas)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
         <form onSubmit={handleSend} className="flex items-center gap-2">
           {!isGlobal ? (
             <>
               <button
                 type="button"
                 onClick={() => attachRef.current?.click()}
-                className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
                 aria-label="Attach file"
               >
                 <Paperclip className="h-4 w-4" strokeWidth={1.8} />
@@ -606,7 +609,7 @@ const lastGifQueryRef = useRef<string | null>(null);
           <button
             type="button"
             onClick={() => setGifOpen(true)}
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
             aria-label="Search GIFs"
           >
             <Film className="h-4 w-4" strokeWidth={1.8} />
@@ -617,13 +620,13 @@ const lastGifQueryRef = useRef<string | null>(null);
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
-            className="field h-10 min-h-0 flex-1 rounded-full px-4"
+            className="field h-10 min-h-0 flex-1 px-4"
           />
 
           <button
             type="submit"
             disabled={!input.trim() || sending}
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)] active:scale-95"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)] active:scale-95"
             aria-label="Send message"
           >
             <Send className="ml-0.5 h-4 w-4" strokeWidth={2} />
@@ -637,17 +640,17 @@ const lastGifQueryRef = useRef<string | null>(null);
               <button
                 type="button"
                 aria-label="Close GIF search"
-                className="fixed inset-0 z-[80] cursor-default bg-black/60 backdrop-blur-[2px]"
+                className="fixed inset-0 z-[80] cursor-default bg-black/60 "
                 onClick={() => setGifOpen(false)}
               />
               <div
                 role="dialog"
                 aria-modal="true"
                 aria-label="Search GIFs"
-                className="fixed inset-x-0 bottom-0 z-[81] mx-auto flex max-h-[78dvh] w-full max-w-[820px] flex-col rounded-t-[22px] border-t border-white/12 bg-[rgba(14,14,16,0.98)] pb-[max(env(safe-area-inset-bottom),12px)] shadow-[0_-12px_40px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+                className="fixed inset-x-0 bottom-0 z-[81] mx-auto flex max-h-[78dvh] w-full max-w-[820px] flex-col rounded-t-[var(--radius-2xl)] border-t border-[var(--hairline)] bg-[var(--surface)] pb-[max(env(safe-area-inset-bottom),12px)]"
               >
                 <span
-                  className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20"
+                  className="mx-auto mt-2 h-1 w-10 rounded-full bg-[var(--hairline-strong)]"
                   aria-hidden="true"
                 />
 
@@ -663,7 +666,7 @@ const lastGifQueryRef = useRef<string | null>(null);
                       value={gifQuery}
                       onChange={(e) => setGifQuery(e.target.value)}
                       placeholder="Search GIFs"
-                      className="field h-10 min-h-0 w-full rounded-full pl-9 pr-9"
+                      className="field h-10 min-h-0 w-full has-icon-left has-icon-right"
                       aria-label="Search GIFs"
                     />
                     {gifLoading ? (
@@ -677,7 +680,7 @@ const lastGifQueryRef = useRef<string | null>(null);
                   <button
                     type="button"
                     onClick={() => setGifOpen(false)}
-                    className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:text-[var(--ink)]"
+                    className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:text-[var(--ink)]"
                     aria-label="Close"
                   >
                     <X className="h-4 w-4" strokeWidth={1.8} />

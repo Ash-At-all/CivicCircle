@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Lock, MapPin, MessageSquare, ShieldCheck } from "lucide-react";
+import { Lock, MapPin, MessageSquare, ShieldCheck, ThumbsUp } from "lucide-react";
 
 const HERO_MESSAGES = [
   "Talk to neighbours, find local shops, share what's happening.",
@@ -11,8 +11,6 @@ const HERO_MESSAGES = [
   "See what's buzzing nearby, without giving your name.",
   "Drop in, say hi, stay anonymous.",
 ];
-
-
 
 function daySeed(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
@@ -81,14 +79,6 @@ export default function RootPage() {
     };
   }, []);
 
-  const heroGreeting = useMemo(() => {
-    void heroTick;
-    const place = heroPlace ? heroPlace.replace(/^your\s+/i, "").trim() : "";
-    if (!heroReady) return "Your mohalla. No signup needed.";
-    if (place) return `Your ${place} mohalla. No signup needed.`;
-    return "Your mohalla. No signup needed.";
-  }, [heroReady, heroPlace, heroTick]);
-
   const heroMessage = useMemo(() => {
     void heroTick;
     if (!heroReady) {
@@ -98,185 +88,175 @@ export default function RootPage() {
     return HERO_MESSAGES[dailyMessageIndex(daySeed(now), HERO_MESSAGES.length)];
   }, [heroReady, heroTick]);
 
+  const datelineLabel = heroReady
+    ? new Date().toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      })
+    : "Today";
+
   return (
     <div className="relative isolate min-h-[100dvh] overflow-x-clip bg-[var(--canvas)]">
-      <div className="hero-stripes" aria-hidden="true" />
-
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-col px-5 sm:px-8">
-        {/* Top bar */}
-        <header className="mt-3 flex items-center justify-between gap-3 rounded-full border border-white/12 bg-white/8 px-3 py-2 backdrop-blur-2xl backdrop-saturate-150">
-          <div className="flex items-center gap-2.5 pl-1">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent-blue-soft)] to-[var(--accent-green-soft)] ring-1 ring-white/10">
-              <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent-green)]" />
-            </span>
-            <span className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">
+        {/* Masthead */}
+        <header className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] py-4">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="CivicCircle home">
+            <span className="h-2 w-2 flex-none bg-[var(--accent-ember)]" aria-hidden="true" />
+            <span className="font-display text-[21px] leading-none text-[var(--ink)]">
               CivicCircle
             </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Link href="/privacy" className="btn btn-sm btn-secondary text-white/80">
+          </Link>
+          <nav className="flex items-center gap-1" aria-label="Account">
+            <Link href="/privacy" className="btn btn-sm btn-secondary text-[var(--mute)]">
               Privacy
             </Link>
             <Link href="/onboarding" className="btn btn-sm btn-primary">
               Get started
             </Link>
-          </div>
+          </nav>
         </header>
 
         {/* Hero */}
-        <main className="flex flex-1 flex-col justify-center py-16 sm:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <main className="flex flex-1 flex-col justify-center py-14 sm:py-20">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]">
             <div className="min-w-0">
-              <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[12px] font-medium text-white/85 backdrop-blur-xl">
-                <span className="h-2 w-2 rounded-full bg-[var(--accent-green)]" />
-                Live in Chhatrapati Sambhajinagar
+              <p className="dateline">
+                <span className="dateline-mark" aria-hidden="true" />
+                <span>{heroPlace ?? "Chhatrapati Sambhajinagar"}</span>
+                <span className="dateline-sep" aria-hidden="true">·</span>
+                <span>{datelineLabel}</span>
               </p>
 
-              <h1 className="mt-5 max-w-[16ch] text-balance text-display">
-                <span className="transition-opacity duration-500 ease-out">{heroGreeting}</span>
+              <h1 className="mt-4 max-w-[14ch] text-balance text-display">
+                Notes from the neighbourhood.
               </h1>
 
               <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--body-text)] sm:text-base">
-                <span className="transition-opacity duration-500 ease-out">{heroMessage}</span>
+                {heroMessage}
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-2.5">
-                <Link href="/nearby" className="btn btn-primary btn-lg">
+                <Link href="/nearby" className="btn btn-primary">
                   See what&apos;s nearby
                 </Link>
-                <Link href="/home" className="btn btn-tertiary btn-lg">
+                <Link href="/home" className="btn btn-tertiary">
                   Browse boards
                 </Link>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px] tracking-[0.3px] text-[var(--ash)]">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
-                  <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
+              <ul className="mt-6 flex flex-col gap-1.5 text-[12px] text-[var(--ash)]">
+                <li className="inline-flex items-center gap-2">
+                  <Lock className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                   No account needed
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
-                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
+                </li>
+                <li className="inline-flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                   Approximate location only
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                </li>
+                <li className="inline-flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                   Ghost name, always
-                </span>
-              </div>
+                </li>
+              </ul>
             </div>
 
-            {/* Command-palette mockup */}
+            {/* Printed notice + ballot */}
             <div className="min-w-0">
-              <div className="palette-card mx-auto w-full max-w-md">
-                <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5">
-                  <span className="flex gap-1.5" aria-hidden="true">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[var(--stone)]" />
-                  </span>
-                  <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-2 py-1.5">
-                    <svg
-                      className="h-3.5 w-3.5 flex-none text-[var(--stone)]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="m20 20-3.5-3.5" />
-                    </svg>
-                    <span className="truncate text-[13px] text-[var(--stone)]">
-                      What&apos;s happening nearby...
+              <article className="mx-auto w-full max-w-md overflow-hidden rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)]">
+                <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-4 py-2.5">
+                  <p className="dateline">
+                    <span className="dateline-mark" aria-hidden="true" />
+                    General
+                  </p>
+                  <span className="text-[12px] tabular-nums text-[var(--ash)]">Notice 014</span>
+                </div>
+
+                <div className="px-4 py-4">
+                  <span className="tag-chip">Roads</span>
+                  <h2 className="mt-2.5 font-display text-[24px] leading-[1.16] text-[var(--ink)]">
+                    The lane behind the market is closed till Friday.
+                  </h2>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--body-text)]">
+                    Water works on the east side. Use the temple road entrance; autos are
+                    rerouting via the school gate.
+                  </p>
+                  <div className="mt-3.5 flex items-center gap-3 text-[12px] text-[var(--ash)]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <ThumbsUp className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
+                      12
                     </span>
+                    <span>3 replies</span>
+                    <span className="ml-auto">Anonymous</span>
                   </div>
                 </div>
 
-                <div className="space-y-1 p-2">
-                  <div className="palette-row palette-row-active">
-                    <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
-                      <MapPin className="h-4 w-4" strokeWidth={1.8} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] text-[var(--ink)]">
-                        Shops near you
-                      </span>
-                      <span className="block truncate text-[11px] text-[var(--mute)]">
-                        Grocery, pharmacy, repair...
-                      </span>
-                    </span>
-                    <span className="keycap">↵</span>
+                <div className="border-t border-[var(--hairline)] bg-[var(--surface-elevated)] px-4 py-3.5">
+                  <p className="dateline mb-2">
+                    <span className="dateline-mark" aria-hidden="true" />
+                    Ballot
+                  </p>
+                  <p className="text-[14px] font-medium leading-snug text-[var(--ink)]">
+                    Should the market get a Sunday walking hour?
+                  </p>
+                  <div className="mt-2.5 space-y-2">
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                        <span className="text-[var(--body-text)]">Yes, close it to traffic</span>
+                        <span className="tabular-nums text-[var(--ash)]">62%</span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full bg-[var(--surface-card)]">
+                        <div className="h-full w-[62%] bg-[var(--accent-ember)]" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                        <span className="text-[var(--body-text)]">No, keep it open</span>
+                        <span className="tabular-nums text-[var(--ash)]">38%</span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full bg-[var(--surface-card)]">
+                        <div className="h-full w-[38%] bg-[var(--stone)]" />
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="palette-row">
-                    <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
-                      <MessageSquare className="h-4 w-4" strokeWidth={1.8} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] text-[var(--ink)]">
-                        Locality room
-                      </span>
-                      <span className="block truncate text-[11px] text-[var(--mute)]">
-                        Ward and city rooms
-                      </span>
-                    </span>
-                  </div>
-
-                  <div className="palette-row">
-                    <span className="app-tile h-8 w-8 min-h-0 border-0 bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]">
-                      <Lock className="h-4 w-4" strokeWidth={1.8} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] text-[var(--ink)]">
-                        Post anonymously
-                      </span>
-                      <span className="block truncate text-[11px] text-[var(--mute)]">
-                        No account, no email
-                      </span>
-                    </span>
-                  </div>
+                  <p className="mt-2.5 text-[12px] text-[var(--ash)]">128 votes · Open</p>
                 </div>
-
-                <div className="flex items-center justify-between border-t border-[var(--hairline)] px-3 py-2 text-[11px] tracking-[0.3px] text-[var(--ash)]">
-                  <span>Sambhajinagar</span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
-                    live
-                  </span>
-                </div>
-              </div>
+              </article>
             </div>
           </div>
         </main>
 
-        {/* Feature strip */}
-        <section className="grid grid-cols-1 gap-3 pb-12 sm:grid-cols-3">
-          {FEATURES.map(({ icon: Icon, title, copy }, i) => {
-            const colors = [
-              "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]",
-              "bg-[var(--accent-green-soft)] text-[var(--accent-green)]",
-              "bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]",
-            ];
-            return (
-              <div key={title} className="card p-4 sm:p-5">
-                <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 ${colors[i % colors.length]}`}>
-                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                </span>
-                <h2 className="text-[15px] font-medium tracking-[0.2px] text-[var(--ink)]">
+        {/* Feature list */}
+        <section className="pb-12 sm:pb-16" aria-labelledby="features-title">
+          <p id="features-title" className="dateline mb-5">
+            <span className="dateline-mark" aria-hidden="true" />
+            What you get
+          </p>
+          <div className="grid gap-8 sm:grid-cols-3 sm:gap-10">
+            {FEATURES.map(({ icon: Icon, title, copy }, i) => (
+              <div key={title} className="border-t border-[var(--hairline)] pt-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12px] tabular-nums text-[var(--ash)]">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <Icon className="h-4 w-4 text-[var(--ash)]" strokeWidth={1.7} aria-hidden="true" />
+                </div>
+                <h2 className="mt-3 font-display text-[22px] leading-tight text-[var(--ink)]">
                   {title}
                 </h2>
-                <p className="mt-1 text-[13px] leading-relaxed text-[var(--mute)]">{copy}</p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--mute)]">{copy}</p>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </section>
 
-        <footer className="border-t border-white/10 py-5 text-[11px] tracking-[0.3px] text-white/60">
-          <p className="mb-3 max-w-xl text-[12px] leading-relaxed text-white/55">
-            CivicCircle never asks for your name, phone, or email. Your ghost handle keeps you anonymous.
+        <footer className="border-t border-[var(--hairline)] py-6">
+          <p className="max-w-xl text-[12px] leading-relaxed text-[var(--mute)]">
+            CivicCircle never asks for your name, phone, or email. Your ghost handle keeps you
+            anonymous.
           </p>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>CivicCircle</span>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--ash)]">
+            <span>© CivicCircle</span>
             <span className="flex items-center gap-4">
               <Link href="/privacy" className="transition-colors hover:text-[var(--ink)]">
                 Privacy

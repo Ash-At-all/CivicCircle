@@ -1,54 +1,62 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
-/*  Raycast design tokens                                              */
+/*  CivicCircle tokens                                                 */
+/*  A warm ink-on-paper ramp for a neighbourhood noticeboard.          */
 /*  canvas → surface → surface-elevated → surface-card                 */
 /* ------------------------------------------------------------------ */
 :root {
   color-scheme: dark;
 
-  --canvas: #07080a;
-  --surface: #0d0d0d;
-  --surface-elevated: #101111;
-  --surface-card: #121212;
-  --button-fg: #18191a;
+  --canvas: #0f0e0c;
+  --surface: #151310;
+  --surface-elevated: #1a1714;
+  --surface-card: #211d19;
+  --button-fg: #1a1714;
 
-  --hairline: #242728;
-  --hairline-soft: rgba(255, 255, 255, 0.08);
-  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --hairline: #2e2a24;
+  --hairline-soft: rgba(239, 233, 222, 0.08);
+  --hairline-strong: rgba(239, 233, 222, 0.18);
 
-  --primary: #ffffff;
-  --primary-pressed: #e8e8e8;
-  --on-primary: #000000;
+  --primary: #efe9de;
+  --primary-pressed: #ded6c7;
+  --on-primary: #171410;
 
-  --ink: #f4f4f6;
-  --body-text: #cdcdcd;
-  --charcoal-tone: #d3d3d4;
-  --mute: #9c9c9d;
-  --ash: #6a6b6c;
-  --stone: #434345;
-  --on-dark: #ffffff;
-  --on-dark-mute: rgba(255, 255, 255, 0.72);
+  --ink: #f2ece1;
+  --body-text: #d2c9ba;
+  --charcoal-tone: #c8bfb0;
+  --mute: #a1978a;
+  --ash: #7a7164;
+  --stone: #4c453c;
+  --on-dark: #f2ece1;
+  --on-dark-mute: rgba(242, 236, 225, 0.72);
 
-  --accent-blue: #57c1ff;
-  --accent-blue-soft: rgba(87, 193, 255, 0.15);
-  --accent-red: #ff6161;
-  --accent-red-soft: rgba(255, 97, 97, 0.15);
-  --accent-green: #59d499;
-  --accent-green-soft: rgba(89, 212, 153, 0.15);
-  --accent-yellow: #ffc533;
-  --accent-yellow-soft: rgba(255, 197, 51, 0.15);
+  /* Ember is the only accent. It marks the notice square, the active
+     state and the leading poll option. Nothing else gets a colour. */
+  --accent-ember: #e2683f;
+  --accent-ember-soft: rgba(226, 104, 63, 0.14);
+  --accent-ember-ink: #f0a07c;
 
-  --hero-stripe-start: #ff5757;
-  --hero-stripe-end: #a1131a;
-  --key-bg-start: #121212;
-  --key-bg-end: #0d0d0d;
+  /* Semantic colours, toned down to sit inside the warm ramp. */
+  --accent-blue: #8b9cae;
+  --accent-blue-soft: rgba(139, 156, 174, 0.12);
+  --accent-red: #d96a60;
+  --accent-red-soft: rgba(217, 106, 96, 0.12);
+  --accent-green: #86b08d;
+  --accent-green-soft: rgba(134, 176, 141, 0.12);
+  --accent-yellow: #d6a24a;
+  --accent-yellow-soft: rgba(214, 162, 74, 0.12);
+
+  --hero-stripe-start: #e2683f;
+  --hero-stripe-end: #e2683f;
+  --key-bg-start: #1a1714;
+  --key-bg-end: #151310;
 
   /* ---- legacy aliases (kept so older markup resolves to the new system) ---- */
   --charcoal: var(--canvas);
   --charcoal-2: var(--surface-elevated);
   --lavender: var(--ink);
-  --yellow: var(--primary);
+  --yellow: var(--accent-yellow);
   --purple: var(--ink);
   --pink: var(--mute);
   --cream: var(--mute);
@@ -70,10 +78,10 @@
   --text: var(--ink);
   --text-muted: var(--mute);
   --dim: var(--mute);
-  --accent: var(--primary);
-  --accent-hover: var(--primary-pressed);
+  --accent: var(--accent-ember);
+  --accent-hover: #ef7a52;
   --accent-ink: var(--on-primary);
-  --accent-soft: rgba(255, 255, 255, 0.08);
+  --accent-soft: var(--accent-ember-soft);
   --danger: var(--accent-red);
   --danger-soft: var(--accent-red-soft);
   --success: var(--accent-green);
@@ -84,22 +92,25 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
-  --radius-xl: 16px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
   --radius-full: 9999px;
   /* legacy names */
-  --radius-card: 10px;
-  --radius-sheet: 16px;
+  --radius-card: 14px;
+  --radius-sheet: 18px;
   --radius-button: 8px;
-  --radius-pill: 9999px;
+  --radius-pill: 6px;
 
   /* Motion */
-  --motion-fast: 140ms cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-medium: 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-medium: 280ms cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Type */
-  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: var(--font-instrument), "Instrument Sans", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-instrument-serif), "Instrument Serif", Georgia,
+    "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --nav-height: 56px;
 }
@@ -117,6 +128,7 @@
   --color-ash: var(--ash);
   --color-stone: var(--stone);
   --color-primary: var(--primary);
+  --color-accent: var(--accent-ember);
   --color-accent-blue: var(--accent-blue);
   --color-accent-red: var(--accent-red);
   --color-accent-green: var(--accent-green);
@@ -128,12 +140,15 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
-  --radius-xl: 16px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
   --radius-full: 9999px;
   --radius-button: 8px;
 
-  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
+  --font-sans: var(--font-instrument), "Instrument Sans", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-instrument-serif), "Instrument Serif", Georgia,
+    "Times New Roman", serif;
 }
 
 * {
@@ -156,9 +171,9 @@ body {
   background: var(--canvas);
   color: var(--body-text);
   font-family: var(--font-sans);
-  font-feature-settings: "calt", "kern", "liga", "ss03";
+  font-feature-settings: "calt", "kern", "liga";
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.55;
   overflow-x: clip;
   overscroll-behavior-x: none;
   -webkit-font-smoothing: antialiased;
@@ -200,7 +215,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [role="tab"]:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline: 2px solid var(--accent-ember);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -275,10 +290,20 @@ input[type="checkbox"] {
 
 /* Motion utilities */
 .motion-fast {
-  transition: all var(--motion-fast);
+  transition:
+    color var(--motion-fast),
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
 }
 .motion-medium {
-  transition: all var(--motion-medium);
+  transition:
+    color var(--motion-medium),
+    background-color var(--motion-medium),
+    border-color var(--motion-medium),
+    opacity var(--motion-medium),
+    transform var(--motion-medium);
 }
 
 .press-active:active {
@@ -334,118 +359,132 @@ input[type="checkbox"] {
 /*  Typography                                                        */
 /* ------------------------------------------------------------------ */
 .text-display {
-  font-size: clamp(2.25rem, 6.5vw, 4rem);
-  line-height: 1.08;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  line-height: 1.02;
+  font-weight: 400;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .text-h1 {
-  font-size: 24px;
-  line-height: 1.3;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.08;
+  font-weight: 400;
+  letter-spacing: -0.015em;
   color: var(--ink);
 }
 
 .text-h2 {
-  font-size: 20px;
-  line-height: 1.4;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.12;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
 .text-h3 {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.4;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   color: var(--ink);
 }
 
 .text-body {
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--body-text);
 }
 
 .text-body-sm {
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--body-text);
 }
 
 .text-label {
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.4;
   font-weight: 500;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--mute);
 }
 
 .text-caption {
   font-size: 13px;
-  line-height: 1.4;
-  letter-spacing: 0.1px;
+  line-height: 1.45;
+  letter-spacing: 0;
   color: var(--mute);
+}
+
+/* The signature: a printed dateline. The ember square is the notice mark. */
+.dateline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+.dateline-mark {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: var(--accent-ember);
+}
+
+.dateline-sep {
+  color: var(--stone);
 }
 
 /* ------------------------------------------------------------------ */
 /*  Surfaces                                                          */
 /* ------------------------------------------------------------------ */
 .card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .card-elevated {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .card-card {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
 }
 
 .hairline-divider {
   height: 1px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline);
   border: 0;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 
 /* Glass container */
 .palette-card {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .palette-row {
@@ -472,17 +511,17 @@ input[type="checkbox"] {
   gap: 8px;
   min-height: 36px;
   padding: 8px 16px;
-  border-radius: 9999px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-size: 14px;
   line-height: 1.4;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   color: var(--on-dark);
   background: transparent;
   white-space: nowrap;
   transition: background-color var(--motion-fast), border-color var(--motion-fast),
-    color var(--motion-fast), opacity var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast);
+    color var(--motion-fast), opacity var(--motion-fast), transform var(--motion-fast);
   user-select: none;
 }
 
@@ -501,13 +540,12 @@ input[type="checkbox"] {
 .btn-primary {
   background: var(--primary);
   color: var(--on-primary);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-pressed);
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--primary-pressed);
 }
 
 .btn-secondary {
@@ -515,37 +553,33 @@ input[type="checkbox"] {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-elevated);
 }
 
 .btn-tertiary {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--surface-elevated);
+  border-color: var(--hairline);
   color: var(--on-dark);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 .btn-tertiary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--surface-card);
+  border-color: var(--hairline-strong);
 }
 
 .btn-outline {
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: var(--hairline-strong);
   color: var(--on-dark);
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: transparent;
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-elevated);
 }
 
 .btn-danger {
   background: var(--accent-red-soft);
-  border-color: rgba(255, 97, 97, 0.28);
+  border-color: var(--accent-red);
   color: var(--accent-red);
 }
 
@@ -578,6 +612,7 @@ input[type="checkbox"] {
   background: var(--primary);
   color: var(--on-primary);
   border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
 }
 
 .gradient-btn:hover,
@@ -598,9 +633,9 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 30px;
+  min-height: 32px;
   padding: 4px 12px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--body-text);
@@ -612,14 +647,14 @@ input[type="checkbox"] {
 }
 
 .pill-tab:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-elevated);
   color: var(--ink);
 }
 
 .pill-tab-active,
 .pill-tab[aria-selected="true"],
 .pill-tab[data-active="true"] {
-  background: var(--surface-elevated);
+  background: var(--surface-card);
   border-color: var(--hairline);
   color: var(--on-dark);
 }
@@ -630,13 +665,13 @@ input[type="checkbox"] {
   gap: 4px;
   min-height: 32px;
   padding: 4px 12px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--body-text);
   font-size: 13px;
   font-weight: 400;
-  letter-spacing: 0.1px;
+  letter-spacing: 0;
   line-height: 1.4;
   white-space: nowrap;
   transition: background-color var(--motion-fast), color var(--motion-fast),
@@ -644,7 +679,7 @@ input[type="checkbox"] {
 }
 
 .topic-chip:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-elevated);
   color: var(--ink);
 }
 
@@ -667,9 +702,9 @@ input[type="checkbox"] {
   padding: 2px 8px;
   border-radius: var(--radius-xs);
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
   border: 1px solid var(--hairline);
   background: var(--surface-elevated);
   color: var(--body-text);
@@ -686,7 +721,7 @@ input[type="checkbox"] {
   color: var(--on-dark-mute);
   font-size: 12px;
   line-height: 1.5;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
 }
 
 .badge-info {
@@ -737,11 +772,11 @@ input[type="checkbox"] {
   padding: 1px 6px;
   border-radius: var(--radius-xs);
   border: 1px solid var(--hairline);
-  background-image: linear-gradient(180deg, var(--key-bg-start), var(--key-bg-end));
+  background: var(--surface-elevated);
   color: var(--body-text);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
-  letter-spacing: 0.1px;
+  letter-spacing: 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -749,34 +784,40 @@ input[type="checkbox"] {
 /* ------------------------------------------------------------------ */
 .field {
   width: 100%;
-  min-height: 36px;
+  min-height: 40px;
   padding: 8px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  background: var(--surface-elevated);
   color: var(--ink);
   font-size: 16px;
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  transition: border-color var(--motion-fast), background-color var(--motion-fast), box-shadow var(--motion-fast);
+  transition: border-color var(--motion-fast), background-color var(--motion-fast);
 }
 
 .field:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--hairline-strong);
 }
 
 .field:focus,
 .field:focus-visible {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+  border-color: var(--accent-ember);
+  background: var(--surface-card);
 }
 
 .field-lg {
   min-height: 44px;
   padding: 10px 16px;
+}
+
+/* Utility overrides don't beat the unlayered .field padding above, so
+   icon-led fields carry their own padding here. */
+.field.has-icon-left {
+  padding-left: 40px;
+}
+
+.field.has-icon-right {
+  padding-right: 40px;
 }
 
 textarea.field {
@@ -795,12 +836,10 @@ textarea.field {
   width: 48px;
   height: 48px;
   flex: none;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline);
   color: var(--ink);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 .app-tile-lg {
@@ -809,7 +848,7 @@ textarea.field {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hero stripe band (used once per page)                             */
+/*  Masthead band                                                     */
 /* ------------------------------------------------------------------ */
 .hero-band {
   position: relative;
@@ -819,26 +858,10 @@ textarea.field {
   border-bottom: 1px solid var(--hairline);
 }
 
+/* The diagonal stripe wash was decoration. The dateline and the rule under
+   the masthead carry the identity now. */
 .hero-stripes {
-  position: absolute;
-  top: -10%;
-  left: -20%;
-  right: -20%;
-  height: 230px;
-  z-index: -1;
-  pointer-events: none;
-  background-image: repeating-linear-gradient(
-    112deg,
-    rgba(255, 87, 87, 0) 0px,
-    rgba(255, 87, 87, 0) 150px,
-    rgba(255, 87, 87, 0.55) 150px,
-    rgba(161, 19, 26, 0.42) 232px,
-    rgba(161, 19, 26, 0) 232px,
-    rgba(161, 19, 26, 0) 390px
-  );
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 45%, transparent 92%);
-  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 45%, transparent 92%);
-  opacity: 0.85;
+  display: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -901,19 +924,16 @@ textarea.field {
 /*  Feed                                                             */
 /* ------------------------------------------------------------------ */
 .feed-card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: border-color var(--motion-fast), background-color var(--motion-fast), transform var(--motion-fast);
+  transition: border-color var(--motion-fast), background-color var(--motion-fast);
 }
 
 .feed-card:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.075);
+  border-color: var(--hairline-strong);
+  background: var(--surface-elevated);
 }
 
 .action-pill {
@@ -922,8 +942,8 @@ textarea.field {
   justify-content: center;
   gap: 6px;
   min-height: 34px;
-  padding: 4px 12px;
-  border-radius: 9999px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   color: var(--mute);
   font-size: 13px;
@@ -933,8 +953,8 @@ textarea.field {
 }
 
 .action-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--surface-elevated);
+  border-color: var(--hairline);
   color: var(--ink);
 }
 
@@ -1004,10 +1024,11 @@ textarea.field {
 
 .legal-content h1 {
   margin: 0 0 16px;
-  font-size: clamp(30px, 5vw, 44px);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 46px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
   color: var(--ink);
 }
 
@@ -1031,8 +1052,8 @@ textarea.field {
   margin: 0 0 12px;
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--ash);
 }
 
@@ -1108,7 +1129,7 @@ textarea.field {
 }
 
 .nearby-map .maplibregl-ctrl-attrib {
-  background: rgba(7, 8, 10, 0.78);
+  background: rgba(15, 14, 12, 0.82);
   color: var(--mute);
   font-size: 10px;
   border-radius: var(--radius-xs);
@@ -1121,5 +1142,5 @@ textarea.field {
 .nearby-map .maplibregl-ctrl-scale {
   border-color: var(--hairline-strong);
   color: var(--mute);
-  background: rgba(7, 8, 10, 0.6);
+  background: rgba(15, 14, 12, 0.62);
 }

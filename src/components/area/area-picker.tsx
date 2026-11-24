@@ -34,9 +34,9 @@ export function AreaPicker({
   }
 
   return (
-    <section className="rounded-[24px] border border-white/12 bg-white/8 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-2xl backdrop-saturate-150 sm:p-6">
-      <h2 className="text-[18px] font-semibold tracking-[0.1px] text-[var(--ink)]">Choose an area</h2>
-      <p className="mt-1.5 text-[14px] leading-relaxed text-white/75">
+    <section className="rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 sm:p-6">
+      <h2 className="font-display text-[24px] leading-tight text-[var(--ink)]">Choose an area</h2>
+      <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--body-text)]">
         Search in Chhatrapati Sambhajinagar.
       </p>
       <form
@@ -49,14 +49,14 @@ export function AreaPicker({
         <label className="sr-only" htmlFor="area-search">Search for an area</label>
         <input
           id="area-search"
-          className="field min-h-[44px] min-w-0 flex-1 rounded-full border-white/12 bg-white/8 px-4 text-white placeholder:text-white/45 backdrop-blur-xl"
+          className="field min-h-11 min-w-0 flex-1"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search area or landmark"
         />
         <button
           type="submit"
-          className="btn btn-primary btn-lg rounded-full"
+          className="btn btn-primary btn-lg"
           disabled={loading || query.trim().length < 2}
         >
           {loading ? "Searching..." : "Search"}
@@ -64,16 +64,16 @@ export function AreaPicker({
       </form>
       {error ? <p className="mt-2 text-[13px] text-[var(--accent-red)]" role="alert">{error}</p> : null}
       {results.length > 0 ? (
-        <ul className="mt-3 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/12 bg-white/8 backdrop-blur-xl">
+        <ul className="mt-3 divide-y divide-[var(--hairline)] overflow-hidden rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)]">
           {results.map((r, i) => (
             <li key={`${r.lat}-${r.lng}-${i}`}>
               <button
                 type="button"
-                className="w-full px-4 py-3 text-left text-[13px] text-[var(--ink)] transition-colors hover:bg-white/10"
+                className="w-full px-4 py-3 text-left text-[13px] text-[var(--ink)] transition-colors hover:bg-[var(--surface-card)]"
                 onClick={() => void onPick(r)}
               >
                 <span className="font-medium">{r.name}</span>
-                <span className="mt-0.5 block text-[11px] tracking-[0.2px] text-[var(--mute)]">{r.label}</span>
+                <span className="mt-0.5 block text-[12px] text-[var(--mute)]">{r.label}</span>
               </button>
             </li>
           ))}
@@ -81,7 +81,7 @@ export function AreaPicker({
       ) : null}
       <button
         type="button"
-        className="btn btn-sm btn-secondary mt-3 rounded-full border-white/15 bg-white/8 text-white/80 hover:bg-white/12"
+        className="btn btn-sm btn-secondary mt-3 text-[var(--mute)]"
         onClick={onCancel}
       >
         Back

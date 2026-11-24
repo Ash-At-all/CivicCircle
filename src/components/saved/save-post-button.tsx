@@ -46,7 +46,7 @@ export function SavePostButton({
         aria-label={label}
         aria-pressed={saved}
         title={label}
-        className={`btn btn-icon btn-secondary ${saved ? "text-[var(--accent-yellow)]" : "text-[var(--mute)]"} ${className}`}
+        className={`btn btn-icon btn-secondary ${saved ? "text-[var(--accent-ember-ink)]" : "text-[var(--mute)]"} ${className}`}
         onClick={() => setSaved(toggleSavedPost(post))}
       >
         {saved ? (
@@ -62,13 +62,13 @@ export function SavePostButton({
     <button
       type="button"
       aria-pressed={saved}
-      className={`action-pill gap-1.5 ${saved ? "text-[var(--accent-yellow)]" : ""} ${className}`}
+      className={`action-pill gap-1.5 ${saved ? "text-[var(--accent-ember-ink)]" : ""} ${className}`}
       onClick={() => setSaved(toggleSavedPost(post))}
     >
       {saved ? (
-        <BookmarkCheck className="h-[18px] w-[18px] text-[var(--accent-yellow)]" strokeWidth={1.9} />
+        <BookmarkCheck className="h-[18px] w-[18px] text-[var(--accent-ember-ink)]" strokeWidth={1.9} />
       ) : (
-        <Bookmark className="h-[18px] w-[18px] text-[var(--accent-yellow)]" strokeWidth={1.8} />
+        <Bookmark className="h-[18px] w-[18px] text-[var(--ash)]" strokeWidth={1.7} />
       )}
       <span className="text-[13px] font-medium">{saved ? "Saved" : "Save"}</span>
     </button>

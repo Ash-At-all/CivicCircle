@@ -123,22 +123,22 @@ export default function ModerationPage() {
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col bg-[var(--canvas)]">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
-          <Link href="/home" className="btn btn-icon btn-secondary text-white/80" aria-label="Back to home">
-            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--canvas)]">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2 px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] sm:px-6">
+          <Link href="/home" className="btn btn-icon btn-secondary text-[var(--mute)]" aria-label="Back to home">
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.7} />
           </Link>
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[var(--accent-green)]" strokeWidth={1.8} aria-hidden="true" />
-            <h1 className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">Moderation</h1>
+            <span className="h-1.5 w-1.5 bg-[var(--accent-ember)]" aria-hidden="true" />
+            <h1 className="text-[14px] font-medium text-[var(--ink)]">Moderation</h1>
           </div>
           <button
             type="button"
-            className="btn btn-icon btn-secondary text-white/80"
+            className="btn btn-icon btn-secondary text-[var(--mute)]"
             aria-label="Refresh reports"
             onClick={() => void load()}
           >
-            <RefreshCw className="h-[17px] w-[17px]" strokeWidth={1.8} />
+            <RefreshCw className="h-[17px] w-[17px]" strokeWidth={1.7} />
           </button>
         </div>
       </header>
@@ -147,24 +147,24 @@ export default function ModerationPage() {
         {loading ? (
           <div className="space-y-3" aria-label="Loading moderation queue" role="status">
             <div className="card space-y-3 p-5">
-              <div className="h-3 w-28 rounded bg-white/8" />
-              <div className="h-8 w-2/3 rounded bg-white/10" />
-              <div className="h-3 w-1/2 rounded bg-white/8" />
+              <div className="h-3 w-28 rounded bg-[var(--surface-elevated)]" />
+              <div className="h-8 w-2/3 rounded bg-[var(--surface-card)]" />
+              <div className="h-3 w-1/2 rounded bg-[var(--surface-elevated)]" />
             </div>
             {[1, 2].map((item) => (
               <div key={item} className="card space-y-3 p-5">
-                <div className="h-3 w-24 rounded bg-white/8" />
-                <div className="h-3 w-full rounded bg-white/8" />
-                <div className="h-3 w-4/5 rounded bg-white/8" />
+                <div className="h-3 w-24 rounded bg-[var(--surface-elevated)]" />
+                <div className="h-3 w-full rounded bg-[var(--surface-elevated)]" />
+                <div className="h-3 w-4/5 rounded bg-[var(--surface-elevated)]" />
               </div>
             ))}
           </div>
         ) : data && !data.isModerator ? (
           <section className="card px-5 py-12 text-center">
-            <span className="app-tile mx-auto mb-4 h-12 w-12 text-[var(--accent-yellow)]">
-              <Shield className="h-5 w-5" strokeWidth={1.8} />
+            <span className="app-tile mx-auto mb-4 h-12 w-12 text-[var(--ash)]">
+              <Shield className="h-5 w-5" strokeWidth={1.7} />
             </span>
-            <h2 className="text-h3">Moderator access only</h2>
+            <h2 className="font-display text-[24px] leading-tight text-[var(--ink)]">Moderator access only</h2>
             <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-[var(--mute)]">
               This queue is limited to moderators and admins. If you should have access, ask an admin to add the role to your account.
             </p>
@@ -175,22 +175,28 @@ export default function ModerationPage() {
         ) : data ? (
           <div className="space-y-4">
             <section>
-              <p className="text-label">Report reasons</p>
-              <h2 className="mt-1 text-h2">Flagged content</h2>
+              <p className="dateline">
+                <span className="dateline-mark" aria-hidden="true" />
+                Report reasons
+              </p>
+              <h2 className="mt-2 font-display text-[30px] leading-none text-[var(--ink)]">Flagged content</h2>
               <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-[var(--mute)]">
                 Review reports by reason and status. Content previews are shown without reporter identity.
               </p>
             </section>
 
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <MetricCard label="Open" value={data.analytics.open} icon={<Flag className="h-3.5 w-3.5" strokeWidth={1.8} />} tone="yellow" />
-              <MetricCard label="Reviewed" value={data.analytics.reviewed} icon={<CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />} tone="blue" />
-              <MetricCard label="Actioned" value={data.analytics.actioned} icon={<XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />} tone="red" />
-              <MetricCard label="Total" value={data.analytics.total} icon={<ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.8} />} tone="green" />
+              <MetricCard label="Open" value={data.analytics.open} icon={<Flag className="h-3.5 w-3.5" strokeWidth={1.7} />} />
+              <MetricCard label="Reviewed" value={data.analytics.reviewed} icon={<CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.7} />} />
+              <MetricCard label="Actioned" value={data.analytics.actioned} icon={<XCircle className="h-3.5 w-3.5" strokeWidth={1.7} />} />
+              <MetricCard label="Total" value={data.analytics.total} icon={<ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.7} />} />
             </div>
 
             <section className="card p-4">
-              <h3 className="text-label mb-3">Reasons at a glance</h3>
+              <h3 className="dateline mb-3">
+                <span className="dateline-mark" aria-hidden="true" />
+                Reasons at a glance
+              </h3>
               {data.analytics.total === 0 ? (
                 <p className="text-[13px] text-[var(--mute)]">No reports yet.</p>
               ) : (
@@ -203,9 +209,9 @@ export default function ModerationPage() {
                           <span className="text-[var(--body-text)]">{REASON_LABELS[reason] ?? reason}</span>
                           <span className="tabular-nums text-[var(--mute)]">{count}</span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                        <div className="h-1.5 w-full bg-[var(--surface-elevated)]">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-[var(--accent-yellow)] to-[var(--accent-red)]"
+                            className="h-full bg-[var(--accent-ember)]"
                             style={{ width: `${Math.max(6, (count / data.analytics.total) * 100)}%` }}
                           />
                         </div>
@@ -229,18 +235,18 @@ export default function ModerationPage() {
                   </button>
                 ))}
               </div>
-              <label className="block text-[11px] uppercase tracking-[0.4px] text-[var(--mute)]">
+              <label className="block text-[12px] text-[var(--mute)]">
                 Reason
                 <select
-                  className="field mt-1 text-white"
+                  className="field mt-1 text-[var(--ink)]"
                   value={reasonFilter}
                   onChange={(event) => setReasonFilter(event.target.value)}
                 >
-                  <option value="all" className="bg-[#141416] text-white">
+                  <option value="all" className="bg-[var(--surface-elevated)] text-[var(--ink)]">
                     All reasons
                   </option>
                   {Object.keys(REASON_LABELS).map((reason) => (
-                    <option key={reason} value={reason} className="bg-[#141416] text-white">
+                    <option key={reason} value={reason} className="bg-[var(--surface-elevated)] text-[var(--ink)]">
                       {REASON_LABELS[reason]}
                     </option>
                   ))}
@@ -249,13 +255,13 @@ export default function ModerationPage() {
             </section>
 
             {notice ? (
-              <p className="rounded-[var(--radius-md)] border border-[rgba(89,212,153,0.28)] bg-[var(--accent-green-soft)] p-3 text-[13px] text-[var(--accent-green)]" role="status">
+              <p className="rounded-[var(--radius-md)] border border-[rgba(134,176,141,0.28)] bg-[var(--accent-green-soft)] p-3 text-[13px] text-[var(--accent-green)]" role="status">
                 {notice}
               </p>
             ) : null}
 
             {error ? (
-              <p className="rounded-[var(--radius-md)] border border-[rgba(255,97,97,0.28)] bg-[var(--accent-red-soft)] p-3 text-[13px] text-[var(--accent-red)]" role="alert">
+              <p className="rounded-[var(--radius-md)] border border-[rgba(217,106,96,0.28)] bg-[var(--accent-red-soft)] p-3 text-[13px] text-[var(--accent-red)]" role="alert">
                 {error}
               </p>
             ) : null}
@@ -276,8 +282,8 @@ export default function ModerationPage() {
                   <article key={report.id} className="card p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="tag-chip !px-2 !py-0.5">{TYPE_LABELS[report.type]}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-yellow-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent-yellow)]">
-                        <AlertTriangle className="h-3 w-3" strokeWidth={1.8} />
+                      <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-[var(--surface-elevated)] px-2 py-0.5 text-[12px] font-medium text-[var(--body-text)]">
+                        <AlertTriangle className="h-3 w-3 text-[var(--ash)]" strokeWidth={1.7} />
                         {REASON_LABELS[report.reason] ?? report.reason}
                       </span>
                       <StatusBadge status={report.status} />
@@ -345,25 +351,18 @@ function MetricCard({
   label,
   value,
   icon,
-  tone,
 }: {
   label: string;
   value: number;
   icon: ReactNode;
-  tone: "yellow" | "blue" | "red" | "green";
 }) {
-  const toneClass = {
-    yellow: "bg-[var(--accent-yellow-soft)] text-[var(--accent-yellow)]",
-    blue: "bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]",
-    red: "bg-[var(--accent-red-soft)] text-[var(--accent-red)]",
-    green: "bg-[var(--accent-green-soft)] text-[var(--accent-green)]",
-  }[tone];
-
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-3">
-      <span className={`flex h-7 w-7 items-center justify-center rounded-full ${toneClass}`}>{icon}</span>
-      <p className="mt-2 text-[20px] font-semibold tabular-nums leading-none text-[var(--ink)]">{value}</p>
-      <p className="mt-1 text-[11px] uppercase tracking-[0.3px] text-[var(--mute)]">{label}</p>
+      <span className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
+        {icon}
+      </span>
+      <p className="mt-2 text-[22px] font-medium tabular-nums leading-none text-[var(--ink)]">{value}</p>
+      <p className="mt-1 text-[12px] text-[var(--mute)]">{label}</p>
     </div>
   );
 }

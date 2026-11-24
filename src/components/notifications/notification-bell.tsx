@@ -296,13 +296,11 @@ export function NotificationBell({ className = "" }: { className?: string }) {
         aria-label={enabled ? `Notifications, ${badge} new` : "Notification settings"}
         aria-expanded={open}
         onClick={() => (open ? closePanel() : openPanel())}
-        className={`relative btn btn-icon btn-secondary ${
-          enabled ? "text-[var(--accent-green)]" : "text-[var(--mute)]"
-        } ${className}`}
+        className={`relative btn btn-icon btn-secondary text-[var(--mute)] ${className}`}
       >
-        <BellIcon className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
+        <BellIcon className="h-[18px] w-[18px]" strokeWidth={1.7} aria-hidden="true" />
         {badge > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-red)] px-1 text-[12px] font-semibold leading-[18px] text-white">
+          <span className="absolute -right-1 -top-1 flex min-w-[18px] items-center justify-center rounded-[4px] bg-[var(--accent-ember)] px-1 text-[11px] font-semibold leading-[17px] text-[var(--on-primary)]">
             {badge > 9 ? "9+" : badge}
           </span>
         ) : null}
@@ -314,7 +312,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
               <button
                 type="button"
                 aria-label="Close notifications"
-                className="fixed inset-0 z-[55] cursor-default bg-black/40 backdrop-blur-[2px] sm:bg-black/20"
+                className="fixed inset-0 z-[55] cursor-default bg-black/60"
                 onClick={closePanel}
               />
               <div
@@ -326,21 +324,21 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                     ? { top: desktopPos.top, left: desktopPos.left }
                     : undefined
                 }
-                className="fixed inset-x-4 bottom-4 z-[60] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-[22px] border border-white/12 bg-[rgba(18,18,20,0.97)] px-4 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-150 sm:inset-x-auto sm:bottom-auto sm:max-h-[min(80dvh,calc(100dvh-96px))] sm:w-[21rem] sm:rounded-[22px] sm:p-3.5 sm:pb-3.5 sm:shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+                className="fixed inset-x-4 bottom-4 z-[60] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] px-4 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 sm:inset-x-auto sm:bottom-auto sm:max-h-[min(80dvh,calc(100dvh-96px))] sm:w-[21rem] sm:p-3.5 sm:pb-3.5"
               >
                 <span
-                  className="mx-auto mb-2 block h-1 w-10 rounded-full bg-white/20 sm:hidden"
+                  className="mx-auto mb-2 block h-1 w-10 rounded-full bg-[var(--hairline-strong)] sm:hidden"
                   aria-hidden="true"
                 />
 
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[var(--accent-green-soft)] text-[var(--accent-green)]">
-                      <BellRing className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                    <span className="flex h-7 w-7 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--accent-ember)]">
+                      <BellRing className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-white">Notifications</p>
-                      <p className="break-words text-[11px] leading-snug text-white/55">
+                      <p className="text-[13px] font-medium text-[var(--ink)]">Notifications</p>
+                      <p className="break-words text-[12px] leading-snug text-[var(--mute)]">
                         {enabled ? (fetching ? "Checking activity..." : "Lightweight activity alerts") : "Opt in any time"}
                       </p>
                     </div>
@@ -348,17 +346,17 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                   <button
                     type="button"
                     aria-label="Close notifications"
-                    className="flex h-8 w-8 flex-none items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                    className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] text-[var(--mute)] transition-colors hover:bg-[var(--surface-elevated)] hover:text-[var(--ink)]"
                     onClick={closePanel}
                   >
-                    <X className="h-4 w-4" strokeWidth={2} />
+                    <X className="h-4 w-4" strokeWidth={1.9} />
                   </button>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/6 p-3">
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] p-3">
                   <div className="min-w-0">
-                    <p className="break-words text-[13px] font-medium text-white">Alerts on this device</p>
-                    <p className="mt-0.5 break-words text-[11px] leading-relaxed text-white/55">
+                    <p className="break-words text-[13px] font-medium text-[var(--ink)]">Alerts on this device</p>
+                    <p className="mt-0.5 break-words text-[12px] leading-relaxed text-[var(--mute)]">
                       Replies and area chat spikes. No message contents.
                     </p>
                   </div>
@@ -370,35 +368,39 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                     disabled={!hydrated || busy}
                     onClick={() => (enabled ? disableNotifications() : void enableNotifications())}
                     className={`relative h-6 w-11 flex-none rounded-full border transition-colors ${
-                      enabled ? "border-[var(--accent-green)]/50 bg-[var(--accent-green)]/35" : "border-white/15 bg-white/10"
+                      enabled
+                        ? "border-[var(--accent-ember)] bg-[var(--accent-ember-soft)]"
+                        : "border-[var(--hairline-strong)] bg-[var(--surface-card)]"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                        enabled ? "translate-x-5" : "translate-x-0.5"
+                      className={`absolute top-0.5 h-5 w-5 rounded-full transition-transform ${
+                        enabled
+                          ? "translate-x-5 bg-[var(--accent-ember)]"
+                          : "translate-x-0.5 bg-[var(--mute)]"
                       }`}
                     />
                   </button>
                 </div>
 
                 {!hydrated ? (
-                  <p className="mt-3 break-words text-[12px] text-white/55">Loading preferences...</p>
+                  <p className="mt-3 break-words text-[12px] text-[var(--mute)]">Loading preferences...</p>
                 ) : !supported ? (
-                  <p className="mt-3 break-words text-[12px] leading-relaxed text-white/60">
+                  <p className="mt-3 break-words text-[12px] leading-relaxed text-[var(--mute)]">
                     This browser does not support notifications. You can still check activity on Home and Nearby.
                   </p>
                 ) : !enabled ? (
                   <div className="mt-3 space-y-2">
                     <button
                       type="button"
-                      className="btn btn-primary min-h-[42px] w-full justify-center rounded-xl"
+                      className="btn btn-primary min-h-[42px] w-full justify-center"
                       disabled={busy}
                       onClick={() => void enableNotifications()}
                     >
                       {busy ? "Turning on..." : "Turn on alerts"}
                     </button>
                     {permission === "denied" ? (
-                      <p className="break-words text-[11px] leading-relaxed text-[var(--accent-yellow)]">
+                      <p className="break-words text-[12px] leading-relaxed text-[var(--accent-yellow)]">
                         Notifications are blocked. Allow them in your browser settings, then try again.
                       </p>
                     ) : null}
@@ -434,7 +436,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                         Mark all seen
                       </button>
                     ) : (
-                      <p className="break-words pt-1 text-center text-[12px] text-white/55">You are all caught up.</p>
+                      <p className="break-words pt-1 text-center text-[12px] text-[var(--mute)]">You are all caught up.</p>
                     )}
                   </div>
                 )}
@@ -445,7 +447,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                   </p>
                 ) : null}
 
-                <p className="mt-3 flex items-start gap-1.5 break-words border-t border-white/8 pt-2.5 text-[12px] leading-relaxed text-white/45">
+                <p className="mt-3 flex items-start gap-1.5 break-words border-t border-[var(--hairline)] pt-2.5 text-[12px] leading-relaxed text-[var(--ash)]">
                   <ShieldCheck className="mt-0.5 h-3 w-3 flex-none" strokeWidth={1.8} aria-hidden="true" />
                   Alerts stay on this device and only work while CivicCircle is open. No accounts, no exact location, no message contents.
                 </p>
@@ -470,17 +472,19 @@ function ActivityRow({
   detail?: string;
 }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl px-1.5 py-2">
-      <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-white/8 text-white/70">
+    <div className="flex items-start gap-2.5 rounded-[var(--radius-sm)] px-1.5 py-2">
+      <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-medium text-white/85">{label}</p>
-        {detail ? <p className="mt-0.5 text-[12px] text-white/45">{detail}</p> : null}
+        <p className="text-[12px] font-medium text-[var(--body-text)]">{label}</p>
+        {detail ? <p className="mt-0.5 text-[12px] text-[var(--ash)]">{detail}</p> : null}
       </div>
       <span
-        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
-          count > 0 ? "bg-[var(--accent-green-soft)] text-[var(--accent-green)]" : "bg-white/6 text-white/40"
+        className={`rounded-[4px] px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+          count > 0
+            ? "bg-[var(--accent-ember-soft)] text-[var(--accent-ember-ink)]"
+            : "bg-[var(--surface-card)] text-[var(--ash)]"
         }`}
       >
         {count}

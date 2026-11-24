@@ -16,7 +16,7 @@ const CITY_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
-const MAP_BACKGROUND_COLOR = "#0b1020";
+const MAP_BACKGROUND_COLOR = "#0f0e0c";
 const WATER_COLOR = "#16283f";
 
 const SHOP_CATEGORY_INDEX: Record<string, number> = {
@@ -113,11 +113,11 @@ class MapFloatControl implements maplibregl.IControl {
       btn.setAttribute("aria-label", ariaLabel);
       btn.style.width = "38px";
       btn.style.height = "38px";
-      btn.style.borderRadius = "999px";
-      btn.style.border = "1px solid rgba(255,255,255,0.18)";
-      btn.style.backgroundColor = "rgba(16,17,17,0.85)";
-      btn.style.backdropFilter = "blur(12px)";
-      btn.style.color = "#f4f4f6";
+      btn.style.borderRadius = "8px";
+      btn.style.border = "1px solid rgba(242,236,225,0.14)";
+      btn.style.backgroundColor = "#211d19";
+      
+      btn.style.color = "#f2ece1";
       btn.style.display = "flex";
       btn.style.alignItems = "center";
       btn.style.justifyContent = "center";
@@ -272,13 +272,13 @@ export function NearbyMap({
           id: "radius-fill",
           type: "fill",
           source: "radius",
-          paint: { "fill-color": "#57c1ff", "fill-opacity": 0.07 },
+          paint: { "fill-color": "#e2683f", "fill-opacity": 0.07 },
         });
         map.addLayer({
           id: "radius-line",
           type: "line",
           source: "radius",
-          paint: { "line-color": "#57c1ff", "line-width": 2, "line-opacity": 0.5 },
+          paint: { "line-color": "#e2683f", "line-width": 2, "line-opacity": 0.5 },
         });
       }
       if (!map.getSource("shops")) {
@@ -300,13 +300,13 @@ export function NearbyMap({
               ["linear"],
               ["get", "point_count"],
               1,
-              "#57c1ff",
+              "#e2683f",
               8,
-              "#38bdf8",
+              "#d6a24a",
               20,
-              "#ffc533",
+              "#f0a07c",
               40,
-              "#ff9f43",
+              "#d6a24a",
             ],
             "circle-stroke-color": MAP_BACKGROUND_COLOR,
             "circle-stroke-width": 2,
@@ -327,7 +327,7 @@ export function NearbyMap({
             // down with them.
             "text-font": ["Noto Sans Regular"],
           },
-          paint: { "text-color": "#f4f4f6" },
+          paint: { "text-color": "#f2ece1" },
         });
         map.addLayer({
           id: "unclustered-point",
@@ -340,15 +340,15 @@ export function NearbyMap({
               ["linear"],
               ["get", "categoryIndex"],
               0,
-              "#57c1ff",
+              "#e2683f",
               2,
-              "#38bdf8",
+              "#d6a24a",
               4,
-              "#ffc533",
+              "#f0a07c",
               6,
-              "#ff9f43",
+              "#d6a24a",
               8,
-              "#59d499",
+              "#f2ece1",
             ],
             "circle-stroke-color": MAP_BACKGROUND_COLOR,
             "circle-stroke-width": 2,
@@ -370,8 +370,8 @@ export function NearbyMap({
             "text-optional": true,
           },
           paint: {
-            "text-color": "#f4f4f6",
-            "text-halo-color": "#07080a",
+            "text-color": "#f2ece1",
+            "text-halo-color": "#0f0e0c",
             "text-halo-width": 2,
           },
         });
@@ -468,11 +468,11 @@ export function NearbyMap({
     >
       {status === "loading" ? (
         <div
-          className="absolute inset-0 z-10 flex items-center justify-center bg-[#0b1020]"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--canvas)]"
           role="status"
           aria-label="Loading map tiles"
         >
-          <span className="h-10 w-10 animate-spin rounded-full border-2 border-white/12 border-t-[var(--accent-blue)]" />
+          <span className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--hairline)] border-t-[var(--accent-ember)]" />
         </div>
       ) : null}
     </div>

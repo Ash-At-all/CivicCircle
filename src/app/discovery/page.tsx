@@ -33,23 +33,26 @@ function DiscoveryContent() {
 
   return (
     <div className="mobile-container">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-white/8 backdrop-blur-2xl backdrop-saturate-150">
+      <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--surface-elevated)]  ">
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)] sm:px-5">
           <Link
             href="/home"
             aria-label="Back to Home"
-            className="btn btn-icon btn-secondary text-white/80"
+            className="btn btn-icon btn-secondary text-[var(--body-text)]"
           >
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </Link>
-          <span className="text-sm font-medium tracking-[0.2px] text-[var(--ink)]">Explore</span>
+          <span className="text-[14px] font-medium text-[var(--ink)]">Explore</span>
           <div className="w-9" aria-hidden="true" />
         </div>
       </header>
 
       <div className="flex-1 px-4 pb-10 pt-6 sm:px-6">
         <div className="max-w-2xl">
-          <p className="text-label">Discovery</p>
+          <p className="dateline">
+            <span className="dateline-mark" aria-hidden="true" />
+            Discovery
+          </p>
           <h1 className="mt-1 text-display max-w-[16ch] text-balance">Explore your city</h1>
           <p className="mt-3 max-w-md text-body-sm text-[var(--mute)]">
             Discover conversations happening near you. Every board is open and anonymous by
@@ -78,7 +81,7 @@ function DiscoveryContent() {
                 }
                 router.push(`/discovery?${params.toString()}`);
               }}
-              className="field field-lg pl-9"
+              className="field field-lg has-icon-left"
             />
           </div>
         </div>
@@ -104,14 +107,14 @@ function DiscoveryContent() {
                       className="group flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3.5 transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-card)]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-10 w-10 min-h-0 items-center justify-center rounded-2xl border border-white/10 bg-[var(--accent-blue-soft)] text-[var(--accent-blue)]">
-                          <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                        <span className="flex h-10 w-10 min-h-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
+                          <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-[14px] font-medium tracking-[0.1px] text-[var(--ink)]">
+                          <span className="block truncate text-[14px] font-medium text-[var(--ink)]">
                             {city.name}
                           </span>
-                          <span className="mt-0.5 block truncate text-[12px] tracking-[0.2px] text-[var(--mute)]">
+                          <span className="mt-0.5 block truncate text-[12px] text-[var(--mute)]">
                             {city.region}
                           </span>
                         </span>
