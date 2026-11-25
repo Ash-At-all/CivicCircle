@@ -96,7 +96,6 @@ const MAP_STYLE_CHAIN: MapStyleOption[] = [
 ];
 
 const STYLE_TIMEOUT_MS = 8000;
-const TILE_TIMEOUT_MS = 7000;
 
 function mapBlockedMessage(language: MapLanguage) {
   return language === "hi"
@@ -523,9 +522,6 @@ export function NearbyMap({
     let styleReady = false;
     let styleSwapAt = 0;
     let watchdogId: number | null = null;
-    let tileWatchdogId: number | null = null;
-    let sawTileData = false;
-    let sourceErrorCount = 0;
     let interactionsBound = false;
     let resizeObserver: ResizeObserver | null = null;
 
@@ -536,33 +532,8 @@ export function NearbyMap({
       }
     }
 
-    function clearTileWatchdog() {
-      if (tileWatchdogId !== null) {
-        window.clearTimeout(tileWatchdogId);
-        tileWatchdogId = null;
-      }
-    }
-
-    function markTilesReady() {
-      sawTileData = true;
-      sourceErrorCount = 0;
-      clearTileWatchdog();
-    }
-
-    // A style can load while its tile source is blocked (Brave Shields). The
-    // style watchdog is cleared by style.load, so watch for the first rendered
-    // tiles separately and walk the fallback chain when they never arrive.
-    function armTileWatchdog() {
-      clearTileWatchdog();
-      tileWatchdogId = window.setTimeout(() => {
-        if (disposed || sawTileData) return;
-        applyStyle(styleIndex + 1, `${MAP_STYLE_CHAIN[styleIndex].id} tiles did not load`);
-      }, TILE_TIMEOUT_MS);
-    }
-
     function showBlockedNotice() {
       clearWatchdog();
-      clearTileWatchdog();
       console.error("[nearby-map] every tile source failed to load");
       setMapError(mapBlockedMessage(languageRef.current));
       setStatus("ready");
@@ -587,9 +558,6 @@ export function NearbyMap({
       }
       styleIndex = index;
       styleReady = false;
-      sawTileData = false;
-      sourceErrorCount = 0;
-      clearTileWatchdog();
       styleSwapAt = Date.now();
       if (index > 0) {
         console.warn(`[nearby-map] falling back to ${MAP_STYLE_CHAIN[index].id} tiles: ${reason}`);
@@ -698,7 +666,6 @@ export function NearbyMap({
       instance.on("style.load", () => {
         styleReady = true;
         clearWatchdog();
-        armTileWatchdog();
         setMapError(null);
         try {
           const style = instance.getStyle();
@@ -761,17 +728,8 @@ export function NearbyMap({
 
       instance.on("load", () => {
         loadedRef.current = true;
-        if (styleReady && sawTileData) markTilesReady();
         console.log("[nearby-map] map loaded");
         instance.resize();
-      });
-
-      // Tile data (not just style metadata) is the real proof that tiles work.
-      // Ignore our own GeoJSON overlays: they also emit tile events.
-      instance.on("sourcedata", (event) => {
-        if (!styleReady || !event.tile) return;
-        if (event.sourceId === "shops" || event.sourceId === "radius") return;
-        markTilesReady();
       });
 
       instance.on("error", (event) => {
@@ -780,24 +738,12 @@ export function NearbyMap({
         // Style level failures (blocked style JSON, CSP, DNS) arrive without a
         // sourceId. Per-tile errors carry one and should not swap the style.
         const sourceId = (event as unknown as { sourceId?: string }).sourceId;
-        if (sourceId) {
-          // A blocked tile host fails every tile request. After a few errors,
-          // move on instead of waiting for the tile watchdog.
-          if (styleReady && !sawTileData && Date.now() - styleSwapAt > 800) {
-            sourceErrorCount += 1;
-            if (sourceErrorCount >= 3) {
-              applyStyle(styleIndex + 1, `tile source failed: ${message}`);
-            }
-          }
-          return;
-        }
-        if (!styleReady && Date.now() - styleSwapAt > 800) {
+        if (!sourceId && !styleReady && Date.now() - styleSwapAt > 800) {
           applyStyle(styleIndex + 1, `style error: ${message}`);
         }
       });
 
       instance.on("idle", () => {
-        if (styleReady && sawTileData) markTilesReady();
         setStatus("ready");
         onMapStatusChangeRef.current?.("ready");
       });
@@ -840,7 +786,6 @@ export function NearbyMap({
     return () => {
       disposed = true;
       clearWatchdog();
-      clearTileWatchdog();
       resizeObserver?.disconnect();
       loadedRef.current = false;
       for (const marker of Array.from(markers.values())) {
