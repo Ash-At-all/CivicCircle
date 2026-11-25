@@ -45,21 +45,6 @@ export async function POST(request: Request) {
 
     const admin = getSupabaseAdminClient();
 
-    // TEMPORARY production diagnostic. Remove after the RPC role is confirmed.
-    const { data: identityData, error: identityError } =
-      await admin.rpc("debug_rpc_identity");
-
-    console.log("[AREA RESOLVE DEBUG] RPC identity:", identityData);
-
-    if (identityError) {
-      console.error("[AREA RESOLVE DEBUG] RPC identity error:", {
-        code: identityError.code,
-        message: identityError.message,
-        details: identityError.details,
-        hint: identityError.hint,
-      });
-    }
-
     const city = await admin.rpc("ensure_area", {
       p_kind: "city",
       p_h3: h3r5,
@@ -71,12 +56,7 @@ export async function POST(request: Request) {
       p_parent_id: null,
     });
     if (city.error || !city.data) {
-      console.error("Area resolve ensure_area(city) failed:", {
-        code: city.error?.code,
-        message: city.error?.message,
-        details: city.error?.details,
-        hint: city.error?.hint,
-      });
+      console.error("Area resolve ensure_area(city) failed:", city.error?.code, city.error?.message);
       return NextResponse.json({ error: "Could not resolve your area.", code: "server_error" }, { status: 502 });
     }
     const cityRow = Array.isArray(city.data) ? city.data[0] : city.data;
@@ -92,12 +72,7 @@ export async function POST(request: Request) {
       p_parent_id: cityRow.id,
     });
     if (ward.error || !ward.data) {
-      console.error("Area resolve ensure_area(ward) failed:", {
-        code: ward.error?.code,
-        message: ward.error?.message,
-        details: ward.error?.details,
-        hint: ward.error?.hint,
-      });
+      console.error("Area resolve ensure_area(ward) failed:", ward.error?.code, ward.error?.message);
       return NextResponse.json({ error: "Could not resolve your area.", code: "server_error" }, { status: 502 });
     }
     const wardRow = Array.isArray(ward.data) ? ward.data[0] : ward.data;
@@ -113,12 +88,7 @@ export async function POST(request: Request) {
       p_parent_id: wardRow.id,
     });
     if (locality.error || !locality.data) {
-      console.error("Area resolve ensure_area(locality) failed:", {
-        code: locality.error?.code,
-        message: locality.error?.message,
-        details: locality.error?.details,
-        hint: locality.error?.hint,
-      });
+      console.error("Area resolve ensure_area(locality) failed:", locality.error?.code, locality.error?.message);
       return NextResponse.json({ error: "Could not resolve your area.", code: "server_error" }, { status: 502 });
     }
     const localityRow = Array.isArray(locality.data) ? locality.data[0] : locality.data;
@@ -132,12 +102,11 @@ export async function POST(request: Request) {
     }, { onConflict: "user_id" });
 
     if (upsertError) {
-      console.error("Area resolve profile_locations upsert failed:", {
-        code: (upsertError as { code?: string }).code,
-        message: upsertError.message,
-        details: (upsertError as { details?: string }).details,
-        hint: (upsertError as { hint?: string }).hint,
-      });
+      console.error(
+        "Area resolve profile_locations upsert failed:",
+        (upsertError as { code?: string }).code,
+        upsertError.message,
+      );
       return NextResponse.json({ error: "Could not save your area.", code: "server_error" }, { status: 502 });
     }
 
@@ -150,7 +119,7 @@ export async function POST(request: Request) {
           centroid: { lat: localityRow.centroid_lat, lng: localityRow.centroid_lng },
         },
       },
-      { status: 200, headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+      { status: 200, headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {
     console.error("Area resolve failed:", error);

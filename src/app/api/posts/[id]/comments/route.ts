@@ -3,6 +3,7 @@ import { z } from "zod";
 import { commentDraftSchema } from "@/features/posts/schema";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSameOrigin } from "@/lib/server/origin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 4096;
@@ -63,6 +64,9 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const originError = enforceSameOrigin(request);
+  if (originError) return originError;
+
   const id = await getPostId(context);
   if (!id.success) return NextResponse.json({ error: "Invalid post ID." }, { status: 400 });
 

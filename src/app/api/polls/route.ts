@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSameOrigin } from "@/lib/server/origin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
@@ -22,6 +23,9 @@ const createPollSchema = z
   .strict();
 
 export async function POST(request: Request) {
+  const originError = enforceSameOrigin(request);
+  if (originError) return originError;
+
   const payload = await readJsonBody(request, MAX_REQUEST_BYTES);
   if (!payload.ok) return NextResponse.json({ error: payload.error }, { status: payload.status });
 

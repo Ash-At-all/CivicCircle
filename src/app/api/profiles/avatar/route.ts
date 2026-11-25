@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { enforceSameOrigin } from "@/lib/server/origin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
@@ -52,6 +53,9 @@ async function readMultipartBody(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const originError = enforceSameOrigin(request);
+  if (originError) return originError;
+
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_REQUEST_BYTES) {
     return NextResponse.json({ error: "Avatar upload request is too large." }, { status: 413 });
