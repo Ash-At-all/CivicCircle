@@ -2,13 +2,14 @@ import Link from "next/link";
 import { MessageSquare, Users, SlidersHorizontal, ArrowLeft } from "lucide-react";
 import { CITIES } from "@/features/cities/cities";
 
-export default function ChatDiscoveryPage({
+export default async function ChatDiscoveryPage({
   searchParams,
 }: {
-  searchParams?: { tab?: string; filter?: string };
+  searchParams?: Promise<{ tab?: string; filter?: string }>;
 }) {
-  const tab = searchParams?.tab || "popular";
-  const filter = searchParams?.filter || "all";
+  const resolved = (await searchParams) ?? {};
+  const tab = resolved.tab || "popular";
+  const filter = resolved.filter || "all";
 
   const rooms = CITIES.map((city) => ({
     id: city.slug,
