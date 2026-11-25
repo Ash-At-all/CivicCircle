@@ -107,8 +107,8 @@ export default function RootPage() {
               src="/brand/logo.png"
               alt=""
               width={40}
-              height={40}
-              className="h-9 w-9 flex-none rounded-[9px]"
+              height={25}
+              className="h-8 w-auto flex-none"
             />
             <span className="font-display text-[21px] leading-none text-[var(--ink)]">
               CivicCircle
