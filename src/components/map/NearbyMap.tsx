@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
-import type { StyleSpecification } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import type { ErrorEvent as MapErrorEvent, LayerSpecification, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
 import type { NearbyShop } from "@/features/shops/types";
@@ -644,7 +644,6 @@ export function NearbyMap({
         maxZoom: 18,
         maxBounds: CITY_BOUNDS,
         renderWorldCopies: false,
-        antialias: false,
         fadeDuration: 0,
         attributionControl: false,
       });
@@ -656,7 +655,7 @@ export function NearbyMap({
       styleIndex = startIndex;
       mapRef.current = instance;
 
-      instance.on("loading", () => {
+      instance.on("dataloading", () => {
         setStatus("loading");
         onMapStatusChangeRef.current?.("loading");
       });
@@ -669,11 +668,11 @@ export function NearbyMap({
         setMapError(null);
         try {
           const style = instance.getStyle();
-          const backgroundLayer = style.layers?.find((layer) => layer.id === "background");
+          const backgroundLayer = style.layers?.find((layer: LayerSpecification) => layer.id === "background");
           if (backgroundLayer) {
             instance.setPaintProperty("background", "background-color", MAP_BACKGROUND_COLOR);
           }
-          const waterLayer = style.layers?.find((layer) => layer.id === "water");
+          const waterLayer = style.layers?.find((layer: LayerSpecification) => layer.id === "water");
           if (waterLayer) {
             try {
               instance.setPaintProperty("water", "fill-color", WATER_COLOR);
@@ -681,7 +680,7 @@ export function NearbyMap({
               // Non-fill water layers keep their default styling.
             }
           }
-          for (const layer of style.layers ?? []) {
+          for (const layer of (style.layers ?? []) as LayerSpecification[]) {
             if (/(^|[-_])(poi|transit|airport|rail)([-_]|$)/i.test(layer.id)) {
               instance.setLayoutProperty(layer.id, "visibility", "none");
             }
@@ -732,12 +731,12 @@ export function NearbyMap({
         instance.resize();
       });
 
-      instance.on("error", (event) => {
+      instance.on("error", (event: MapErrorEvent & { sourceId?: string }) => {
         const message = event?.error?.message ?? "unknown error";
         console.error("[nearby-map] map error:", event);
         // Style level failures (blocked style JSON, CSP, DNS) arrive without a
         // sourceId. Per-tile errors carry one and should not swap the style.
-        const sourceId = (event as unknown as { sourceId?: string }).sourceId;
+        const sourceId = event.sourceId;
         if (!sourceId && !styleReady && Date.now() - styleSwapAt > 800) {
           applyStyle(styleIndex + 1, `style error: ${message}`);
         }
