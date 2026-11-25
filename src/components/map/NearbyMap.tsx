@@ -500,8 +500,21 @@ export function NearbyMap({
 
     map.on("load", () => {
       loadedRef.current = true;
+      console.log("[nearby-map] map loaded");
       addLayers();
-      syncShopMarkers(dataRef.current.shops);
+      try {
+        syncShopMarkers(dataRef.current.shops);
+      } catch (err) {
+        console.error("[nearby-map] marker sync failed:", err);
+      }
+      map.resize();
+    });
+    map.on("error", (e) => {
+      console.error("[nearby-map] map error:", e);
+    });
+    map.on("idle", () => {
+      setStatus("ready");
+      onMapStatusChangeRef.current?.("ready");
     });
 
     const markers = markersRef.current;
