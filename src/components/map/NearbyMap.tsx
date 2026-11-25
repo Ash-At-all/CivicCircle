@@ -92,6 +92,134 @@ function labelExpression(language: MapLanguage) {
     : ["get", "name"];
 }
 
+const CLUSTER_RADIUS_M = 48;
+
+const CATEGORY_MARKER_STYLES: Record<string, { color: string; emoji: string }> = {
+  food: { color: "#FF8C00", emoji: "🍽️" },
+  grocery: { color: "#44BB44", emoji: "🛒" },
+  pharmacy: { color: "#FF69B4", emoji: "💊" },
+  health: { color: "#FF4444", emoji: "🏥" },
+  education: { color: "#4488FF", emoji: "🎓" },
+  services: { color: "#FFD700", emoji: "🏦" },
+  transport: { color: "#9B59B6", emoji: "⛽" },
+  repair: { color: "#888888", emoji: "🔧" },
+  salon: { color: "#00CED1", emoji: "✂️" },
+  clothing: { color: "#00BFFF", emoji: "👕" },
+  electronics: { color: "#6610F2", emoji: "📱" },
+  hardware: { color: "#8B4513", emoji: "🔨" },
+  other: { color: "#FFFFFF", emoji: "📍" },
+};
+
+const DEFAULT_MARKER_STYLE = CATEGORY_MARKER_STYLES.other;
+
+function getCategoryMarkerStyle(category: string): { color: string; emoji: string } {
+  return CATEGORY_MARKER_STYLES[category] ?? DEFAULT_MARKER_STYLE;
+}
+
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const earth = 6371008.8;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  return earth * c;
+}
+
+function groupShopsIntoClusters(shops: NearbyShop[]): NearbyShop[][] {
+  const clusters: NearbyShop[][] = [];
+  const reps: { lat: number; lng: number }[] = [];
+  for (const shop of shops) {
+    let index = -1;
+    for (let i = 0; i < clusters.length; i++) {
+      const rep = reps[i];
+      if (distanceMeters(rep, shop) < CLUSTER_RADIUS_M) {
+        index = i;
+        break;
+      }
+    }
+    if (index >= 0) clusters[index].push(shop);
+    else {
+      clusters.push([shop]);
+      reps.push({ lat: shop.lat, lng: shop.lng });
+    }
+  }
+  return clusters;
+}
+
+function createShopMarkerElement(style: { color: string; emoji: string }): HTMLDivElement {
+  const el = document.createElement("div");
+  const dot = document.createElement("div");
+  dot.style.width = "28px";
+  dot.style.height = "28px";
+  dot.style.borderRadius = "50%";
+  dot.style.backgroundColor = `${style.color}2e`;
+  dot.style.border = `2px solid ${style.color}`;
+  dot.style.boxShadow = `0 0 12px ${style.color}59, 0 2px 6px rgba(0, 0, 0, 0.55)`;
+  dot.style.display = "flex";
+  dot.style.alignItems = "center";
+  dot.style.justifyContent = "center";
+  dot.style.fontSize = "13px";
+  dot.style.lineHeight = "28px";
+  dot.textContent = style.emoji;
+  el.appendChild(dot);
+  el.style.position = "absolute";
+  el.style.transform = "translate(-50%, -50%)";
+  el.style.width = "28px";
+  el.style.height = "28px";
+  el.style.display = "flex";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.cursor = "pointer";
+  el.style.willChange = "transform";
+  el.addEventListener("mouseenter", () => {
+    el.style.transform = "translate(-50%, -50%) scale(1.14)";
+  });
+  el.addEventListener("mouseleave", () => {
+    el.style.transform = "translate(-50%, -50%) scale(1)";
+  });
+  return el;
+}
+
+function createClusterMarkerElement(style: { color: string; emoji: string }, count: number): HTMLDivElement {
+  const el = document.createElement("div");
+  const dot = document.createElement("div");
+  dot.style.width = "44px";
+  dot.style.height = "44px";
+  dot.style.borderRadius = "50%";
+  dot.style.backgroundColor = style.color;
+  dot.style.border = "2px solid rgba(18, 18, 18, 0.9)";
+  dot.style.boxShadow = `0 0 16px ${style.color}80, 0 4px 10px rgba(0, 0, 0, 0.6)`;
+  dot.style.display = "flex";
+  dot.style.alignItems = "center";
+  dot.style.justifyContent = "center";
+  dot.style.fontSize = "13px";
+  dot.style.fontWeight = "700";
+  dot.style.color = "#000000";
+  dot.style.textAlign = "center";
+  dot.style.padding = "0 6px";
+  dot.textContent = String(count);
+  el.appendChild(dot);
+  el.style.position = "absolute";
+  el.style.transform = "translate(-50%, -50%)";
+  el.style.width = "44px";
+  el.style.height = "44px";
+  el.style.display = "flex";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.cursor = "pointer";
+  el.style.willChange = "transform";
+  el.addEventListener("mouseenter", () => {
+    el.style.transform = "translate(-50%, -50%) scale(1.14)";
+  });
+  el.addEventListener("mouseleave", () => {
+    el.style.transform = "translate(-50%, -50%) scale(1)";
+  });
+  return el;
+}
+
 class MapFloatControl implements maplibregl.IControl {
   private containerEl: HTMLDivElement | null = null;
 
@@ -182,6 +310,8 @@ export function NearbyMap({
   const dataRef = useRef({ centroid, radiusM, shops });
   const onLocateRef = useRef<(() => void) | null>(null);
   const onMapStatusChangeRef = useRef<((status: "loading" | "ready") => void) | null>(null);
+  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const onSelectShopRef = useRef<((id: string) => void) | null>(null);
   const [status, setStatus] = useState<"loading" | "ready">("loading");
 
   useEffect(() => {
@@ -193,12 +323,54 @@ export function NearbyMap({
   }, [onMapStatusChange]);
 
   useEffect(() => {
+    onSelectShopRef.current = onSelectShop ?? null;
+  }, [onSelectShop]);
+
+  useEffect(() => {
     languageRef.current = language;
   }, [language]);
 
   useEffect(() => {
     dataRef.current = { centroid, radiusM, shops };
   }, [centroid, radiusM, shops]);
+
+  const syncShopMarkers = (shops: NearbyShop[]) => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    for (const marker of Array.from(markersRef.current.values())) {
+      marker.remove();
+    }
+    markersRef.current.clear();
+
+    const bounds = map.getBounds();
+    const visibleShops = shops.filter((shop) => bounds.contains({ lat: shop.lat, lng: shop.lng }));
+    const clusters = groupShopsIntoClusters(visibleShops);
+
+    for (const cluster of clusters) {
+      const dominant = cluster[0];
+      const style = getCategoryMarkerStyle(dominant.category);
+      const isCluster = cluster.length > 1;
+      const center = isCluster
+        ? {
+            lat: cluster.reduce((sum, s) => sum + s.lat, 0) / cluster.length,
+            lng: cluster.reduce((sum, s) => sum + s.lng, 0) / cluster.length,
+          }
+        : { lat: dominant.lat, lng: dominant.lng };
+      const element = isCluster
+        ? createClusterMarkerElement(style, cluster.length)
+        : createShopMarkerElement(style);
+      const marker = new maplibregl.Marker({ element, anchor: "center" });
+      marker.on("click", () => {
+        onSelectShopRef.current?.(dominant.id);
+      });
+      marker.setLngLat([center.lng, center.lat]).addTo(map);
+      markersRef.current.set(isCluster ? `cluster:${dominant.id}` : `shop:${dominant.id}`, marker);
+    }
+  };
+
+  useEffect(() => {
+    syncShopMarkers(shops);
+  }, [shops]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -285,75 +457,6 @@ export function NearbyMap({
         map.addSource("shops", {
           type: "geojson",
           data: toFeatureCollection(latest.shops),
-          cluster: true,
-          clusterMaxZoom: 15,
-          clusterRadius: 48,
-        });
-        map.addLayer({
-          id: "clusters",
-          type: "circle",
-          source: "shops",
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": [
-              "interpolate",
-              ["linear"],
-              ["get", "point_count"],
-              1,
-              "#1db954",
-              8,
-              "#22c55e",
-              20,
-              "#4ade80",
-              40,
-              "#86efac",
-            ],
-            "circle-stroke-color": MAP_BACKGROUND_COLOR,
-            "circle-stroke-width": 2,
-            "circle-radius": ["step", ["get", "point_count"], 18, 12, 24, 30, 28],
-          },
-        });
-        map.addLayer({
-          id: "cluster-count",
-          type: "symbol",
-          source: "shops",
-          filter: ["has", "point_count"],
-          layout: {
-            "text-field": "{point_count_abbreviated}",
-            "text-size": 12,
-            // OpenFreeMap's dark style only ships Noto Sans; a symbol layer
-            // without an explicit font requests the MapLibre default stack,
-            // whose glyphs 404 and take the whole clustered source's tiles
-            // down with them.
-            "text-font": ["Noto Sans Regular"],
-          },
-          paint: { "text-color": "#ffffff" },
-        });
-        map.addLayer({
-          id: "unclustered-point",
-          type: "circle",
-          source: "shops",
-          filter: ["!", ["has", "point_count"]],
-          paint: {
-            "circle-color": [
-              "interpolate",
-              ["linear"],
-              ["get", "categoryIndex"],
-              0,
-              "#1db954",
-              2,
-              "#22c55e",
-              4,
-              "#4ade80",
-              6,
-              "#86efac",
-              8,
-              "#ffffff",
-            ],
-            "circle-stroke-color": MAP_BACKGROUND_COLOR,
-            "circle-stroke-width": 2,
-            "circle-radius": 7,
-          },
         });
         map.addLayer({
           id: "shop-labels",
@@ -379,54 +482,35 @@ export function NearbyMap({
 
       if (interactionsBound) return;
       interactionsBound = true;
-
-      map.on("click", "clusters", (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
-        const clusterId = features[0]?.properties?.cluster_id as number | undefined;
-        const source = map.getSource("shops") as maplibregl.GeoJSONSource | undefined;
-        if (!source || clusterId == null) return;
-        source
-          .getClusterExpansionZoom(clusterId)
-          .then((zoom) => {
-            const geom = features[0]?.geometry;
-            if (geom?.type === "Point") {
-              map.easeTo({
-                center: geom.coordinates as [number, number],
-                zoom: zoom ?? map.getZoom() + 2,
-                duration: 300,
-              });
-            }
-          })
-          .catch(() => {});
-      });
-
-      map.on("click", "unclustered-point", (e) => {
-        const f = e.features?.[0];
-        const id = f?.properties?.id as string | undefined;
-        if (id && onSelectShop) onSelectShop(id);
-      });
-
-      map.on("mouseenter", "clusters", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "clusters", () => {
-        map.getCanvas().style.cursor = "";
-      });
-      map.on("mouseenter", "unclustered-point", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "unclustered-point", () => {
-        map.getCanvas().style.cursor = "";
-      });
     }
+
+    map.on("move", () => {
+      const mapInstance = mapRef.current;
+      if (!mapInstance) return;
+      const bounds = mapInstance.getBounds();
+      for (const marker of Array.from(markersRef.current.values())) {
+        const lngLat = marker.getLngLat();
+        if (bounds.contains({ lat: lngLat.lat, lng: lngLat.lng })) {
+          marker.getElement().style.display = "";
+        } else {
+          marker.getElement().style.display = "none";
+        }
+      }
+    });
 
     map.on("load", () => {
       loadedRef.current = true;
       addLayers();
+      syncShopMarkers(dataRef.current.shops);
     });
 
+    const markers = markersRef.current;
     return () => {
       loadedRef.current = false;
+      for (const marker of Array.from(markers.values())) {
+        marker.remove();
+      }
+      markers.clear();
       map.remove();
       mapRef.current = null;
     };
