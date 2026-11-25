@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import type { StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
 import type { NearbyShop } from "@/features/shops/types";
@@ -18,6 +19,89 @@ const CITY_BOUNDS: [[number, number], [number, number]] = [
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
 const MAP_BACKGROUND_COLOR = "#121212";
 const WATER_COLOR = "#1a2330";
+
+const OSM_ATTRIBUTION =
+  '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+// Raster fallbacks for browsers that drop the primary vector tiles
+// (Brave Shields, ad blockers, corporate proxies). Both are keyless.
+const CARTO_DARK_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    "carto-dark": {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      maxzoom: 20,
+      attribution: `${OSM_ATTRIBUTION}, © <a href="https://carto.com/attributions">CARTO</a>`,
+    },
+  },
+  layers: [
+    {
+      id: "background",
+      type: "background",
+      paint: { "background-color": MAP_BACKGROUND_COLOR },
+    },
+    {
+      id: "carto-dark-tiles",
+      type: "raster",
+      source: "carto-dark",
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+};
+
+const OSM_RASTER_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: OSM_ATTRIBUTION,
+    },
+  },
+  layers: [
+    {
+      id: "background",
+      type: "background",
+      paint: { "background-color": MAP_BACKGROUND_COLOR },
+    },
+    {
+      id: "osm-tiles",
+      type: "raster",
+      source: "osm",
+      minzoom: 0,
+      maxzoom: 19,
+      paint: { "raster-saturation": -0.7, "raster-brightness-max": 0.72 },
+    },
+  ],
+};
+
+type MapStyleOption = {
+  id: "openfreemap" | "carto" | "osm";
+  style: string | StyleSpecification;
+};
+
+const MAP_STYLE_CHAIN: MapStyleOption[] = [
+  { id: "openfreemap", style: STYLE_URL },
+  { id: "carto", style: CARTO_DARK_STYLE },
+  { id: "osm", style: OSM_RASTER_STYLE },
+];
+
+const STYLE_TIMEOUT_MS = 8000;
+
+function mapBlockedMessage(language: MapLanguage) {
+  return language === "hi"
+    ? "Map tiles browser ne block kar di hain. Is site ke liye Brave Shields ya ad blocker band karo, phir retry karo."
+    : "Map tiles are blocked by your browser. Turn off Brave Shields or any ad blocker for this site, then retry.";
+}
 
 const SHOP_CATEGORY_INDEX: Record<string, number> = {
   food: 0,
@@ -313,6 +397,15 @@ export function NearbyMap({
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
   const onSelectShopRef = useRef<((id: string) => void) | null>(null);
   const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  function retryMap() {
+    setMapError(null);
+    setStatus("loading");
+    onMapStatusChangeRef.current?.("loading");
+    setRetryNonce((n) => n + 1);
+  }
 
   useEffect(() => {
     onLocateRef.current = onLocate ?? null;
@@ -374,65 +467,67 @@ export function NearbyMap({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    const container = containerRef.current;
+    const markers = markersRef.current;
 
-    // The UMD build in maplibre-gl@4 already creates its worker from an
-    // inline blob. Do not override it with a bundler-relative URL: that path
-    // resolves to a missing file under Next/Turbopack and the map stays blank.
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: STYLE_URL,
-      center: [centroid.lng, centroid.lat],
-      zoom: 14,
-      minZoom: 11,
-      maxZoom: 18,
-      maxBounds: CITY_BOUNDS,
-      renderWorldCopies: false,
-      antialias: false,
-      fadeDuration: 0,
-      attributionControl: false,
-    });
-    map.addControl(new maplibregl.AttributionControl({ compact: true }));
-    map.addControl(new MapFloatControl(() => onLocateRef.current?.()), "top-right");
-    map.dragRotate.disable();
-    map.touchZoomRotate.disableRotation();
-    mapRef.current = map;
+    let disposed = false;
+    let map: maplibregl.Map | null = null;
+    let styleIndex = 0;
+    let styleReady = false;
+    let styleSwapAt = 0;
+    let watchdogId: number | null = null;
+    let interactionsBound = false;
+    let resizeObserver: ResizeObserver | null = null;
 
-    map.on("loading", () => {
-      setStatus("loading");
-      onMapStatusChangeRef.current?.("loading");
-    });
-    map.on("idle", () => {
+    function clearWatchdog() {
+      if (watchdogId !== null) {
+        window.clearTimeout(watchdogId);
+        watchdogId = null;
+      }
+    }
+
+    function showBlockedNotice() {
+      clearWatchdog();
+      console.error("[nearby-map] every tile source failed to load");
+      setMapError(mapBlockedMessage(languageRef.current));
       setStatus("ready");
       onMapStatusChangeRef.current?.("ready");
-    });
+    }
 
-    // Keep the dark map calm and lighter on low-end phones: hide POI,
-    // transit, and airport layers that add tiles and visual noise.
-    map.on("style.load", () => {
-      const style = map.getStyle();
-      const backgroundLayer = style.layers?.find((layer) => layer.id === "background");
-      if (backgroundLayer) {
-        map.setPaintProperty("background", "background-color", MAP_BACKGROUND_COLOR);
-      }
-      const waterLayer = style.layers?.find((layer) => layer.id === "water");
-      if (waterLayer) {
-        try {
-          map.setPaintProperty("water", "fill-color", WATER_COLOR);
-        } catch {
-          // Non-fill water layers keep their default styling.
-        }
-      }
-      for (const layer of map.getStyle().layers ?? []) {
-        if (/(^|[-_])(poi|transit|airport|rail)([-_]|$)/i.test(layer.id)) {
-          map.setLayoutProperty(layer.id, "visibility", "none");
-        }
-      }
-    });
+    function armWatchdog() {
+      clearWatchdog();
+      watchdogId = window.setTimeout(() => {
+        if (disposed || styleReady) return;
+        applyStyle(styleIndex + 1, `${MAP_STYLE_CHAIN[styleIndex].id} timed out`);
+      }, STYLE_TIMEOUT_MS);
+    }
 
-    let interactionsBound = false;
+    // Walk down the style chain instead of spinning forever when a browser
+    // (Brave Shields, ad blockers, proxies) drops the tile requests.
+    function applyStyle(index: number, reason: string) {
+      if (disposed || !map || mapRef.current !== map) return;
+      if (index >= MAP_STYLE_CHAIN.length) {
+        showBlockedNotice();
+        return;
+      }
+      styleIndex = index;
+      styleReady = false;
+      styleSwapAt = Date.now();
+      if (index > 0) {
+        console.warn(`[nearby-map] falling back to ${MAP_STYLE_CHAIN[index].id} tiles: ${reason}`);
+      }
+      try {
+        map.setStyle(MAP_STYLE_CHAIN[index].style, { diff: false });
+      } catch (err) {
+        console.error("[nearby-map] setStyle failed:", err);
+        applyStyle(index + 1, "setStyle failed");
+        return;
+      }
+      armWatchdog();
+    }
 
     function addLayers() {
-      if (mapRef.current !== map) return;
+      if (!map || mapRef.current !== map) return;
       const latest = dataRef.current;
 
       if (!map.getSource("radius")) {
@@ -458,77 +553,195 @@ export function NearbyMap({
           type: "geojson",
           data: toFeatureCollection(latest.shops),
         });
-        map.addLayer({
-          id: "shop-labels",
-          type: "symbol",
-          source: "shops",
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            "text-field": labelExpression(languageRef.current) as maplibregl.ExpressionSpecification,
-            "text-size": 12,
-            "text-font": ["Noto Sans Regular"],
-            "text-offset": [0, 1.1],
-            "text-anchor": "top",
-            "text-allow-overlap": false,
-            "text-optional": true,
-          },
-          paint: {
-            "text-color": "#f2ece1",
-            "text-halo-color": "#121212",
-            "text-halo-width": 2,
-          },
-        });
+        // Raster fallback styles ship no glyphs, so the symbol layer is only
+        // added when the active style provides a font stack.
+        if (map.getStyle().glyphs) {
+          map.addLayer({
+            id: "shop-labels",
+            type: "symbol",
+            source: "shops",
+            filter: ["!", ["has", "point_count"]],
+            layout: {
+              "text-field": labelExpression(languageRef.current) as maplibregl.ExpressionSpecification,
+              "text-size": 12,
+              "text-font": ["Noto Sans Regular"],
+              "text-offset": [0, 1.1],
+              "text-anchor": "top",
+              "text-allow-overlap": false,
+              "text-optional": true,
+            },
+            paint: {
+              "text-color": "#f2ece1",
+              "text-halo-color": "#121212",
+              "text-halo-width": 2,
+            },
+          });
+        }
       }
 
       if (interactionsBound) return;
       interactionsBound = true;
     }
 
-    map.on("move", () => {
-      const mapInstance = mapRef.current;
-      if (!mapInstance) return;
-      const bounds = mapInstance.getBounds();
-      for (const marker of Array.from(markersRef.current.values())) {
-        const lngLat = marker.getLngLat();
-        if (bounds.contains({ lat: lngLat.lat, lng: lngLat.lng })) {
-          marker.getElement().style.display = "";
-        } else {
-          marker.getElement().style.display = "none";
+    function createMap(initialStyle: string | StyleSpecification, startIndex: number) {
+      if (disposed || mapRef.current) return;
+
+      // The UMD build in maplibre-gl@4 already creates its worker from an
+      // inline blob. Do not override it with a bundler-relative URL: that path
+      // resolves to a missing file under Next/Turbopack and the map stays blank.
+      const instance = new maplibregl.Map({
+        container,
+        style: initialStyle,
+        center: [centroid.lng, centroid.lat],
+        zoom: 14,
+        minZoom: 11,
+        maxZoom: 18,
+        maxBounds: CITY_BOUNDS,
+        renderWorldCopies: false,
+        antialias: false,
+        fadeDuration: 0,
+        attributionControl: false,
+      });
+      instance.addControl(new maplibregl.AttributionControl({ compact: true }));
+      instance.addControl(new MapFloatControl(() => onLocateRef.current?.()), "top-right");
+      instance.dragRotate.disable();
+      instance.touchZoomRotate.disableRotation();
+      map = instance;
+      styleIndex = startIndex;
+      mapRef.current = instance;
+
+      instance.on("loading", () => {
+        setStatus("loading");
+        onMapStatusChangeRef.current?.("loading");
+      });
+
+      // Keep the dark map calm and lighter on low-end phones: hide POI,
+      // transit, and airport layers that add tiles and visual noise.
+      instance.on("style.load", () => {
+        styleReady = true;
+        clearWatchdog();
+        setMapError(null);
+        try {
+          const style = instance.getStyle();
+          const backgroundLayer = style.layers?.find((layer) => layer.id === "background");
+          if (backgroundLayer) {
+            instance.setPaintProperty("background", "background-color", MAP_BACKGROUND_COLOR);
+          }
+          const waterLayer = style.layers?.find((layer) => layer.id === "water");
+          if (waterLayer) {
+            try {
+              instance.setPaintProperty("water", "fill-color", WATER_COLOR);
+            } catch {
+              // Non-fill water layers keep their default styling.
+            }
+          }
+          for (const layer of style.layers ?? []) {
+            if (/(^|[-_])(poi|transit|airport|rail)([-_]|$)/i.test(layer.id)) {
+              instance.setLayoutProperty(layer.id, "visibility", "none");
+            }
+          }
+        } catch (err) {
+          console.error("[nearby-map] style tweaks failed:", err);
         }
-      }
-    });
 
-    map.on("load", () => {
-      loadedRef.current = true;
-      console.log("[nearby-map] map loaded");
-      addLayers();
+        loadedRef.current = true;
+        try {
+          addLayers();
+        } catch (err) {
+          console.error("[nearby-map] layer setup failed:", err);
+        }
+        try {
+          syncShopMarkers(dataRef.current.shops);
+        } catch (err) {
+          console.error("[nearby-map] marker sync failed:", err);
+        }
+        instance.resize();
+      });
+
+      instance.on("move", () => {
+        const bounds = instance.getBounds();
+        for (const marker of Array.from(markersRef.current.values())) {
+          const lngLat = marker.getLngLat();
+          if (bounds.contains({ lat: lngLat.lat, lng: lngLat.lng })) {
+            marker.getElement().style.display = "";
+          } else {
+            marker.getElement().style.display = "none";
+          }
+        }
+      });
+
+      instance.on("load", () => {
+        loadedRef.current = true;
+        console.log("[nearby-map] map loaded");
+        instance.resize();
+      });
+
+      instance.on("error", (event) => {
+        const message = event?.error?.message ?? "unknown error";
+        console.error("[nearby-map] map error:", event);
+        // Style level failures (blocked style JSON, CSP, DNS) arrive without a
+        // sourceId. Per-tile errors carry one and should not swap the style.
+        const sourceId = (event as unknown as { sourceId?: string }).sourceId;
+        if (!sourceId && !styleReady && Date.now() - styleSwapAt > 800) {
+          applyStyle(styleIndex + 1, `style error: ${message}`);
+        }
+      });
+
+      instance.on("idle", () => {
+        setStatus("ready");
+        onMapStatusChangeRef.current?.("ready");
+      });
+
+      // The sheet above the map changes height while the user drags it, and the
+      // desktop layout can settle after the first paint. Keep the canvas sized.
+      resizeObserver = new ResizeObserver(() => {
+        instance.resize();
+      });
+      resizeObserver.observe(container);
+
+      armWatchdog();
+    }
+
+    // Probe the style JSON before creating the map. Brave Shields and ad
+    // blockers drop this request, and MapLibre cannot swap to an inline
+    // fallback style after a failed style URL load, so start on raster tiles
+    // instead of leaving the spinner up forever.
+    async function boot() {
+      let primaryOk = true;
       try {
-        syncShopMarkers(dataRef.current.shops);
-      } catch (err) {
-        console.error("[nearby-map] marker sync failed:", err);
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(STYLE_URL, { signal: controller.signal, cache: "force-cache" });
+        window.clearTimeout(timer);
+        primaryOk = response.ok;
+      } catch {
+        primaryOk = false;
       }
-      map.resize();
-    });
-    map.on("error", (e) => {
-      console.error("[nearby-map] map error:", e);
-    });
-    map.on("idle", () => {
-      setStatus("ready");
-      onMapStatusChangeRef.current?.("ready");
-    });
+      if (disposed) return;
+      if (!primaryOk) {
+        console.warn("[nearby-map] primary style unreachable, starting on raster fallback");
+      }
+      const index = primaryOk ? 0 : 1;
+      createMap(MAP_STYLE_CHAIN[index].style, index);
+    }
 
-    const markers = markersRef.current;
+    void boot();
+
     return () => {
+      disposed = true;
+      clearWatchdog();
+      resizeObserver?.disconnect();
       loadedRef.current = false;
       for (const marker of Array.from(markers.values())) {
         marker.remove();
       }
       markers.clear();
-      map.remove();
+      map?.remove();
+      map = null;
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [retryNonce]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -563,7 +776,32 @@ export function NearbyMap({
       aria-label="Map showing nearby shops and your area"
       role="region"
     >
-      {status === "loading" ? (
+      {mapError ? (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-[var(--canvas)] px-6 text-center"
+          role="alert"
+        >
+          <span
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-elevated)] text-[18px] font-semibold text-[var(--accent-ember)]"
+            aria-hidden="true"
+          >
+            !
+          </span>
+          <div>
+            <p className="text-[14px] font-medium text-[var(--ink)]">Map tiles unavailable</p>
+            <p className="mt-1 max-w-[32ch] text-[13px] leading-relaxed text-[var(--body-text)]">
+              {mapError}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={retryMap}
+            className="min-h-11 rounded-full bg-[var(--accent-ember)] px-5 text-[13px] font-semibold text-[var(--on-primary)] transition-transform active:scale-[0.98]"
+          >
+            Retry map
+          </button>
+        </div>
+      ) : status === "loading" ? (
         <div
           className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--canvas)]"
           role="status"
