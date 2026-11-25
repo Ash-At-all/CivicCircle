@@ -99,6 +99,7 @@ export default function NearbyPage() {
   const [language, setLanguage] = useState<MapLanguage>("en");
   const [snap, setSnap] = useState<SheetSnap>("peek");
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+  const [shopReviewSignal, setShopReviewSignal] = useState(0);
   const [tab, setTab] = useState<"shops" | "chat">("shops");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showRadiusPrompt, setShowRadiusPrompt] = useState(false);
@@ -381,6 +382,7 @@ export default function NearbyPage() {
 
   function selectShopFromMap(id: string) {
     setSelectedShopId(id);
+    setShopReviewSignal((n) => n + 1);
     setTab("shops");
     setSnap("mid");
     window.setTimeout(() => {
@@ -835,6 +837,7 @@ export default function NearbyPage() {
                   shops={displayedShops}
                   language={language}
                   selectedShopId={selectedShopId}
+                  reviewsSignal={shopReviewSignal}
                 />
               </div>
 

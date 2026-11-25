@@ -13,10 +13,12 @@ export function ShopsList({
   shops,
   language = "en",
   selectedShopId,
+  reviewsSignal = 0,
 }: {
   shops: NearbyShop[];
   language?: ShopLanguage;
   selectedShopId?: string | null;
+  reviewsSignal?: number;
 }) {
   const [category, setCategory] = useState<ShopCategory | "all">("all");
   const [sort, setSort] = useState<SortMode>("nearest");
@@ -35,6 +37,16 @@ export function ShopsList({
     }, 0);
     return () => window.clearTimeout(id);
   }, []);
+
+  // A marker click selects a shop, so clear filters that could hide its card.
+  useEffect(() => {
+    if (!selectedShopId) return;
+    const id = window.setTimeout(() => {
+      setCategory("all");
+      setQuery("");
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [selectedShopId]);
 
   function rememberSearch(value: string) {
     const q = value.trim();
@@ -167,6 +179,7 @@ export function ShopsList({
               shop={shop}
               language={language}
               highlighted={selectedShopId === shop.id}
+              reviewsSignal={selectedShopId === shop.id ? reviewsSignal : 0}
             />
           ))}
         </div>

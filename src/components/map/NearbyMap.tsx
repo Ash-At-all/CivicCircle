@@ -176,7 +176,7 @@ function labelExpression(language: MapLanguage) {
     : ["get", "name"];
 }
 
-const CLUSTER_RADIUS_M = 48;
+const CLUSTER_PIXEL_RADIUS = 42;
 
 const CATEGORY_MARKER_STYLES: Record<string, { color: string; emoji: string }> = {
   food: { color: "#FF8C00", emoji: "🍽️" },
@@ -200,26 +200,17 @@ function getCategoryMarkerStyle(category: string): { color: string; emoji: strin
   return CATEGORY_MARKER_STYLES[category] ?? DEFAULT_MARKER_STYLE;
 }
 
-function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const earth = 6371008.8;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const h =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-  return earth * c;
-}
-
-function groupShopsIntoClusters(shops: NearbyShop[]): NearbyShop[][] {
+function groupShopsIntoClusters(shops: NearbyShop[], map: maplibregl.Map): NearbyShop[][] {
   const clusters: NearbyShop[][] = [];
-  const reps: { lat: number; lng: number }[] = [];
+  const reps: { x: number; y: number }[] = [];
   for (const shop of shops) {
+    const point = map.project([shop.lng, shop.lat]);
     let index = -1;
     for (let i = 0; i < clusters.length; i++) {
       const rep = reps[i];
-      if (distanceMeters(rep, shop) < CLUSTER_RADIUS_M) {
+      // Cluster by on-screen distance so the 44px touch targets never
+      // overlap, no matter the zoom level.
+      if (Math.hypot(rep.x - point.x, rep.y - point.y) < CLUSTER_PIXEL_RADIUS) {
         index = i;
         break;
       }
@@ -227,7 +218,7 @@ function groupShopsIntoClusters(shops: NearbyShop[]): NearbyShop[][] {
     if (index >= 0) clusters[index].push(shop);
     else {
       clusters.push([shop]);
-      reps.push({ lat: shop.lat, lng: shop.lng });
+      reps.push({ x: point.x, y: point.y });
     }
   }
   return clusters;
@@ -235,71 +226,94 @@ function groupShopsIntoClusters(shops: NearbyShop[]): NearbyShop[][] {
 
 function createShopMarkerElement(style: { color: string; emoji: string }): HTMLDivElement {
   const el = document.createElement("div");
-  const dot = document.createElement("div");
-  dot.style.width = "28px";
-  dot.style.height = "28px";
-  dot.style.borderRadius = "50%";
-  dot.style.backgroundColor = `${style.color}2e`;
-  dot.style.border = `2px solid ${style.color}`;
-  dot.style.boxShadow = `0 0 12px ${style.color}59, 0 2px 6px rgba(0, 0, 0, 0.55)`;
-  dot.style.display = "flex";
-  dot.style.alignItems = "center";
-  dot.style.justifyContent = "center";
-  dot.style.fontSize = "13px";
-  dot.style.lineHeight = "28px";
-  dot.textContent = style.emoji;
-  el.appendChild(dot);
-  el.style.position = "absolute";
-  el.style.transform = "translate(-50%, -50%)";
-  el.style.width = "28px";
-  el.style.height = "28px";
-  el.style.display = "flex";
-  el.style.alignItems = "center";
-  el.style.justifyContent = "center";
-  el.style.cursor = "pointer";
-  el.style.willChange = "transform";
-  el.addEventListener("mouseenter", () => {
-    el.style.transform = "translate(-50%, -50%) scale(1.14)";
-  });
-  el.addEventListener("mouseleave", () => {
-    el.style.transform = "translate(-50%, -50%) scale(1)";
-  });
-  return el;
-}
-
-function createClusterMarkerElement(style: { color: string; emoji: string }, count: number): HTMLDivElement {
-  const el = document.createElement("div");
-  const dot = document.createElement("div");
-  dot.style.width = "44px";
-  dot.style.height = "44px";
-  dot.style.borderRadius = "50%";
-  dot.style.backgroundColor = style.color;
-  dot.style.border = "2px solid rgba(18, 18, 18, 0.9)";
-  dot.style.boxShadow = `0 0 16px ${style.color}80, 0 4px 10px rgba(0, 0, 0, 0.6)`;
-  dot.style.display = "flex";
-  dot.style.alignItems = "center";
-  dot.style.justifyContent = "center";
-  dot.style.fontSize = "13px";
-  dot.style.fontWeight = "700";
-  dot.style.color = "#000000";
-  dot.style.textAlign = "center";
-  dot.style.padding = "0 6px";
-  dot.textContent = String(count);
-  el.appendChild(dot);
-  el.style.position = "absolute";
-  el.style.transform = "translate(-50%, -50%)";
+  // 44px transparent hit area for touch. The visual stays a plain emoji, so
+  // never touch the root transform: MapLibre owns it for positioning.
   el.style.width = "44px";
   el.style.height = "44px";
   el.style.display = "flex";
   el.style.alignItems = "center";
   el.style.justifyContent = "center";
+  el.style.background = "transparent";
+  el.style.border = "0";
+  el.style.padding = "0";
   el.style.cursor = "pointer";
-  el.style.willChange = "transform";
+  el.style.touchAction = "manipulation";
+
+  const glyph = document.createElement("span");
+  glyph.textContent = style.emoji;
+  glyph.style.fontSize = "22px";
+  glyph.style.lineHeight = "1";
+  glyph.style.display = "block";
+  glyph.style.pointerEvents = "none";
+  glyph.style.filter = `drop-shadow(0 0 5px ${style.color}66) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85))`;
+  glyph.style.transition = "transform 120ms ease-out";
+  el.appendChild(glyph);
+
+  const grow = () => {
+    glyph.style.transform = "scale(1.18)";
+  };
+  const shrink = () => {
+    glyph.style.transform = "scale(1)";
+  };
+  el.addEventListener("mouseenter", grow);
+  el.addEventListener("mouseleave", shrink);
+  el.addEventListener("focus", grow);
+  el.addEventListener("blur", shrink);
+  return el;
+}
+
+function createClusterMarkerElement(style: { color: string; emoji: string }, count: number): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.width = "44px";
+  el.style.height = "44px";
+  el.style.display = "flex";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.background = "transparent";
+  el.style.border = "0";
+  el.style.padding = "0";
+  el.style.cursor = "pointer";
+  el.style.touchAction = "manipulation";
+
+  const pill = document.createElement("div");
+  pill.style.display = "inline-flex";
+  pill.style.alignItems = "center";
+  pill.style.gap = "3px";
+  pill.style.height = "26px";
+  pill.style.padding = "0 8px";
+  pill.style.borderRadius = "999px";
+  pill.style.backgroundColor = "rgba(18, 18, 18, 0.92)";
+  pill.style.border = `1px solid ${style.color}`;
+  pill.style.boxShadow = `0 0 10px ${style.color}55, 0 2px 6px rgba(0, 0, 0, 0.6)`;
+  pill.style.color = "#ffffff";
+  pill.style.fontSize = "12px";
+  pill.style.fontWeight = "700";
+  pill.style.lineHeight = "1";
+  pill.style.whiteSpace = "nowrap";
+  pill.style.pointerEvents = "none";
+  pill.style.transition = "transform 120ms ease-out";
+
+  const emojiEl = document.createElement("span");
+  emojiEl.textContent = style.emoji;
+  emojiEl.style.fontSize = "12px";
+  emojiEl.style.lineHeight = "1";
+  const countEl = document.createElement("span");
+  countEl.textContent = String(count);
+  countEl.style.fontVariantNumeric = "tabular-nums";
+  pill.append(emojiEl, countEl);
+  el.appendChild(pill);
+
   el.addEventListener("mouseenter", () => {
-    el.style.transform = "translate(-50%, -50%) scale(1.14)";
+    pill.style.transform = "scale(1.1)";
   });
   el.addEventListener("mouseleave", () => {
-    el.style.transform = "translate(-50%, -50%) scale(1)";
+    pill.style.transform = "scale(1)";
+  });
+  el.addEventListener("focus", () => {
+    pill.style.transform = "scale(1.1)";
+  });
+  el.addEventListener("blur", () => {
+    pill.style.transform = "scale(1)";
   });
   return el;
 }
@@ -437,7 +451,7 @@ export function NearbyMap({
 
     const bounds = map.getBounds();
     const visibleShops = shops.filter((shop) => bounds.contains({ lat: shop.lat, lng: shop.lng }));
-    const clusters = groupShopsIntoClusters(visibleShops);
+    const clusters = groupShopsIntoClusters(visibleShops, map);
 
     for (const cluster of clusters) {
       const dominant = cluster[0];
@@ -452,11 +466,43 @@ export function NearbyMap({
       const element = isCluster
         ? createClusterMarkerElement(style, cluster.length)
         : createShopMarkerElement(style);
-      const marker = new maplibregl.Marker({ element, anchor: "center" });
-      marker.on("click", () => {
+
+      element.setAttribute("role", "button");
+      element.tabIndex = 0;
+
+      const activate = () => {
+        if (isCluster) {
+          map.easeTo({
+            center: [center.lng, center.lat],
+            zoom: Math.min(map.getZoom() + 1.6, 18),
+            duration: 450,
+          });
+          return;
+        }
         onSelectShopRef.current?.(dominant.id);
+      };
+
+      // MapLibre markers have no "click" event; listen on the DOM element.
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        activate();
       });
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          activate();
+        }
+      });
+
+      const marker = new maplibregl.Marker({ element, anchor: "center" });
       marker.setLngLat([center.lng, center.lat]).addTo(map);
+      // Marker.addTo resets aria-label to "Map marker", so set ours after.
+      element.setAttribute(
+        "aria-label",
+        isCluster
+          ? `${cluster.length} places here. Zoom in to see them.`
+          : `${dominant.name}. Open reviews and rating.`,
+      );
       markersRef.current.set(isCluster ? `cluster:${dominant.id}` : `shop:${dominant.id}`, marker);
     }
   };
@@ -667,6 +713,16 @@ export function NearbyMap({
           } else {
             marker.getElement().style.display = "none";
           }
+        }
+      });
+
+      // Re-cluster after panning or zooming so clusters split apart and
+      // markers appear for the area that just came into view.
+      instance.on("moveend", () => {
+        try {
+          syncShopMarkers(dataRef.current.shops);
+        } catch (err) {
+          console.error("[nearby-map] marker sync failed:", err);
         }
       });
 

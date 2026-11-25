@@ -77,10 +77,12 @@ export function ShopCard({
   shop,
   language = "en",
   highlighted = false,
+  reviewsSignal = 0,
 }: {
   shop: NearbyShop;
   language?: ShopLanguage;
   highlighted?: boolean;
+  reviewsSignal?: number;
 }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [issue, setIssue] = useState<(typeof ISSUE_OPTIONS)[number]>("Wrong name");
@@ -163,6 +165,16 @@ export function ShopCard({
     }, 0);
     return () => window.clearTimeout(id);
   }, [reviewsOpen, loadReviews]);
+
+  // A marker click selects the shop and bumps the signal so its reviews open.
+  useEffect(() => {
+    if (!reviewsSignal || !highlighted) return;
+    const id = window.setTimeout(() => {
+      setReviewsOpen(true);
+      setReviewNotice(null);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [reviewsSignal, highlighted]);
 
   async function submitRating(value: number) {
     if (ratingBusy) return;
