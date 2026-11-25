@@ -130,17 +130,53 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const originError = enforceSameOrigin(request);
+  if (originError) return originError;
+
   try {
     const supabase = await getSupabaseServerClient();
     const { data: userResult } = await supabase.auth.getUser();
-    if (!userResult?.user) return NextResponse.json({ error: "Sign in to remove an avatar.", code: "auth_required" }, { status: 401 });
+    if (!userResult?.user) {
+      return NextResponse.json({ error: "Sign in to remove an avatar.", code: "auth_required" }, { status: 401 });
+    }
+
     const rateLimitResponse = await enforceRateLimit(supabase, "avatars");
     if (rateLimitResponse) return rateLimitResponse;
-  } catch {
+
+    const folder = userResult.user.id;
+    const storage = supabase.storage.from("avatars");
+    const { data: files, error: listError } = await storage.list(folder, { limit: 100 });
+    if (listError) {
+      console.error("Supabase avatar list failed:", listError.message);
+      return NextResponse.json({ error: "Could not remove avatar. Please try again." }, { status: 502 });
+    }
+
+    const paths = (files ?? [])
+      .filter((file) => file?.name)
+      .map((file) => `${folder}/${file.name}`);
+    if (paths.length > 0) {
+      const { error: removeError } = await storage.remove(paths);
+      if (removeError) {
+        console.error("Supabase avatar remove failed:", removeError.message);
+        return NextResponse.json({ error: "Could not remove avatar. Please try again." }, { status: 502 });
+      }
+    }
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", userResult.user.id);
+    if (profileError) {
+      console.error("Supabase avatar profile clear failed:", profileError.message);
+      return NextResponse.json({ error: "Could not remove avatar. Please try again." }, { status: 502 });
+    }
+
     return NextResponse.json({ removed: true });
+  } catch (error) {
+    console.error("Avatar remove is unavailable:", error);
+    return NextResponse.json({ error: "Could not remove avatar. Please try again." }, { status: 503 });
   }
-  return NextResponse.json({ removed: true });
 }
 
 
