@@ -12,12 +12,16 @@ async function ensureGhostProfile() {
   let session = sessionData.session;
 
   if (!session) {
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.error("Anonymous sign-in failed:", error.message);
+    const response = await fetch("/api/auth/anon-signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!response.ok) {
+      console.error("Anonymous sign-in failed:", response.status);
       return;
     }
-    session = data.session;
+    const { data: refreshed } = await supabase.auth.getSession();
+    session = refreshed.session;
   }
 
   const user = session?.user;
