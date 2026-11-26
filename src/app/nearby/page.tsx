@@ -20,6 +20,7 @@ import {
 } from "@/features/area/radius";
 import type { HighlightsResponse } from "@/features/highlights/types";
 import type { NearbyResponse } from "@/features/shops/types";
+import type { ShopCategory } from "@/features/shops/categories";
 import { findCityForCoords } from "@/features/area/cities";
 
 const NearbyMap = dynamic(() => import("@/components/map/NearbyMap").then((m) => m.NearbyMap), {
@@ -107,6 +108,7 @@ export default function NearbyPage() {
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const [prefsHydrated, setPrefsHydrated] = useState(false);
   const [activity, setActivity] = useState<HighlightsResponse | null>(null);
+  const [category, setCategory] = useState<ShopCategory | "all">("all");
   const dragRef = useRef<{
     startY: number;
     startHeight: number;
@@ -231,10 +233,12 @@ export default function NearbyPage() {
 
   const displayedShops = useMemo(() => {
     if (!data) return [];
-    return [...data.shops]
+    const byRadius = [...data.shops]
       .filter((s) => s.distance_m <= effectiveRadius)
       .sort((a, b) => a.distance_m - b.distance_m);
-  }, [data, effectiveRadius]);
+    const byCategory = category === "all" ? byRadius : byRadius.filter((s) => s.category === category);
+    return byCategory;
+  }, [data, effectiveRadius, category]);
 
   const peopleChoice = useMemo(() => {
     if (!data) return null;
@@ -843,6 +847,8 @@ export default function NearbyPage() {
                   language={language}
                   selectedShopId={selectedShopId}
                   reviewsSignal={shopReviewSignal}
+                  category={category}
+                  onCategoryChange={setCategory}
                 />
               </div>
 

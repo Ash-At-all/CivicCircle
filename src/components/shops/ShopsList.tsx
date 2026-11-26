@@ -14,13 +14,16 @@ export function ShopsList({
   language = "en",
   selectedShopId,
   reviewsSignal = 0,
+  category,
+  onCategoryChange,
 }: {
   shops: NearbyShop[];
   language?: ShopLanguage;
   selectedShopId?: string | null;
   reviewsSignal?: number;
+  category: ShopCategory | "all";
+  onCategoryChange: (category: ShopCategory | "all") => void;
 }) {
-  const [category, setCategory] = useState<ShopCategory | "all">("all");
   const [sort, setSort] = useState<SortMode>("nearest");
   const [query, setQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -42,11 +45,11 @@ export function ShopsList({
   useEffect(() => {
     if (!selectedShopId) return;
     const id = window.setTimeout(() => {
-      setCategory("all");
+      onCategoryChange("all");
       setQuery("");
     }, 0);
     return () => window.clearTimeout(id);
-  }, [selectedShopId]);
+  }, [selectedShopId, onCategoryChange]);
 
   function rememberSearch(value: string) {
     const q = value.trim();
@@ -87,7 +90,7 @@ export function ShopsList({
           <select
             className="field mt-1 text-[var(--ink)]"
             value={category}
-            onChange={(e) => setCategory(e.target.value as ShopCategory | "all")}
+            onChange={(e) => onCategoryChange(e.target.value as ShopCategory | "all")}
           >
             <option value="all" className="bg-[var(--surface-elevated)] text-[var(--ink)]">{SHOP_CATEGORY_LABELS.all}</option>
             {SHOP_CATEGORIES.map((c) => (
@@ -164,7 +167,7 @@ export function ShopsList({
             className="btn btn-sm btn-tertiary mx-auto mt-3"
             onClick={() => {
               setQuery("");
-              setCategory("all");
+              onCategoryChange("all");
               setSort("nearest");
             }}
           >
