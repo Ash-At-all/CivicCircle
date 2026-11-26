@@ -662,7 +662,9 @@ export function NearbyMap({
       mapRef.current = instance;
 
       instance.on("dataloading", () => {
-        setStatus("loading");
+        // Never downgrade an already-ready map back to loading: style swaps
+        // and GeoJSON source updates can fire dataloading after markMapReady.
+        setStatus((prev) => (prev === "ready" ? prev : "loading"));
         onMapStatusChangeRef.current?.("loading");
       });
 
