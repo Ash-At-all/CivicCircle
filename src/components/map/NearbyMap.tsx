@@ -2,8 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
+import { setWorkerUrl } from "maplibre-gl";
 import type { ErrorEvent as MapErrorEvent, LayerSpecification, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+
+// MapLibre GL JS v6: configure the web worker before the first Map instance is
+// created. The worker module is derived from the bundler path by default, which
+// does not resolve under the Next.js/Turbopack production build (module script
+// fails with a non-JS MIME type, then the worker errors and the map cannot load
+// tiles). Setting the worker URL explicitly keeps MapLibre on a resolvable
+// module worker before the first map is instantiated. This runs once per module
+// instance (client only) so React Strict Mode / hot reload are unaffected.
+if (typeof window !== "undefined") {
+  setWorkerUrl(
+    new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString(),
+  );
+}
 import type { FeatureCollection } from "geojson";
 import type { NearbyShop } from "@/features/shops/types";
 import {
