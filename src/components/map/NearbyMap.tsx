@@ -534,12 +534,16 @@ export function NearbyMap({
       }
     }
 
+    function markMapReady() {
+      setStatus("ready");
+      onMapStatusChangeRef.current?.("ready");
+    }
+
     function showBlockedNotice() {
       clearWatchdog();
       console.error("[nearby-map] every tile source failed to load");
       setMapError(mapBlockedMessage(languageRef.current));
-      setStatus("ready");
-      onMapStatusChangeRef.current?.("ready");
+      markMapReady();
     }
 
     function armWatchdog() {
@@ -692,6 +696,7 @@ export function NearbyMap({
         }
 
         loadedRef.current = true;
+        console.log("[nearby-map] style loaded");
         try {
           addLayers();
         } catch (err) {
@@ -703,6 +708,7 @@ export function NearbyMap({
           console.error("[nearby-map] marker sync failed:", err);
         }
         instance.resize();
+        markMapReady();
       });
 
       instance.on("move", () => {
@@ -731,6 +737,7 @@ export function NearbyMap({
         loadedRef.current = true;
         console.log("[nearby-map] map loaded");
         instance.resize();
+        markMapReady();
       });
 
       instance.on("error", (event: MapErrorEvent & { sourceId?: string }) => {
@@ -745,8 +752,15 @@ export function NearbyMap({
       });
 
       instance.on("idle", () => {
-        setStatus("ready");
-        onMapStatusChangeRef.current?.("ready");
+        console.log("[nearby-map] map idle");
+        markMapReady();
+      });
+
+      let firstRenderLogged = false;
+      instance.on("render", () => {
+        if (firstRenderLogged) return;
+        firstRenderLogged = true;
+        console.log("[nearby-map] first render");
       });
 
       // The sheet above the map changes height while the user drags it, and the
