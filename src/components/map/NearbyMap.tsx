@@ -418,6 +418,7 @@ export function NearbyMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const loadedRef = useRef(false);
+  const initialLoadDoneRef = useRef(false);
   const languageRef = useRef<MapLanguage>(language);
   const dataRef = useRef({ centroid, radiusM, shops });
   const onLocateRef = useRef<(() => void) | null>(null);
@@ -429,6 +430,7 @@ export function NearbyMap({
   const [retryNonce, setRetryNonce] = useState(0);
 
   function retryMap() {
+    initialLoadDoneRef.current = false;
     setMapError(null);
     setStatus("loading");
     onMapStatusChangeRef.current?.("loading");
@@ -549,6 +551,7 @@ export function NearbyMap({
     }
 
     function markMapReady() {
+      initialLoadDoneRef.current = true;
       setStatus("ready");
       onMapStatusChangeRef.current?.("ready");
     }
@@ -676,9 +679,11 @@ export function NearbyMap({
       mapRef.current = instance;
 
       instance.on("dataloading", () => {
-        // Never downgrade an already-ready map back to loading: style swaps
-        // and GeoJSON source updates can fire dataloading after markMapReady.
-        setStatus((prev) => (prev === "ready" ? prev : "loading"));
+        // Only enter the loading state during initial map initialization.
+        // Once ready, tile loading / data updates must not re-trigger the
+        // full-screen overlay (zoom, pan, tiles, etc.).
+        if (initialLoadDoneRef.current) return;
+        setStatus("loading");
         onMapStatusChangeRef.current?.("loading");
       });
 
