@@ -149,7 +149,7 @@ export function ShopsList({
         {filtered.length} of {shops.length} shop{shops.length === 1 ? "" : "s"} shown
       </p>
 
-      {shops.length === 0 ? (
+      {shops.length === 0 && category === "all" ? (
         <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-4 text-center">
           <p className="text-[14px] font-medium text-[var(--ink)]">No shops in this radius yet</p>
           <p className="mt-1 text-[13px] text-[var(--mute)]">
