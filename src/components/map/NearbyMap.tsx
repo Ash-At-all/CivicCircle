@@ -696,7 +696,6 @@ export function NearbyMap({
         }
 
         loadedRef.current = true;
-        console.log("[nearby-map] style loaded");
         try {
           addLayers();
         } catch (err) {
@@ -735,7 +734,6 @@ export function NearbyMap({
 
       instance.on("load", () => {
         loadedRef.current = true;
-        console.log("[nearby-map] map loaded");
         instance.resize();
         markMapReady();
       });
@@ -752,15 +750,7 @@ export function NearbyMap({
       });
 
       instance.on("idle", () => {
-        console.log("[nearby-map] map idle");
         markMapReady();
-      });
-
-      let firstRenderLogged = false;
-      instance.on("render", () => {
-        if (firstRenderLogged) return;
-        firstRenderLogged = true;
-        console.log("[nearby-map] first render");
       });
 
       // The sheet above the map changes height while the user drags it, and the
