@@ -1,8 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { CITY_CONFIGS } from "@/features/area/cities";
 
-type Result = { name: string; label: string; lat: number; lng: number };
+type Result = {
+  name: string;
+  label: string;
+  lat: number;
+  lng: number;
+  city: string;
+  cityName?: string;
+};
+
+const CITY_NAMES = CITY_CONFIGS.map((city) => city.name).join(", ");
 
 export function AreaPicker({
   onPick,
@@ -25,7 +35,7 @@ export function AreaPicker({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Could not search for that area.");
       setResults(json.results ?? []);
-      if ((json.results ?? []).length === 0) setError("No areas found in the launch city.");
+      if ((json.results ?? []).length === 0) setError("No areas found in the supported cities.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not search for that area.");
     } finally {
@@ -37,7 +47,7 @@ export function AreaPicker({
     <section className="rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-5 sm:p-6">
       <h2 className="font-display text-[24px] leading-tight text-[var(--ink)]">Choose an area</h2>
       <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--body-text)]">
-        Search in Chhatrapati Sambhajinagar.
+        Search across our launch cities: {CITY_NAMES}.
       </p>
       <form
         className="mt-4 flex flex-col gap-2 sm:flex-row"
@@ -73,7 +83,9 @@ export function AreaPicker({
                 onClick={() => void onPick(r)}
               >
                 <span className="font-medium">{r.name}</span>
-                <span className="mt-0.5 block text-[12px] text-[var(--mute)]">{r.label}</span>
+                <span className="mt-0.5 block text-[12px] text-[var(--mute)]">
+                  {r.cityName ? `${r.cityName} · ${r.label}` : r.label}
+                </span>
               </button>
             </li>
           ))}

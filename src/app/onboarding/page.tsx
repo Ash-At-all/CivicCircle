@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Check, ChevronLeft, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { AreaPicker } from "@/components/area/area-picker";
 import { generateGhostHandle } from "@/lib/auth/ghost";
+import { findCityForCoords } from "@/features/area/cities";
 
 type Step = 1 | 2 | 3;
 
@@ -49,15 +50,14 @@ export default function OnboardingPage() {
     }
   }
 
-  async function resolveFromCoords(lat: number, lng: number) {
+  async function resolveFromCoords(lat: number, lng: number, citySlug: string) {
     const h3 = await import("h3-js");
     const h3r8 = h3.latLngToCell(lat, lng, 8);
     const h3r7 = h3.cellToParent(h3r8, 7);
-    const h3r5 = h3.cellToParent(h3r8, 5);
     const res = await fetch("/api/area/resolve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ h3r8, h3r7, h3r5 }),
+      body: JSON.stringify({ h3r8, h3r7, city: citySlug }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((json as { error?: string }).error || "Could not set your area.");
@@ -79,7 +79,11 @@ export default function OnboardingPage() {
           maximumAge: 60000,
         }),
       );
-      await resolveFromCoords(position.coords.latitude, position.coords.longitude);
+      const city = findCityForCoords(position.coords.latitude, position.coords.longitude);
+      if (!city) {
+        throw new Error("CivicCircle is not available in this city yet.");
+      }
+      await resolveFromCoords(position.coords.latitude, position.coords.longitude, city.slug);
     } catch (e) {
       const message =
         e instanceof GeolocationPositionError
@@ -208,7 +212,7 @@ export default function OnboardingPage() {
                       setBusy(true);
                       setError(null);
                       try {
-                        await resolveFromCoords(result.lat, result.lng);
+                        await resolveFromCoords(result.lat, result.lng, result.city);
                       } catch (e) {
                         setError(e instanceof Error ? e.message : "Could not set your area.");
                       } finally {

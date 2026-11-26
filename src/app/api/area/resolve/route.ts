@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { resolveAreaSchema } from "@/features/area/schema";
-import { CITY_SLUG, cellCentroid, validateAreaCell } from "@/features/area/h3";
-import { DEFAULT_CITY_NAME, DEFAULT_CITY_NAME_HI, fallbackAreaName } from "@/features/area/names";
+import { getCityConfig } from "@/features/area/cities";
+import { cellCentroid, validateAreaCell } from "@/features/area/h3";
+import { fallbackAreaName } from "@/features/area/names";
 import { enforceSameOrigin } from "@/lib/server/origin";
 import { readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -24,8 +25,16 @@ export async function POST(request: Request) {
   const parsed = resolveAreaSchema.safeParse(payload.value);
   if (!parsed.success) return badArea();
 
-  const { h3r8, h3r7, h3r5 } = parsed.data;
-  if (!validateAreaCell("locality", h3r8) || !validateAreaCell("ward", h3r7) || !validateAreaCell("city", h3r5)) {
+  const { h3r8, h3r7, city: citySlug } = parsed.data;
+  const cityConfig = getCityConfig(citySlug);
+  if (!cityConfig) return badArea("This city is not supported yet.");
+
+  const h3r5 = cityConfig.h3r5;
+  if (
+    !validateAreaCell("locality", h3r8) ||
+    !validateAreaCell("ward", h3r7) ||
+    !validateAreaCell("city", h3r5)
+  ) {
     return badArea();
   }
 
@@ -39,7 +48,7 @@ export async function POST(request: Request) {
     const rateLimitResponse = await enforceRateLimit(supabase, "areaResolve");
     if (rateLimitResponse) return rateLimitResponse;
 
-    const cityCentroid = cellCentroid(h3r5);
+    const cityCentroid = cityConfig.centroid;
     const wardCentroid = cellCentroid(h3r7);
     const localityCentroid = cellCentroid(h3r8);
 
@@ -48,9 +57,9 @@ export async function POST(request: Request) {
     const city = await admin.rpc("ensure_area", {
       p_kind: "city",
       p_h3: h3r5,
-      p_name: DEFAULT_CITY_NAME,
-      p_name_hi: DEFAULT_CITY_NAME_HI,
-      p_city: CITY_SLUG,
+      p_name: cityConfig.name,
+      p_name_hi: cityConfig.nameHi,
+      p_city: citySlug,
       p_lat: cityCentroid.lat,
       p_lng: cityCentroid.lng,
       p_parent_id: null,
@@ -66,7 +75,7 @@ export async function POST(request: Request) {
       p_h3: h3r7,
       p_name: fallbackAreaName("ward"),
       p_name_hi: null,
-      p_city: CITY_SLUG,
+      p_city: citySlug,
       p_lat: wardCentroid.lat,
       p_lng: wardCentroid.lng,
       p_parent_id: cityRow.id,
@@ -82,7 +91,7 @@ export async function POST(request: Request) {
       p_h3: h3r8,
       p_name: fallbackAreaName("locality"),
       p_name_hi: null,
-      p_city: CITY_SLUG,
+      p_city: citySlug,
       p_lat: localityCentroid.lat,
       p_lng: localityCentroid.lng,
       p_parent_id: wardRow.id,
@@ -115,7 +124,7 @@ export async function POST(request: Request) {
         area: {
           locality: { id: localityRow.id, name: localityRow.name, h3: h3r8 },
           ward: { id: wardRow.id, name: wardRow.name, h3: h3r7 },
-          city: { id: cityRow.id, name: cityRow.name, h3: h3r5 },
+          city: { id: cityRow.id, name: cityRow.name, h3: h3r5, slug: citySlug },
           centroid: { lat: localityRow.centroid_lat, lng: localityRow.centroid_lng },
         },
       },

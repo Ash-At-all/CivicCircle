@@ -6,15 +6,13 @@ import type { ErrorEvent as MapErrorEvent, LayerSpecification, StyleSpecificatio
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
 import type { NearbyShop } from "@/features/shops/types";
+import {
+  DEFAULT_CITY_SLUG,
+  cityBoundsTuple,
+  getCityConfig,
+} from "@/features/area/cities";
 
 export type MapLanguage = "en" | "hi";
-
-// Kept in sync with src/features/area/h3.ts CITY_BOUNDS.
-// The map is city-constrained: no national boundary layer is added or claimed.
-const CITY_BOUNDS: [[number, number], [number, number]] = [
-  [75.1, 19.7],
-  [75.6, 20.1],
-];
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
 const MAP_BACKGROUND_COLOR = "#121212";
@@ -386,6 +384,7 @@ class MapFloatControl implements maplibregl.IControl {
 
 export function NearbyMap({
   centroid,
+  citySlug = DEFAULT_CITY_SLUG,
   radiusM,
   shops,
   language = "en",
@@ -394,6 +393,7 @@ export function NearbyMap({
   onMapStatusChange,
 }: {
   centroid: { lat: number; lng: number };
+  citySlug?: string;
   radiusM: number;
   shops: NearbyShop[];
   language?: MapLanguage;
@@ -515,6 +515,8 @@ export function NearbyMap({
     if (!containerRef.current || mapRef.current) return;
     const container = containerRef.current;
     const markers = markersRef.current;
+    const cityConfig = getCityConfig(citySlug) ?? getCityConfig(DEFAULT_CITY_SLUG);
+    const maxBounds = cityBoundsTuple(cityConfig?.slug ?? DEFAULT_CITY_SLUG);
 
     let disposed = false;
     let map: maplibregl.Map | null = null;
@@ -642,7 +644,7 @@ export function NearbyMap({
         zoom: 14,
         minZoom: 11,
         maxZoom: 18,
-        maxBounds: CITY_BOUNDS,
+        maxBounds,
         renderWorldCopies: false,
         fadeDuration: 0,
         attributionControl: false,
@@ -796,7 +798,7 @@ export function NearbyMap({
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retryNonce]);
+  }, [retryNonce, citySlug]);
 
   useEffect(() => {
     const map = mapRef.current;

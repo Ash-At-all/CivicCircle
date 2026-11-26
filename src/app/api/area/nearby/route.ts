@@ -1,7 +1,24 @@
 import { NextResponse } from "next/server";
 import { cellCentroid, validateAreaCell } from "@/features/area/h3";
+import { DEFAULT_CITY_SLUG, getCityConfig } from "@/features/area/cities";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+
+function relatedName(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  if ("name" in value && typeof (value as { name?: unknown }).name === "string") {
+    return (value as { name: string }).name;
+  }
+  return undefined;
+}
+
+function relatedCitySlug(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  if ("city_slug" in value && typeof (value as { city_slug?: unknown }).city_slug === "string") {
+    return (value as { city_slug: string }).city_slug;
+  }
+  return undefined;
+}
 
 export async function GET() {
   try {
@@ -16,7 +33,11 @@ export async function GET() {
 
     const { data: location, error: locationError } = await supabase
       .from("profile_locations")
-      .select("h3_r8, locality_area_id, ward_area_id, city_area_id, show_presence, locality:areas!profile_locations_locality_area_id_fkey(name)")
+      .select(
+        `h3_r8, locality_area_id, ward_area_id, city_area_id, show_presence,
+         locality:areas!profile_locations_locality_area_id_fkey(name),
+         city:areas!profile_locations_city_area_id_fkey(name, city_slug)`,
+      )
       .eq("user_id", userResult.user.id)
       .maybeSingle();
 
@@ -38,14 +59,16 @@ export async function GET() {
       return NextResponse.json({ error: "Could not load nearby places.", code: "server_error" }, { status: 502 });
     }
 
-    const localityName =
-      location.locality && typeof location.locality === "object" && "name" in location.locality
-        ? (location.locality as { name?: string }).name
-        : undefined;
+    const localityName = relatedName(location.locality) || "Your area";
+    const citySlug = relatedCitySlug(location.city) || DEFAULT_CITY_SLUG;
+    const cityConfig = getCityConfig(citySlug);
+    const cityName = relatedName(location.city) || cityConfig?.name || "Your city";
 
     return NextResponse.json({
       centroid,
-      localityName: localityName || "Your area",
+      localityName,
+      citySlug,
+      cityName,
       shops: shops ?? [],
       people: people ?? [],
       showPresence: Boolean(location.show_presence),

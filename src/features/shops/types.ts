@@ -23,6 +23,8 @@ export type PeopleBucket = {
 export type NearbyResponse = {
   centroid: { lat: number; lng: number };
   localityName?: string;
+  citySlug: string;
+  cityName: string;
   shops: NearbyShop[];
   people: PeopleBucket[];
   showPresence: boolean;

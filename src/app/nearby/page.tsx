@@ -20,6 +20,7 @@ import {
 } from "@/features/area/radius";
 import type { HighlightsResponse } from "@/features/highlights/types";
 import type { NearbyResponse } from "@/features/shops/types";
+import { findCityForCoords } from "@/features/area/cities";
 
 const NearbyMap = dynamic(() => import("@/components/map/NearbyMap").then((m) => m.NearbyMap), {
   ssr: false,
@@ -295,15 +296,14 @@ export default function NearbyPage() {
     setIsResolvingArea(false);
   }
 
-  async function resolveFromCoords(lat: number, lng: number) {
+  async function resolveFromCoords(lat: number, lng: number, citySlug: string) {
     const h3 = await import("h3-js");
     const h3r8 = h3.latLngToCell(lat, lng, 8);
     const h3r7 = h3.cellToParent(h3r8, 7);
-    const h3r5 = h3.cellToParent(h3r8, 5);
     const res = await fetch("/api/area/resolve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ h3r8, h3r7, h3r5 }),
+      body: JSON.stringify({ h3r8, h3r7, city: citySlug }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || "Could not set your area.");
@@ -323,7 +323,11 @@ export default function NearbyPage() {
           maximumAge: 60000,
         }),
       );
-      await resolveFromCoords(position.coords.latitude, position.coords.longitude);
+      const city = findCityForCoords(position.coords.latitude, position.coords.longitude);
+      if (!city) {
+        throw new Error("CivicCircle is not available in this city yet.");
+      }
+      await resolveFromCoords(position.coords.latitude, position.coords.longitude, city.slug);
       setShowRadiusPrompt(true);
     } catch (e) {
       const message =
@@ -470,7 +474,7 @@ export default function NearbyPage() {
             </span>
             <div>
               <h1 className="text-[15px] font-medium text-[var(--ink)]">Nearby</h1>
-              <p className="text-[12px] text-[var(--mute)]">Chhatrapati Sambhajinagar</p>
+              <p className="text-[12px] text-[var(--mute)]">Maharashtra</p>
             </div>
           </header>
 
@@ -504,7 +508,7 @@ export default function NearbyPage() {
                   setError(null);
                   runAreaProgress();
                   try {
-                    await resolveFromCoords(result.lat, result.lng);
+                    await resolveFromCoords(result.lat, result.lng, result.city);
                     setMode("consent");
                     setShowRadiusPrompt(true);
                   } catch (e) {
@@ -535,6 +539,7 @@ export default function NearbyPage() {
       <div className="nearby-map absolute inset-0">
         <NearbyMap
           centroid={data.centroid}
+          citySlug={data.citySlug}
           radiusM={effectiveRadius}
           shops={displayedShops}
           language={language}
@@ -581,7 +586,7 @@ export default function NearbyPage() {
               {data.localityName || "Your area"}
             </span>
             <span className="block truncate text-[12px] text-[var(--mute)]">
-              {displayedShops.length} places nearby
+              {data.cityName} · {displayedShops.length} places nearby
             </span>
           </span>
         </button>
