@@ -938,12 +938,24 @@ textarea.field {
   border-bottom: 1px solid var(--hairline);
 }
 
-/* Home hero card: soft green glow over the dark canvas. */
+/* Home hero card: dark green panel that fades to transparent on the right so
+   the mohalla illustration blends in on desktop. */
 .home-hero {
-  background:
-    radial-gradient(120% 140% at 88% 0%, rgba(29, 185, 84, 0.2), transparent 55%),
-    radial-gradient(90% 90% at 0% 100%, rgba(29, 185, 84, 0.07), transparent 60%),
-    linear-gradient(180deg, #1c1c1c 0%, #151515 100%);
+  background: linear-gradient(135deg, #0d2010 0%, #132a18 100%);
+}
+
+@media (min-width: 768px) {
+  .home-hero {
+    background:
+      linear-gradient(
+        90deg,
+        #0d2010 0%,
+        #0d2010 38%,
+        rgba(13, 32, 16, 0.72) 62%,
+        rgba(13, 32, 16, 0.12) 100%
+      ),
+      #0d2010;
+  }
 }
 
 /* Keep the two hero actions on one row on small screens. */

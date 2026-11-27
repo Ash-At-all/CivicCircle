@@ -34,29 +34,6 @@ import { processImage } from "@/lib/client-image";
 
 type CitySlug = typeof CITIES[number]["slug"];
 
-const HERO_MESSAGES = [
-  "Your neighbourhood has a story. Be part of it.",
-  "Something's always happening around you.",
-  "Good things start with a conversation.",
-  "Your local community starts here.",
-  "Got something to say? Your neighbours are listening.",
-  "Stay curious about your neighbourhood.",
-  "A little local connection goes a long way.",
-  "Know your area. Meet your community.",
-  "What's happening around you today?",
-  "Every neighbourhood has something to talk about.",
-  "Your voice belongs in your community.",
-  "New day, new conversations.",
-  "There's more happening nearby than you think.",
-  "Make your neighbourhood a little more connected.",
-  "The best local updates come from locals.",
-  "Small chats can spark big things nearby.",
-  "See what's buzzing in your area.",
-  "Drop in and say hi to your neighbours.",
-  "Your corner of the city is worth knowing.",
-  "Local tips, real people, right here.",
-];
-
 const MOHAALLA_PROMPTS = [
   "Need a plumber nearby?",
   "Best chai spot around here?",
@@ -86,22 +63,6 @@ function seededShuffle<T>(items: readonly T[], seed: number): T[] {
 
 function daySeed(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
-}
-
-function dailyMessageIndex(seed: number, count: number) {
-  let h = seed ^ 0x9e3779b9;
-  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
-  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
-  h = (h ^ (h >>> 16)) >>> 0;
-  const idx = h % count;
-  if (count <= 1) return idx;
-  const prevSeed = seed - 1;
-  let ph = prevSeed ^ 0x9e3779b9;
-  ph = Math.imul(ph ^ (ph >>> 16), 0x45d9f3b);
-  ph = Math.imul(ph ^ (ph >>> 16), 0x45d9f3b);
-  ph = (ph ^ (ph >>> 16)) >>> 0;
-  const prevIdx = ph % count;
-  return idx === prevIdx ? (idx + 1) % count : idx;
 }
 
 function relativeTime(createdAt: string) {
@@ -406,15 +367,6 @@ function HomeContent() {
       day: "numeric",
       month: "short",
     });
-  }, [heroReady, heroTick]);
-
-  const heroMessage = useMemo(() => {
-    void heroTick;
-    if (!heroReady) {
-      return "Post anonymously, follow the boards that matter, and drop into the room for your locality, no account required.";
-    }
-    const now = new Date();
-    return HERO_MESSAGES[dailyMessageIndex(daySeed(now), HERO_MESSAGES.length)];
   }, [heroReady, heroTick]);
 
   const promptChips = useMemo(() => {
@@ -926,23 +878,37 @@ function HomeContent() {
 
         {/* Hero */}
         <section className="px-4 pt-3 sm:px-6">
-          <div className="home-hero relative overflow-hidden rounded-[24px] border border-[var(--hairline)] px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8">
-            <Image
-              src="/brand/logo.png"
-              alt=""
-              width={260}
-              height={162}
+          <div className="home-hero relative isolate overflow-hidden rounded-[24px] border border-[var(--hairline)]">
+            {/* Mohalla illustration: desktop only */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] md:block">
+              <Image
+                src="/brand/hero-mohalla.png"
+                alt="Indian mohalla illustration"
+                fill
+                priority
+                sizes="(max-width: 768px) 0px, 50vw"
+                className="object-cover object-left"
+              />
+            </div>
+
+            {/* Blend the illustration edge into the green panel */}
+            <div
+              className="pointer-events-none absolute inset-0 hidden md:block"
+              style={{
+                background:
+                  "linear-gradient(90deg, #0d2010 0%, #0d2010 50%, rgba(13,32,16,0.94) 58%, rgba(13,32,16,0.55) 72%, rgba(13,32,16,0.12) 88%, transparent 100%)",
+              }}
               aria-hidden="true"
-              className="pointer-events-none absolute -right-8 -top-4 hidden h-40 w-auto opacity-[0.07] sm:block"
             />
-            <div className="relative max-w-2xl">
-              <h1 className="text-[34px] font-semibold leading-[1.03] tracking-[-0.02em] text-[var(--ink)] sm:text-[44px]">
+
+            <div className="relative z-10 px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8 md:max-w-[56%]">
+              <h1 className="text-[34px] font-semibold leading-[1.03] tracking-[-0.02em] text-white sm:text-[44px]">
                 {activeTopic === "general"
                   ? "Your mohalla, right now."
                   : `${activeTopicName}, right now.`}
               </h1>
-              <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-[var(--body-text)]">
-                {heroMessage}
+              <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-[#c9dccf]">
+                See what&apos;s happening around you.
               </p>
 
               <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[rgba(29,185,84,0.32)] bg-[rgba(29,185,84,0.12)] px-2.5 py-1 text-[11px] font-medium text-[#7ee2a8]">
@@ -962,7 +928,7 @@ function HomeContent() {
                 </Link>
               </div>
 
-              <p className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--ash)]">
+              <p className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#9db8a4]">
                 <span className="inline-flex items-center gap-1.5">
                   <Lock className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
                   No login needed
