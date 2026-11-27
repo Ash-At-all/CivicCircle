@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   MessageSquare,
@@ -16,6 +17,7 @@ import {
   Lightbulb,
   Flag,
   Trash2,
+  Send,
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -292,6 +294,7 @@ function HomeContent() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [feedVersion, setFeedVersion] = useState(0);
   const [activity, setActivity] = useState<HighlightsResponse | null>(null);
+  const [quickAsk, setQuickAsk] = useState("");
   const [nowMs, setNowMs] = useState(0);
   const [polls, setPolls] = useState<Record<string, PollResult>>({});
   const [votedPolls, setVotedPolls] = useState<Record<string, string>>({});
@@ -424,6 +427,14 @@ function HomeContent() {
     setPostTitle(prompt);
     setPostBody("");
     setCreatePostOpen(true);
+  }
+
+  function submitQuickAsk(e: React.FormEvent) {
+    e.preventDefault();
+    const question = quickAsk.trim();
+    if (!question) return;
+    setQuickAsk("");
+    startPromptPost(question);
   }
 
   useEffect(() => {
@@ -764,9 +775,14 @@ function HomeContent() {
         <div className="flex items-center justify-between gap-2 px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <Link href="/home" className="flex min-w-0 items-center gap-2.5" aria-label="CivicCircle home">
-              <span
-                className="h-2 w-2 flex-none bg-[var(--accent-ember)]"
-                aria-hidden="true"
+              <Image
+                src="/brand/logo.png"
+                alt=""
+                width={32}
+                height={20}
+                priority
+                loading="eager"
+                className="h-5 w-auto flex-none"
               />
               <span className="truncate font-display text-[19px] leading-none text-[var(--ink)]">
                 CivicCircle
@@ -775,18 +791,17 @@ function HomeContent() {
           </div>
 
           <div className="flex flex-none items-center gap-0.5">
-            <NotificationBell />
             <Link
               href="/saved"
               aria-label="Saved posts and places"
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              className="btn btn-icon text-[var(--mute)] hover:bg-[var(--surface-elevated)]"
             >
               <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </Link>
             <Link
               href="/nearby"
               aria-label="Nearby"
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              className="btn btn-icon text-[var(--mute)] hover:bg-[var(--surface-elevated)]"
             >
               <MapPin className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </Link>
@@ -796,13 +811,14 @@ function HomeContent() {
               aria-expanded={searchOpen}
               aria-controls="post-search"
               onClick={() => setSearchOpen((v) => !v)}
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
+              className="btn btn-icon text-[var(--mute)] hover:bg-[var(--surface-elevated)]"
             >
               <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
               </svg>
             </button>
+            <NotificationBell />
           </div>
         </div>
 
@@ -884,120 +900,209 @@ function HomeContent() {
       </header>
 
       <div className="flex-1">
-        {/* Masthead */}
-        <section className="hero-band">
-          <div className="px-4 pb-8 pt-8 sm:px-6 sm:pb-10 sm:pt-10">
-            <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
-              <div className="min-w-0">
-                <p className="dateline">
-                  <span className="dateline-mark" aria-hidden="true" />
-                  <span className="truncate">{heroPlace ?? activeTopicName}</span>
-                  <span className="dateline-sep" aria-hidden="true">·</span>
-                  <span>{datelineLabel}</span>
-                </p>
+        {/* Location + search */}
+        <div className="flex items-center gap-2 px-4 pt-3 sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2">
+            <MapPin className="h-3.5 w-3.5 flex-none text-[var(--accent)]" strokeWidth={1.8} aria-hidden="true" />
+            <span className="min-w-0 truncate text-[12px] font-medium text-[var(--ink)]">
+              {heroPlace ?? activeTopicName}
+            </span>
+            <span className="flex-none text-[var(--ash)]" aria-hidden="true">·</span>
+            <span className="flex-none text-[12px] text-[var(--mute)]">{datelineLabel}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search posts"
+            className="btn btn-sm btn-tertiary h-[38px] flex-none"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            Search
+          </button>
+        </div>
 
-                <h1 className="mt-3 max-w-[17ch] text-balance text-display">
-                  {activeTopic === "general"
-                    ? "Your mohalla, right now."
-                    : `${activeTopicName}, right now.`}
-                </h1>
+        {/* Hero */}
+        <section className="px-4 pt-3 sm:px-6">
+          <div className="home-hero relative overflow-hidden rounded-[24px] border border-[var(--hairline)] px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8">
+            <Image
+              src="/brand/logo.png"
+              alt=""
+              width={260}
+              height={162}
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-8 -top-4 hidden h-40 w-auto opacity-[0.07] sm:block"
+            />
+            <div className="relative max-w-2xl">
+              <h1 className="text-[34px] font-semibold leading-[1.03] tracking-[-0.02em] text-[var(--ink)] sm:text-[44px]">
+                {activeTopic === "general"
+                  ? "Your mohalla, right now."
+                  : `${activeTopicName}, right now.`}
+              </h1>
+              <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-[var(--body-text)]">
+                {heroMessage}
+              </p>
 
-                <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[var(--body-text)]">
-                  {heroMessage}
-                </p>
+              <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[rgba(29,185,84,0.32)] bg-[rgba(29,185,84,0.12)] px-2.5 py-1 text-[11px] font-medium text-[#7ee2a8]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+                {activity
+                  ? `${activity.posts.total} ${activity.posts.total === 1 ? "post" : "posts"} nearby`
+                  : "Neighbours active nearby"}
+              </span>
 
-                <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                  <a href="#community-feed" className="btn btn-primary">
-                    Read the board
-                  </a>
-                  <Link href="/nearby" className="btn btn-tertiary">
-                    <MapPin className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
-                    Nearby
-                  </Link>
-                </div>
-
-                <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--ash)]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
-                    No account needed
-                  </span>
-                  <span className="dateline-sep" aria-hidden="true">·</span>
-                  <span>Approximate area only</span>
-                </p>
+              <div className="home-hero-actions mt-4 flex flex-wrap items-center gap-2">
+                <a href="#community-feed" className="btn btn-primary">
+                  Read Mohalla Board
+                </a>
+                <Link href="/nearby" className="btn btn-tertiary">
+                  <MapPin className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
+                  Map &amp; Shops
+                </Link>
               </div>
 
-              {/* Start here */}
-              <div className="min-w-0">
-                <div className="mx-auto w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--hairline)] bg-[var(--surface)] p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-[13px] font-medium text-[var(--ink)]">Start here</p>
-                    <span className="text-[12px] text-[var(--ash)]">Three ways in</span>
-                  </div>
-
-                  <div className="mt-3 divide-y divide-[var(--hairline)]">
-                    <button
-                      type="button"
-                      onClick={() => setCreatePostOpen(true)}
-                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface-elevated)]"
-                    >
-                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
-                        <Plus className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-medium text-[var(--ink)]">Share a post</span>
-                        <span className="block text-[12px] text-[var(--mute)]">Ask, update, or recommend something</span>
-                      </span>
-                    </button>
-
-                    <Link
-                      href="/nearby"
-                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface-elevated)]"
-                    >
-                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
-                        <Store className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-medium text-[var(--ink)]">Explore nearby</span>
-                        <span className="block text-[12px] text-[var(--mute)]">Shops, chat, and reviews around you</span>
-                      </span>
-                    </Link>
-
-                    <Link
-                      href={`/chat/${activeTopic}`}
-                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface-elevated)]"
-                    >
-                      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)]">
-                        <MessageSquare className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-medium text-[var(--ink)]">Join the conversation</span>
-                        <span className="block text-[12px] text-[var(--mute)]">Drop into {activeTopicName} chat</span>
-                      </span>
-                    </Link>
-                  </div>
-
-                  <div className="mt-3">
-                    <p className="text-[12px] font-medium text-[var(--ash)]">Quick ask</p>
-                    <div className="no-scrollbar -mx-1 mt-2 flex items-center gap-2 overflow-x-auto px-1 pb-1">
-                      {promptChips.map((prompt) => (
-                        <button
-                          key={prompt}
-                          type="button"
-                          onClick={() => startPromptPost(prompt)}
-                          className="flex-none rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-[12px] text-[var(--body-text)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
-                        >
-                          {prompt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <p className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--ash)]">
+                <span className="inline-flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
+                  No login needed
+                </span>
+                <span className="dateline-sep" aria-hidden="true">·</span>
+                <span>Approximate area only</span>
+              </p>
             </div>
           </div>
         </section>
 
-        <div className="hairline-divider" />
+        {/* What would you like to do? */}
+        <section className="px-4 pt-5 sm:px-6">
+          <h2 className="text-[15px] font-semibold text-[var(--ink)]">What would you like to do?</h2>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div
+              className="row-span-2 flex flex-col rounded-[18px] border p-4 sm:row-span-1"
+              style={{ background: "rgba(29,185,84,0.09)", borderColor: "rgba(29,185,84,0.24)" }}
+            >
+              <button
+                type="button"
+                onClick={() => setCreatePostOpen(true)}
+                aria-label="Post to Mohalla"
+                className="home-fab"
+              >
+                <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden="true" />
+              </button>
+              <p className="mt-3 text-[14px] font-semibold text-[var(--ink)]">Post to Mohalla</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-[var(--mute)]">
+                Ask a question, share an update or recommendation
+              </p>
+              <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setCreatePostOpen(true)}
+                  className="home-chip"
+                  style={{
+                    background: "rgba(29,185,84,0.12)",
+                    borderColor: "rgba(29,185,84,0.3)",
+                    color: "#8ce8b4",
+                  }}
+                >
+                  Ask Question
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreatePostOpen(true)}
+                  className="home-chip"
+                >
+                  Give Update
+                </button>
+              </div>
+            </div>
+
+            <Link
+              href="/nearby"
+              className="flex flex-col rounded-[18px] border p-4 transition-colors hover:brightness-110"
+              style={{ background: "rgba(245,158,11,0.09)", borderColor: "rgba(245,158,11,0.22)" }}
+            >
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[12px] bg-[rgba(245,158,11,0.16)] text-[#f2b25c]">
+                <Store className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+              </span>
+              <p className="mt-2.5 text-[13px] font-semibold leading-tight text-[var(--ink)]">
+                Find Nearby Shops &amp; Help
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug text-[var(--mute)]">
+                Mandis, local vendors, doctors &amp; reviews
+              </p>
+            </Link>
+
+            <Link
+              href={`/chat/${activeTopic}`}
+              className="flex flex-col rounded-[18px] border p-4 transition-colors hover:brightness-110"
+              style={{ background: "rgba(59,130,246,0.09)", borderColor: "rgba(59,130,246,0.22)" }}
+            >
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[12px] bg-[rgba(59,130,246,0.16)] text-[#86b6ff]">
+                <MessageSquare className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+              </span>
+              <p className="mt-2.5 text-[13px] font-semibold leading-tight text-[var(--ink)]">
+                Join General Chat
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug text-[var(--mute)]">
+                Chat with neighbors in real time
+              </p>
+            </Link>
+          </div>
+        </section>
+
+        {/* Quick questions */}
+        <section className="px-4 pt-4 sm:px-6">
+          <div className="rounded-[20px] border border-[var(--hairline)] bg-[var(--surface)] p-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[rgba(29,185,84,0.14)] text-[var(--accent)]">
+                <MessageSquare className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-[var(--ink)]">Quick Questions from Neighbors</p>
+                <p className="text-[11px] text-[var(--mute)]">What neighbors are asking right now:</p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {promptChips.slice(0, 6).map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => startPromptPost(prompt)}
+                  className="home-chip"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            <form
+              onSubmit={submitQuickAsk}
+              className="mt-3 flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface-elevated)] py-1 pl-3.5 pr-1"
+            >
+              <input
+                type="text"
+                value={quickAsk}
+                onChange={(e) => setQuickAsk(e.target.value)}
+                placeholder="Ask your mohalla anything..."
+                aria-label="Ask your mohalla anything"
+                className="home-ask-input"
+              />
+              <button
+                type="submit"
+                aria-label="Ask"
+                disabled={!quickAsk.trim()}
+                className="home-ask-send"
+              >
+                <Send className="h-3.5 w-3.5" strokeWidth={2.2} aria-hidden="true" />
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <div className="hairline-divider mt-5" />
 
         {/* Board controls */}
         <section id="community-feed" className="scroll-mt-24 px-4 pb-2 pt-7 sm:px-6">

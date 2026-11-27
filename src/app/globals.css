@@ -608,6 +608,84 @@ input[type="checkbox"] {
   border-radius: 9999px;
 }
 
+/* Home page pills and compact controls. The global button reset clears
+   border, padding and background, so raw buttons need these classes. */
+.home-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-elevated);
+  color: var(--body-text);
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+  transition: border-color var(--motion-fast), color var(--motion-fast),
+    background-color var(--motion-fast);
+}
+
+.home-chip:hover {
+  border-color: var(--hairline-strong);
+  color: var(--ink);
+}
+
+.home-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #000000;
+  transition: transform var(--motion-fast);
+}
+
+.home-fab:active {
+  transform: scale(0.95);
+}
+
+.home-ask-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+}
+
+.home-ask-input::placeholder {
+  color: var(--ash);
+}
+
+.home-ask-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: #000000;
+  transition: transform var(--motion-fast), opacity var(--motion-fast);
+}
+
+.home-ask-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.home-ask-send:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
 /* legacy aliases */
 .gradient-btn,
 .yellow-btn {
@@ -858,6 +936,28 @@ textarea.field {
   overflow: hidden;
   background: var(--canvas);
   border-bottom: 1px solid var(--hairline);
+}
+
+/* Home hero card: soft green glow over the dark canvas. */
+.home-hero {
+  background:
+    radial-gradient(120% 140% at 88% 0%, rgba(29, 185, 84, 0.2), transparent 55%),
+    radial-gradient(90% 90% at 0% 100%, rgba(29, 185, 84, 0.07), transparent 60%),
+    linear-gradient(180deg, #1c1c1c 0%, #151515 100%);
+}
+
+/* Keep the two hero actions on one row on small screens. */
+.home-hero-actions .btn {
+  min-height: 40px;
+  padding: 9px 16px;
+  font-size: 13px;
+}
+
+@media (max-width: 360px) {
+  .home-hero-actions .btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }
 
 /* The diagonal stripe wash was decoration. The dateline and the rule under

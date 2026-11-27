@@ -6,7 +6,7 @@ import { Home, Compass, Plus, MessageSquare, User } from "lucide-react";
 
 const ITEMS = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/discovery", label: "Explore", icon: Compass },
+  { href: "/discovery", label: "Map & Explore", icon: Compass },
   { href: "/chat/general", label: "Chats", icon: MessageSquare },
   { href: "/profile", label: "Profile", icon: User },
 ] as const;
@@ -28,7 +28,7 @@ export function BottomNav() {
         href={href}
         aria-label={label}
         aria-current={active ? "page" : undefined}
-        className={`relative flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] text-[12px] transition-colors ${
+        className={`relative flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] text-[11px] whitespace-nowrap transition-colors ${
           active
             ? "font-medium text-[var(--ink)]"
             : "text-[var(--mute)] hover:text-[var(--ink)]"
@@ -63,7 +63,7 @@ export function BottomNav() {
           <Link
             href="/home?compose=1"
             aria-label="Create post"
-            className="mx-1 flex h-11 w-11 flex-none items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)] transition-transform active:scale-95"
+            className="mx-1 flex h-12 w-12 flex-none items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_28px_rgba(29,185,84,0.35)] transition-transform active:scale-95"
           >
             <Plus className="h-5 w-5" strokeWidth={2.2} />
           </Link>

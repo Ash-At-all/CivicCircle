@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Home, MessageSquare, User, Bookmark, MapPin } from "lucide-react";
 import { CITIES } from "@/features/cities/cities";
@@ -28,9 +29,13 @@ function SidebarContent() {
           className="flex items-center gap-2.5 px-2 py-1"
           aria-label="CivicCircle home"
         >
-          <span
-            className="h-2 w-2 flex-none bg-[var(--accent-ember)]"
-            aria-hidden="true"
+          <Image
+            src="/brand/logo.png"
+            alt=""
+            width={32}
+            height={20}
+            loading="eager"
+            className="h-5 w-auto flex-none"
           />
           <span className="min-w-0">
             <span className="block truncate font-display text-[17px] leading-none text-[var(--ink)]">
