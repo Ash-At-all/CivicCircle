@@ -23,6 +23,7 @@ import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { HighlightsStrip, type HighlightItem } from "@/components/highlights/highlights-strip";
 import { SavePostButton } from "@/components/saved/save-post-button";
+import { TileBackground } from "@/components/home/tile-background";
 import { CITIES } from "@/features/cities/cities";
 import { POST_TAGS, type PostTag } from "@/features/posts/schema";
 import { POST_ALERT_BADGE_CLASS, POST_ALERT_LABELS, POST_ALERT_TYPES, isPostAlertType, type PostAlertType } from "@/features/posts/alerts";
@@ -880,14 +881,14 @@ function HomeContent() {
         <section className="px-4 pt-3 sm:px-6">
           <div className="home-hero relative isolate overflow-hidden rounded-[24px] border border-[var(--hairline)]">
             {/* Mohalla illustration: desktop only */}
-            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] md:block">
+            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[55%] md:block">
               <Image
                 src="/brand/hero-mohalla.png"
                 alt="Indian mohalla illustration"
                 fill
                 priority
-                sizes="(max-width: 768px) 0px, 50vw"
-                className="object-cover object-left"
+                sizes="(max-width: 768px) 0px, 55vw"
+                className="object-cover object-center"
               />
             </div>
 
@@ -896,12 +897,12 @@ function HomeContent() {
               className="pointer-events-none absolute inset-0 hidden md:block"
               style={{
                 background:
-                  "linear-gradient(90deg, #0d2010 0%, #0d2010 50%, rgba(13,32,16,0.94) 58%, rgba(13,32,16,0.55) 72%, rgba(13,32,16,0.12) 88%, transparent 100%)",
+                  "linear-gradient(90deg, #0d2010 0%, #0d2010 46%, rgba(13,32,16,0.9) 68%, rgba(13,32,16,0.35) 86%, transparent 100%)",
               }}
               aria-hidden="true"
             />
 
-            <div className="relative z-10 px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8 md:max-w-[56%]">
+            <div className="relative z-10 px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8 md:max-w-[58%]">
               <h1 className="text-[34px] font-semibold leading-[1.03] tracking-[-0.02em] text-white sm:text-[44px]">
                 {activeTopic === "general"
                   ? "Your mohalla, right now."
@@ -946,74 +947,99 @@ function HomeContent() {
 
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div
-              className="row-span-2 flex flex-col rounded-[18px] border p-4 sm:row-span-1"
-              style={{ background: "rgba(29,185,84,0.09)", borderColor: "rgba(29,185,84,0.24)" }}
+              className="row-span-2 relative flex flex-col overflow-hidden rounded-[18px] border p-4 sm:row-span-1"
+              style={{ backgroundColor: "#0b2412", borderColor: "rgba(29,185,84,0.28)" }}
             >
-              <button
-                type="button"
-                onClick={() => setCreatePostOpen(true)}
-                aria-label="Post to Mohalla"
-                className="home-fab"
-              >
-                <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden="true" />
-              </button>
-              <p className="mt-3 text-[14px] font-semibold text-[var(--ink)]">Post to Mohalla</p>
-              <p className="mt-0.5 text-[12px] leading-snug text-[var(--mute)]">
-                Ask a question, share an update or recommendation
-              </p>
-              <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+              <TileBackground
+                src="/brand/tile-post.png"
+                fallback="#0b2412"
+                overlay="linear-gradient(160deg, rgba(10,46,22,0.55) 0%, rgba(6,22,11,0.9) 100%)"
+                priority
+              />
+
+              <div className="relative z-10 flex h-full flex-col">
                 <button
                   type="button"
                   onClick={() => setCreatePostOpen(true)}
-                  className="home-chip"
-                  style={{
-                    background: "rgba(29,185,84,0.12)",
-                    borderColor: "rgba(29,185,84,0.3)",
-                    color: "#8ce8b4",
-                  }}
+                  aria-label="Post to Mohalla"
+                  className="home-fab"
                 >
-                  Ask Question
+                  <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreatePostOpen(true)}
-                  className="home-chip"
-                >
-                  Give Update
-                </button>
+                <p className="mt-3 text-[14px] font-semibold text-white">Post to Mohalla</p>
+                <p className="mt-0.5 text-[12px] leading-snug text-[#cfe2d4]">
+                  Ask a question, share an update or recommendation
+                </p>
+                <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreatePostOpen(true)}
+                    className="home-chip"
+                    style={{
+                      background: "rgba(29,185,84,0.2)",
+                      borderColor: "rgba(29,185,84,0.42)",
+                      color: "#a8f0c4",
+                    }}
+                  >
+                    Ask Question
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreatePostOpen(true)}
+                    className="home-chip"
+                  >
+                    Give Update
+                  </button>
+                </div>
               </div>
             </div>
 
             <Link
               href="/nearby"
-              className="flex flex-col rounded-[18px] border p-4 transition-colors hover:brightness-110"
-              style={{ background: "rgba(245,158,11,0.09)", borderColor: "rgba(245,158,11,0.22)" }}
+              className="relative flex flex-col overflow-hidden rounded-[18px] border p-4 transition-colors hover:brightness-110"
+              style={{ backgroundColor: "#2a1c07", borderColor: "rgba(245,158,11,0.3)" }}
             >
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[12px] bg-[rgba(245,158,11,0.16)] text-[#f2b25c]">
-                <Store className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-              </span>
-              <p className="mt-2.5 text-[13px] font-semibold leading-tight text-[var(--ink)]">
-                Find Nearby Shops &amp; Help
-              </p>
-              <p className="mt-0.5 text-[11px] leading-snug text-[var(--mute)]">
-                Mandis, local vendors, doctors &amp; reviews
-              </p>
+              <TileBackground
+                src="/brand/tile-shops.png"
+                fallback="#2a1c07"
+                overlay="linear-gradient(160deg, rgba(58,34,6,0.55) 0%, rgba(28,16,3,0.9) 100%)"
+              />
+
+              <div className="relative z-10 flex h-full flex-col">
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[12px] bg-[rgba(245,158,11,0.22)] text-[#ffd28a]">
+                  <Store className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <p className="mt-2.5 text-[13px] font-semibold leading-tight text-white">
+                  Find Nearby Shops &amp; Help
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-[#f0dcc0]">
+                  Mandis, local vendors, doctors &amp; reviews
+                </p>
+              </div>
             </Link>
 
             <Link
               href={`/chat/${activeTopic}`}
-              className="flex flex-col rounded-[18px] border p-4 transition-colors hover:brightness-110"
-              style={{ background: "rgba(59,130,246,0.09)", borderColor: "rgba(59,130,246,0.22)" }}
+              className="relative flex flex-col overflow-hidden rounded-[18px] border p-4 transition-colors hover:brightness-110"
+              style={{ backgroundColor: "#08182f", borderColor: "rgba(59,130,246,0.3)" }}
             >
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[12px] bg-[rgba(59,130,246,0.16)] text-[#86b6ff]">
-                <MessageSquare className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-              </span>
-              <p className="mt-2.5 text-[13px] font-semibold leading-tight text-[var(--ink)]">
-                Join General Chat
-              </p>
-              <p className="mt-0.5 text-[11px] leading-snug text-[var(--mute)]">
-                Chat with neighbors in real time
-              </p>
+              <TileBackground
+                src="/brand/tile-chat.png"
+                fallback="#08182f"
+                overlay="linear-gradient(160deg, rgba(12,34,72,0.55) 0%, rgba(5,15,35,0.9) 100%)"
+              />
+
+              <div className="relative z-10 flex h-full flex-col">
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[12px] bg-[rgba(59,130,246,0.24)] text-[#a8ccff]">
+                  <MessageSquare className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <p className="mt-2.5 text-[13px] font-semibold leading-tight text-white">
+                  Join General Chat
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-[#cfe0ff]">
+                  Chat with neighbors in real time
+                </p>
+              </div>
             </Link>
           </div>
         </section>

@@ -686,6 +686,30 @@ input[type="checkbox"] {
   transform: scale(0.95);
 }
 
+/* Home action tiles: subtle illustration under a category-coloured wash. */
+.tile-bg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tile-bg-image {
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0.38;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
+}
+
+.tile-bg-overlay {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
 /* legacy aliases */
 .gradient-btn,
 .yellow-btn {
