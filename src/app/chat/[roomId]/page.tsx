@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, use } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
@@ -16,7 +16,6 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { DefaultAvatar } from "@/components/ui/default-avatar";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Message = {
@@ -44,6 +43,9 @@ type GifResult = {
 const POLL_MS = 3000;
 const GIF_PREFIX = "gif::";
 const GIPHY_MEDIA_HOST = /^media\d*\.giphy\.com$/;
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮"] as const;
+const REACTION_PICKER_WIDTH = 208;
+const REACTION_PICKER_HEIGHT = 56;
 
 // GIF messages store the media URL in the body behind a prefix. Only Giphy
 // media hosts are rendered, so a hand-crafted body cannot load another site.
@@ -62,6 +64,34 @@ function parseGifUrl(body: string): string | null {
 
 function messageTime(createdAt: string): string {
   return new Date(createdAt).toLocaleString();
+}
+
+function formatClock(message: Pick<Message, "createdAt" | "time">): string {
+  if (!message.createdAt) return message.time;
+  const date = new Date(message.createdAt);
+  if (Number.isNaN(date.getTime())) return message.time;
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function startOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function messageDayKey(createdAt?: string): string {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return String(startOfDay(date));
+}
+
+function messageDayLabel(createdAt?: string): string {
+  if (!createdAt) return "Today";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "Today";
+  const diff = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 // Merge by id so a poll or a realtime event never wipes older messages, and
@@ -144,6 +174,24 @@ const [gifLoading, setGifLoading] = useState(false);
 const [gifError, setGifError] = useState<string | null>(null);
 const gifRequestRef = useRef(0);
 const lastGifQueryRef = useRef<string | null>(null);
+
+const [reactions, setReactions] = useState<Record<string, string[]>>(() => {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(`civiccircle-chat-reactions:${roomId}`);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string[]>) : {};
+  } catch {
+    return {};
+  }
+});
+const [reactionTarget, setReactionTarget] = useState<{
+  messageId: string;
+  x: number;
+  y: number;
+} | null>(null);
+const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const longPressOriginRef = useRef<{ x: number; y: number } | null>(null);
 
   const roomTitle = roomId.replace(/-/g, " ");
   const isGlobal = roomId === "general";
@@ -319,6 +367,94 @@ const lastGifQueryRef = useRef<string | null>(null);
     return () => clearTimeout(handle);
   }, [gifOpen, gifQuery, loadGifs]);
 
+  // Reactions are per-device for now. They persist across reloads but are not
+  // shared with other people in the room.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        `civiccircle-chat-reactions:${roomId}`,
+        JSON.stringify(reactions),
+      );
+    } catch {
+      // Storage can be unavailable in private mode; reactions still work in memory.
+    }
+  }, [reactions, roomId]);
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  function clearLongPress() {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
+  function openReactionPicker(messageId: string, clientX: number, clientY: number) {
+    const maxLeft = Math.max(8, window.innerWidth - REACTION_PICKER_WIDTH - 8);
+    const left = Math.min(Math.max(8, clientX - REACTION_PICKER_WIDTH / 2), maxLeft);
+    const top = Math.max(
+      8,
+      Math.min(clientY - REACTION_PICKER_HEIGHT - 10, window.innerHeight - REACTION_PICKER_HEIGHT - 8),
+    );
+    setReactionTarget({ messageId, x: left, y: top });
+  }
+
+  function openReactionPickerForRow(messageId: string, element: HTMLElement) {
+    const rect = element.getBoundingClientRect();
+    openReactionPicker(
+      messageId,
+      rect.left + Math.min(rect.width / 2, 120),
+      rect.top + 8,
+    );
+  }
+
+  function startLongPress(event: React.PointerEvent<HTMLElement>, messageId: string) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    clearLongPress();
+    const x = event.clientX;
+    const y = event.clientY;
+    longPressOriginRef.current = { x, y };
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      openReactionPicker(messageId, x, y);
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(12);
+      }
+    }, 450);
+  }
+
+  function moveLongPress(event: React.PointerEvent<HTMLElement>) {
+    const origin = longPressOriginRef.current;
+    if (!origin) return;
+    if (Math.abs(event.clientX - origin.x) > 8 || Math.abs(event.clientY - origin.y) > 8) {
+      clearLongPress();
+      longPressOriginRef.current = null;
+    }
+  }
+
+  function endLongPress() {
+    clearLongPress();
+    longPressOriginRef.current = null;
+  }
+
+  function toggleReaction(messageId: string, emoji: string) {
+    setReactions((prev) => {
+      const current = prev[messageId] ?? [];
+      const next = current.includes(emoji)
+        ? current.filter((item) => item !== emoji)
+        : [...current, emoji];
+      const updated = { ...prev };
+      if (next.length > 0) updated[messageId] = next;
+      else delete updated[messageId];
+      return updated;
+    });
+    setReactionTarget(null);
+  }
+
   function handleScroll() {
     const el = scrollRef.current;
     if (!el) return;
@@ -469,43 +605,27 @@ const lastGifQueryRef = useRef<string | null>(null);
     <div className="mobile-container chat-page relative h-[100dvh] overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--canvas)]">
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 pt-[max(env(safe-area-inset-top),10px)]">
-          <div className="flex min-w-0 items-center gap-2">
-            <Link
-              href="/home"
-              className="btn btn-icon btn-secondary text-[var(--mute)]"
-              aria-label="Back to home"
-            >
-              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            </Link>
-            <div className="min-w-0">
-              <h1 className="truncate text-[14px] font-medium text-[var(--ink)]">
-                {isGlobal ? "General - Community chat" : roomTitle}
-              </h1>
-              <p className="text-[12px] text-[var(--ash)]">
-                {isGlobal ? "Everyone on CivicCircle" : "Community chat"}
-              </p>
-            </div>
-          </div>
-
-          <span className="inline-flex flex-none items-center gap-1.5 text-[12px] text-[var(--ash)]">
-            <span className="h-1.5 w-1.5 bg-[var(--accent-ember)]" />
-            Live
-          </span>
+        <div className="relative px-4 pb-3 pt-[max(env(safe-area-inset-top),16px)] text-center">
+          <Link
+            href="/home"
+            aria-label="Back to home"
+            className="btn btn-icon btn-secondary absolute left-2 top-[max(env(safe-area-inset-top),16px)] text-[var(--mute)]"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </Link>
+          <h1 className="truncate text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] sm:text-[38px]">
+            {isGlobal ? "General" : roomTitle}
+          </h1>
+          <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-[var(--mute)]">
+            <span>Community chat</span>
+            <span className="h-1 w-1 rounded-full bg-[var(--ash)]" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+              Live
+            </span>
+          </p>
         </div>
       </header>
-
-      {/* Encryption banner */}
-      <div className="border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 text-center">
-        <p className="inline-flex items-center justify-center gap-1.5 text-[12px] text-[var(--mute)]">
-          <ShieldCheck className="h-3.5 w-3.5 text-[var(--ash)]" strokeWidth={1.7} />
-          <span>
-            {isGlobal
-              ? "Messages are shared with everyone on CivicCircle."
-              : "Messages are shared with others in this city."}
-          </span>
-        </p>
-      </div>
 
       {chatError ? (
         <div className="flex flex-col items-center gap-1.5 border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-3 text-center">
@@ -529,8 +649,17 @@ const lastGifQueryRef = useRef<string | null>(null);
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3"
+        className="flex-1 overflow-y-auto px-4 pb-4 pt-1 sm:px-6"
       >
+        <div className="flex items-center justify-center gap-1.5 py-2 text-center text-[11px] text-[var(--ash)]">
+          <ShieldCheck className="h-3 w-3 flex-none" strokeWidth={1.7} aria-hidden="true" />
+          <span>
+            {isGlobal
+              ? "Messages are shared with everyone on CivicCircle."
+              : "Messages are shared with others in this city."}
+          </span>
+        </div>
+
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6 text-center">
             <div className="flex flex-col items-center">
@@ -548,67 +677,107 @@ const lastGifQueryRef = useRef<string | null>(null);
         ) : (
           <>
             {loadingOlder ? (
-              <div className="space-y-2.5" aria-label="Loading earlier messages">
+              <div className="space-y-4 py-2" aria-label="Loading earlier messages">
                 {[0, 1].map((i) => (
-                  <div key={i} className="flex w-full justify-start">
-                    <div className="mr-2 mt-5 flex h-9 w-40 max-w-[82%] items-center rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface-card)] p-2.5">
-                      <div className="h-2.5 w-full animate-pulse rounded bg-[var(--surface-elevated)]" />
-                    </div>
+                  <div key={i} className="space-y-2">
+                    <div className="h-3 w-28 animate-pulse rounded bg-[var(--surface-elevated)]" />
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--surface-elevated)]" />
                   </div>
                 ))}
               </div>
             ) : null}
-            {messages.map((m) => {
-            const gifUrl = parseGifUrl(m.body);
-            return (
-            <div
-              key={m.id}
-              className={`flex w-full ${m.fromYou ? "justify-end" : "justify-start"}`}
-            >
-              {!m.fromYou && (
-                <DefaultAvatar
-                  name={m.author}
-                  seed={m.author_username || m.author}
-                  size="sm"
-                  className="mr-2 mt-5 shrink-0"
-                />
-              )}
-              <div className={`flex min-w-0 max-w-[82%] flex-col ${m.fromYou ? "items-end" : "items-start"}`}>
-                {!m.fromYou && (
-                  <span className="mb-1 ml-0.5 text-[11px] font-medium tracking-[0.3px] text-[var(--mute)]">
-                    {m.author}
-                  </span>
-                )}
-                <div
-                  className={`max-w-full rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[14px] leading-relaxed ${
-                    m.fromYou
-                      ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                      : "border border-[var(--hairline)] bg-[var(--surface-card)] text-[var(--body-text)]"
-                  }`}
-                >
-                  {gifUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={gifUrl}
-                      alt="GIF"
-                      loading="lazy"
-                      className="max-h-56 w-full rounded-[10px] object-cover"
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                  )}
+            {messages.map((m, index) => {
+              const gifUrl = parseGifUrl(m.body);
+              const day = messageDayKey(m.createdAt);
+              const previousDay = messageDayKey(messages[index - 1]?.createdAt);
+              const showDay = day !== "" && day !== previousDay;
+              const selectedReactions = reactions[m.id] ?? [];
+
+              return (
+                <Fragment key={m.id}>
+                  {showDay ? (
+                    <div
+                      className="flex items-center gap-3 py-3"
+                      role="separator"
+                      aria-label={messageDayLabel(m.createdAt)}
+                    >
+                      <span className="h-px flex-1 bg-[var(--hairline)]" />
+                      <span className="text-[12px] font-medium text-[var(--ash)]">
+                        {messageDayLabel(m.createdAt)}
+                      </span>
+                      <span className="h-px flex-1 bg-[var(--hairline)]" />
+                    </div>
+                  ) : null}
+
                   <div
-                    className={`mt-1 text-right text-[12px] tracking-[0.2px] ${
-                      m.fromYou ? "text-black/55" : "text-[var(--ash)]"
-                    }`}
+                    className="chat-message -mx-2 rounded-[12px] px-2 py-1.5 outline-none focus-visible:bg-[var(--surface-elevated)]"
+                    tabIndex={0}
+                    role="article"
+                    aria-label={`Message from ${m.fromYou ? "you" : m.author}`}
+                    onPointerDown={(event) => startLongPress(event, m.id)}
+                    onPointerMove={moveLongPress}
+                    onPointerUp={endLongPress}
+                    onPointerCancel={endLongPress}
+                    onPointerLeave={endLongPress}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      openReactionPicker(m.id, event.clientX, event.clientY);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openReactionPickerForRow(m.id, event.currentTarget);
+                      }
+                    }}
                   >
-                    {m.delivery === "sending" ? "Sending..." : m.time}
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className={`text-[13px] font-semibold ${
+                          m.fromYou ? "text-[var(--accent-ink)]" : "text-[var(--ink)]"
+                        }`}
+                      >
+                        {m.fromYou ? "You" : m.author}
+                      </span>
+                      <span className="text-[11px] tabular-nums text-[var(--ash)]">
+                        {m.delivery === "sending" ? "Sending..." : formatClock(m)}
+                      </span>
+                    </div>
+
+                    {gifUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={gifUrl}
+                        alt="GIF"
+                        loading="lazy"
+                        draggable={false}
+                        className="mt-1.5 max-h-60 w-auto max-w-[240px] rounded-[10px] border border-[var(--hairline)] object-cover"
+                      />
+                    ) : (
+                      <p className="mt-0.5 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[var(--body-text)]">
+                        {m.body}
+                      </p>
+                    )}
+
+                    {selectedReactions.length > 0 ? (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {selectedReactions.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => toggleReaction(m.id, emoji)}
+                            className="chat-react-pill"
+                            aria-label={`Remove ${emoji} reaction`}
+                          >
+                            <span aria-hidden="true">{emoji}</span>
+                            <span className="text-[10px] font-medium">1</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              </div>
-            </div>
-            );
-          })}
+                </Fragment>
+              );
+            })}
           </>
         )}
       </div>
@@ -626,17 +795,20 @@ const lastGifQueryRef = useRef<string | null>(null);
       )}
 
       {/* Input Bar */}
-      <footer className="border-t border-[var(--hairline)] bg-[var(--canvas)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
-        <form onSubmit={handleSend} className="flex items-center gap-2">
+      <footer className="border-t border-[var(--hairline)] bg-[var(--canvas)] px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+        <form
+          onSubmit={handleSend}
+          className="chat-composer flex items-center gap-1 rounded-[16px] border border-[var(--hairline)] bg-[var(--surface)] px-2 py-1.5"
+        >
           {!isGlobal ? (
             <>
               <button
                 type="button"
                 onClick={() => attachRef.current?.click()}
-                className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+                className="btn btn-icon btn-secondary flex-none text-[var(--mute)]"
                 aria-label="Attach file"
               >
-                <Paperclip className="h-4 w-4" strokeWidth={1.8} />
+                <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
               <input
                 ref={attachRef}
@@ -674,31 +846,74 @@ const lastGifQueryRef = useRef<string | null>(null);
 
           <button
             type="button"
-            onClick={() => setGifOpen(true)}
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] border border-[var(--hairline)] bg-[var(--surface-elevated)] text-[var(--mute)] transition-colors hover:border-[var(--hairline-strong)] hover:text-[var(--ink)]"
+            onClick={() => {
+              setReactionTarget(null);
+              setGifOpen(true);
+            }}
+            className="btn btn-icon btn-secondary flex-none text-[var(--mute)]"
             aria-label="Search GIFs"
           >
-            <Film className="h-4 w-4" strokeWidth={1.8} />
+            <Film className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
 
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="field h-10 min-h-0 flex-1 px-4"
+            onFocus={() => setReactionTarget(null)}
+            placeholder={`Message #${isGlobal ? "General" : roomTitle}`}
+            className="chat-composer-input h-10"
+            aria-label={`Message #${isGlobal ? "General" : roomTitle}`}
           />
 
-          <button
-            type="submit"
-            disabled={!input.trim() || sending}
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-pressed)] disabled:cursor-not-allowed disabled:bg-[var(--surface-elevated)] disabled:text-[var(--ash)] active:scale-95"
-            aria-label="Send message"
-          >
-            <Send className="ml-0.5 h-4 w-4" strokeWidth={2} />
-          </button>
+          {input.trim() ? (
+            <button
+              type="submit"
+              disabled={sending}
+              className="btn btn-icon btn-primary flex-none"
+              aria-label="Send message"
+            >
+              <Send className="ml-0.5 h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
         </form>
       </footer>
+
+      {reactionTarget && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                aria-label="Close reactions"
+                className="fixed inset-0 z-[90] cursor-default bg-transparent"
+                onClick={() => setReactionTarget(null)}
+              />
+              <div
+                role="dialog"
+                aria-label="React to message"
+                className="chat-react-picker fixed z-[91] flex items-center gap-0.5 rounded-full border border-[rgba(29,185,84,0.35)] bg-[var(--surface)] p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+                style={{ left: reactionTarget.x, top: reactionTarget.y }}
+              >
+                {REACTION_EMOJIS.map((emoji) => {
+                  const active = (reactions[reactionTarget.messageId] ?? []).includes(emoji);
+                  return (
+                    <button
+                      key={emoji}
+                      type="button"
+                      aria-label={`React with ${emoji}`}
+                      aria-pressed={active}
+                      className={`chat-react-emoji ${active ? "is-active" : ""}`}
+                      onClick={() => toggleReaction(reactionTarget.messageId, emoji)}
+                    >
+                      <span aria-hidden="true">{emoji}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
 
       {gifOpen && typeof document !== "undefined"
         ? createPortal(
