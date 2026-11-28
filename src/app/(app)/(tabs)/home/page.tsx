@@ -377,6 +377,12 @@ function HomeContent() {
 
   function startPromptPost(prompt: string) {
     setErrorMsg(null);
+    const onboarded = typeof window !== "undefined" ? localStorage.getItem("civiccircle-onboarded") === "true" : false;
+    const ageVerified = typeof window !== "undefined" ? localStorage.getItem("civiccircle-age-verified") === "true" : false;
+    if (!onboarded || !ageVerified) {
+      router.replace("/onboarding");
+      return;
+    }
     setPostTitle(prompt);
     setPostBody("");
     setCreatePostOpen(true);
