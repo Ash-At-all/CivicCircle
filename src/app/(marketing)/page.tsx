@@ -367,14 +367,11 @@ export default function RootPage() {
                     className="ring-2 ring-[#121212]"
                   />
                 ))}
-                <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full border border-[#303030] bg-[#242424] text-[10px] font-medium text-[#b3b3b3] ring-2 ring-[#121212]">
-                  +1.2k
-                </span>
               </div>
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-[13px] font-medium text-white">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#1db954]" aria-hidden="true" />
-                  1,200+ neighbours nearby
+                  Neighbours nearby
                 </p>
                 <p className="truncate text-[12px] text-[#b3b3b3]">
                   {heroPlace ? `Around ${heroPlace}` : "Around your area"}
