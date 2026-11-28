@@ -13,7 +13,6 @@ import {
   Search,
   ShieldCheck,
   Store,
-  ThumbsUp,
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/ui/default-avatar";
 
@@ -384,55 +383,38 @@ export default function RootPage() {
             </div>
           </div>
 
-          {/* Community preview */}
+          {/* Local update */}
           <div className="min-w-0">
             <p className="mb-3 inline-flex items-center gap-2 text-[12px] text-[#b3b3b3]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#1db954]" aria-hidden="true" />
-              Live from the community
+              Local update
             </p>
 
             <article className="rounded-[18px] border border-[#303030] bg-[#181818] p-5 sm:p-6">
-              <div className="flex items-start gap-3">
-                <DefaultAvatar name="quiet_peepal" size="md" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <p className="text-[14px] font-semibold text-white">quiet_peepal</p>
-                    <span className="text-[11px] text-[#b3b3b3]">Ghost handle</span>
-                  </div>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-[#b3b3b3]">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="h-3 w-3" strokeWidth={1.8} aria-hidden="true" />
-                      Kacheri Road
-                    </span>
-                    <span aria-hidden="true">·</span>
-                    <span>12 min ago</span>
-                  </p>
-                </div>
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-[20px] font-semibold leading-snug tracking-[-0.01em] text-white sm:text-[22px]">
+                  GTA 6 PC at 4K 120 FPS, patched by Claude Opus 5.5 and Fable 5.2
+                </h2>
                 <span className="flex-none rounded-[6px] border border-[#303030] px-2 py-1 text-[10px] font-medium text-[#b3b3b3]">
-                  Local update
+                  1 day ago
                 </span>
               </div>
 
-              <p className="mt-4 text-[15px] leading-relaxed text-[#e8e8e8]">
-                The lane behind the market is open again. Water works finished early, so autos
-                are back on the usual route. Thanks to everyone who flagged it yesterday.
+              <p className="mt-3 text-[14px] leading-relaxed text-[#e8e8e8]">
+                A new clip claims the PC build is running at 4K 120 FPS after the patch. If it
+                holds up, Rockstar has a lot to answer for.
               </p>
 
-              <div className="mt-5 flex items-center gap-5 border-t border-[#303030] pt-4 text-[12px] text-[#b3b3b3]">
-                <span className="inline-flex items-center gap-1.5 text-[#1db954]">
-                  <ThumbsUp className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-                  24
-                  <span className="sr-only">likes</span>
-                </span>
+              <div className="mt-5 flex items-center gap-4 border-t border-[#303030] pt-4 text-[12px] text-[#b3b3b3]">
                 <span className="inline-flex items-center gap-1.5">
-                  <MessageSquare className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />6
-                  <span className="sr-only">replies</span>
+                  <MessageSquare className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                  Source: Reddit
                 </span>
                 <Link
                   href="/chat/general"
                   className={`ml-auto inline-flex items-center gap-1 rounded-[6px] text-[12px] font-medium text-[#1db954] transition-colors hover:text-[#1ed760] ${FOCUS_RING}`}
                 >
-                  Open chat
+                  Discuss
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
                 </Link>
               </div>
